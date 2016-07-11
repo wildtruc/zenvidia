@@ -1,0 +1,225 @@
+#! /bin/bash
+
+## Main Menu
+Aa=" Installer"
+Ab=" Mettre à jour"
+Ac=" Modifier"
+Ad=" Réparer"
+Af=" Outils"
+Ag=" Tests et Support"
+
+E=" Donload only"
+F=" Back to main menu"
+G=" Retour au menu principal"
+S="Sortir"
+## menu install
+A1=" $(echo -e "From a local archive $r*$j")"
+A2=" $(echo -e "From a local package $r*$j")"
+A3=" $(echo -e "From NVIDIA server $r*$j")"
+A4=" Supprimer"
+A5=" Sauvegarder"
+## menu manage
+B1=" Build an archive only"
+B2=" $(echo -e "Uninstall actual driver $r*$j")"
+B3=" Stop X server"
+B4=" Restart X server"
+B5=" Check avialable updates"
+B6=" Download script updates"
+H=" $(echo -e ""$r"Help$j")"
+C=" $(echo -e ""$r"Configuration interface$j")"
+D=" $(echo -e ""$r"Nvidia-settings Interface$j")"
+I=" Quit"
+M=" Back"
+An=" Annulation"
+As=" Sortie"
+R="Retour"
+CC="Confirmer"
+## menu goodies
+G1=" $(echo -e "Build only the driver $r*$j")"
+G2=" $(echo -e "Build the driver \for another kernel $r*$j")"
+G3=" $(echo -e "Mise à jour des sources Optimus (GIT) ")"
+G4=" Mise à jour du pilote"
+## menu modif 
+G5=" Éditer le fichier xorg.conf"
+G6=" Éditer le fichier de configuration"
+G7=" Gérer"
+G8=" Nvidia Settings"
+G9=" Gérer les paquets"
+G10=" Compiler"
+## menu manage_pcks
+G9a="Supprimer"
+G9b="Sauvegarder"
+G9c="Restaurer"
+G9d="Suppression du pilote"
+G9e="Sauvegarde du pilote"
+G9f="Supprimer également le répertoire associé dans le dossier"
+G9g="Veuillez confirmer cettes action :"
+G9h="Supprimer le répertoire d'origine"
+## menu manage
+G15=" Test GLX"
+G16=" Manuel"
+G17=" Journal des modifications"
+G18=" À propos de zenvidia "
+## menu test
+G20="GLXGears"
+G21="GLXSpheres"
+## menu config
+C1=" "
+C2=" "
+C3=" "
+C4=" "
+C5=" "
+C5A=" "
+C5B=" "
+C5C=" "
+C5D=" "
+## menu comment
+ET="et"
+
+## Classic questions
+qst001="(y/n)"
+qst002="Are you sure ?"
+qst003="Type $j[C]$v to confirm.\n\t Else, type$j [Q]$v to leave."
+qst004="y"
+
+## Classic answer
+ans001="y"
+ans002="Your Choice :"
+ans003="n"
+ansOK="OK"
+ansNF="NON PRÉSENT"
+ansNA="NONE"
+ansCH="CHARGÉ"
+ansNH="NON CHARGÉ"
+ansCF="Confirmer l'action :"
+
+### dependencies control
+msg101="Distro is not define. Install script dependencies manually " # 97
+#msg102="$y INSTALL RUNNING..." # 105
+#msg103="$y INSTALL DONE..." # 107
+msg106="WARNING!$v You are not connected to the network.\n  If I have to make an update from the server,\n  I need a valid connection." # 133
+msg111="Connexion réseau "
+# Internet connection control function.
+msg116="true"
+msg117="not true."
+msg118="over"
+### check aviable updates
+msg212="official"
+msg213="BETA"
+
+msg201="Avialable drivers for " # 263
+msg202="Present version is :  " # 264
+msg203="Last $msg212 is :" # 265
+msg204="Last $msg213 is :" # 266
+msg205="Check connection"
+msg206="Downloading ftp data"
+msg207="Check compatibilities"
+msg208="is NOT VDPAU Video compliant"
+msg209="is VDPAU Video compliant with feature class"
+msg210="is suitable for your device"
+msg211="is$r NOT$v suitable for your device"
+
+msg215="What do you want to do?"
+msg215a="La version installée ("
+msg215b=") est déjà la dernière mise à jour.\nRien à faire."
+msg215c1="est"
+msg215c2="n'est pas"
+msg215c3="BETA et Officiel sont"
+msg215e="dans votre répertoire"
+msg215f="Retounez au menu \"Installer\" si besoin"
+msg216="Choix du répertoire d'installation"
+msg217="Standard (GPU unique)"
+msg218="Remplacer le pilote de la distribution"
+msg218b="Multi GPU via optimus"
+msg219=", optimus/bumblebee n'a pas été détecté, L'installer depuis les sources GIT ?'.
+(confirmer en pressant ENTRÉE )"
+msg219a="Installation en version multi GPU (optimus/bumblebee est présent)."
+msg219b="Installation du pilote dans $predifined_dir."
+msg219c="Installation du pilote"
+msg219d="pour le matériel"
+
+msg301="INSTALL STARTS, PLEASE WAIT!" # 311
+msg302="Congratulation! Your driver is installed." # 313
+msg303="Driver copy backup" # 321
+msg304="I could proceed to archiving." # 321
+msg305="successful" # 324
+msg306="unsuccessful." # 324
+msg307="The Script needs this backup for further archiving\n and other operations. Do it manually\n and ask the author to fix this." # 325
+
+msg309="Hit a key to continu." # 328
+msg310="Ouch!$v You don't have a valid NVIDIA package in this directory \n I suggest you to go to NVIDIA site," # 334
+msg311="here :" # 335
+msg312="and, please baby come back to me!." # 337
+msg313="Back to main menu or restart X server ?" # 338
+msg314="Main menu." # 339
+msg315="Restart X." # 339
+msg316="or to the NVIDIA ftp repos"
+# f2
+msg320="Here is the list of present driver(s) in the NVIDIA path:" # 351
+msg321="You can select one of them or select an other from user directory:" # 353
+msg322="Present version" # 354
+msg323="User dir" # 355
+msg324="Here is the listing of" # 360
+msg325="Let go on in" # 379
+msg326="Use [TAB] to follow the yellow brick road to your driver :" # 381
+### UPDATE FUNCTION, FROM INTERNET.
+# download functions
+msg401="PLEASE WAIT!" # 396
+msg402="DOWNLOAD DONE." # 398
+msg405="Controling content"
+msg406="The request package"
+msg407="doesn't existe"
+msg408="list content of"
+msg409=""
+msg410="DOWNLOADING"
+# script
+msg412="Type $j[C]$v to choose one of those versions." # 429
+msg413="Please select your desired version:" # 432
+msg414="Official driver download " # 439
+msg413a="officielle"
+msg413b="beta"
+msg413c="ancienne version"
+msg414="téléchargement du pilote officiel" # 439
+msg415="BETA driver download" # 447
+msg415a="téléchargement du pilote"
+msg415b="Erreur de téléchargement\nLa taille du paquet local diffère de l'original.\nRecommencez."
+msg415c="Téléchargement du pilote"
+msg415d="achever."
+msg415e="interrompu"
+msg416="$jOoops!$v No nvidia-installer in my dir.\n I have to work with local package" # 463
+msg417=" Connect me and restart the script."
+msg419="Other"
+msg420="Pick a driver in the list"
+msg421="Your choice is :"
+msg422="or an older from a list in next menu."
+msg423="Else, type $j[M]$v to go back to main menu."
+### ARCHIVING.
+# sub function method
+msg509="Select $j$G$v in main menu." # 500
+### UNINSTALL fUnction
+msg531="UNINSTALL RUNING!" # 604
+msg532="Done, back to menu." # 606
+### MAIN MENU
+msg601="What do you want to do?:" # 611
+msg603="Update from a local NVIDIA package. " # 619
+msg604="Retriving informations from NVIDIA server." # 622
+msg606="remove the present driver" # 628
+msg607="Stopping the Graphic Interface" # 631
+msg608="Restarting the Graphic Interface" # 635
+msg609="Retrieving list" # 639
+msg610="Build a module from a selected source"
+msg611="Choose the Kernel to update"
+msg612="Updating kernel"
+msg613="Done, back to main menu"
+msg614="Build a new module for the running kernel"
+msg615="Script updates download"
+### FIRST START
+msg701="  DRIVER STUFFER PRO  " # 650
+msg706="System :" # 658 a
+msg707="Processor type :" # 658 b
+msg708="Board :" # 658 c
+msg709="Working directories control." # 659
+msg710="Directories are present." # 669
+msg711="The$j NVIDIA MAKER$y directory doesn't exist" # 673
+msg712="Choose the directory you want, I prefer /usr/local/src/" # 674
+

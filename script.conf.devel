@@ -1,0 +1,66 @@
+# default desktop user id
+def_user=mike
+# nvidia ftp url
+nvidia_ftp=download.nvidia.com/XFree86/Linux
+# put var to 1 if the NVIDIA Graphic card is CUDA compatible
+cuda=1
+# locale language files directory
+locale="home/mike/Developpement/svn/nvidia-maker-installer/"
+# locale language for ui
+LG=FR
+
+# download delay (nvidia-zen only): in some machine,
+# delay to access NVIDIA server could be long
+# default delay is set to "2", but can give more, but not less.
+dl_delay=2
+
+## Master Vars (could be custom at first start)
+
+# default script and nvidia binaries directory
+install_dir=/usr/local
+# default script data directory
+nvdir="$install_dir/NVIDIA"
+# alternate modules lib directory
+croot=/opt
+# usual distro directory name for nvidia driver
+predifined_dir="nvidia-current"
+# use dkms script by default (1) or not (0)
+use_dkms=1
+# uses direct (0) or indirect (1) GL libs
+use_indirect=0
+
+## insternal vars (not necessary to custom)
+
+# archies directory (when used)
+nvtar="$nvdir/tgz"
+
+# install temp directory
+nvtmp="$nvdir/temp"
+buildtmp="$nvdir/build"
+
+# install logs directory
+nvlog="$nvdir/log"
+
+# driver installer backup and storage directory
+nvdl="$nvdir/release"
+
+# update temp directory				
+nvupdate="$nvdir/update"
+
+## nvidia-installer option
+logfile="--log-file-name=$nvlog/install.log"
+temp="--tmpdir=$buildtmp"
+dltemp="--tmpdir=$nvupdate"
+kernel="--kernel-install-path"
+kernel_src="--kernel-source-path"
+
+# bumblebee 
+tool_dir=/usr/local
+optimus_src=/home/mike/Developpement/optimus
+bumblebee_git=https://github.com/Bumblebee-Project/Bumblebee.git
+bbswitch_git=https://github.com/Bumblebee-Project/bbswitch.git
+primus_git=https://github.com/amonakov/primus.git
+nv_git=https://github.com/NVIDIA/nvidia-installer.git
+
+# nvidia ftp url
+nvidia_ftp=download.nvidia.com/XFree86/Linux
