@@ -15,9 +15,7 @@ _04=" Tests et Support" # Ag
 _05=" Réparer" # Ad
 _06=" Télécharger"
 _07=" Retour"
-#_0f=" Modifier" # Ac
 ## menu install
-#_1a=" $(echo -e "Depuis une archive locale ")" # A1
 _1a=" Depuis un paquet local" # A2
 _1b=" Depuis le serveur NVIDIA" # A3
 _1c=" Installer Optimus (GIT)" # B6
@@ -41,27 +39,25 @@ _4c=" Journal des modifications" # G17
 _4d=" À propos de zenvidia " # G18
 
 ## menu manage_pcks
-G9a="Supprimer" # G9a
-G9b="Sauvegarder" # G9b
-G9c="Restaurer" # G9c
-G9d="Suppression du pilote" # G9d
-G9e="Sauvegarde du pilote" # G9e
-G9f="Supprimer également le répertoire associé" # G9f
-G9g="Veuillez confirmer cettes action :" # G9g
-G9h="Supprimer le répertoire d'origine" # G9h
+_6a="Supprimer" # G9a
+_6b="Sauvegarder" # G9b
+_6c="Restaurer" # G9c
+_6d="Suppression du pilote" # G9d
+_6e="Sauvegarde du pilote" # G9e
+_6f="Supprimer également le répertoire associé" # G9f
+_6g="Veuillez confirmer cettes action :" # G9g
+_6h="Supprimer le répertoire d'origine" # G9h
 
-## menu test
-G20="GLXGears" # G20
-G21="GLXSpheres" # G21
+## menu glx test
+_7a="GLXGears" # G20
+_7b="GLXSpheres" # G21
 
 ## Classic answer
 ansOK="OK"
 ansNF="NON PRÉSENT"
-ansNA="NONE"
-ansCF="Confirmer l'action :"
-
-### NETWORK CONTROL
-msg205="Contrôle de la connexion" # 205
+ansNA="AUCUNE"
+ansCF="Confirmer l'action."
+ansWN="Que voulez-vous faire ?" # *
 
 ### FIRST START
 msg_00_01="DRIVER BIDOUILLEUR PRO" # 701*
@@ -70,6 +66,12 @@ msg_00_04="Carte" # 708*
 msg_00_06="Les répertoires sont présents." # 710
 msg_00_07="Le répertoire NVIDIA n'existe pas" # 711*
 msg_00_08="Choisissez en emplacement (préférer /usr/local/)" # 712*
+# connection_control
+msg_00_10="Contrôle de la connexion" # 205
+msg_00_11=" Aucune connexion internet détectée.\nUne connexion valide est nécessaire\npour tout téléchargement." # 106
+msg_00_06="Connexion réseau " # 111
+# dependencies control
+msg_00_12="La distribution n'est pas définie. Installez les dépendences manuellement " # 101
 
 ## MAIN MENU
 msg_0_00="Type processeur :" # 707*
@@ -77,19 +79,25 @@ msg_0_01="Version pilote installé :" # 202
 msg_0_02="Version noyau :" # 202a
 msg_0_03="Version GCC :" # 202b
 msg_0_04="Version binaire NVIDIA :" # 202c
-msg_0_05="Contrôle des répertoires de travail" # 709*
+msg_0_05="Contrôle des répertoires de travail" # 709
+msg601="Que voulez-vous faire ?" # *
 
 ## MENU INSTALL
 msg_1_01="Mise à jour depuis un paquet NVIDIA en local. " # 603
 msg_1_02="Retrait des informations depuis le serveur NVIDIA." # 604
-msg_1_03="Installation d'Optimus depuis les sources GIT" # 617
+msg_1_03="Installation d'Optimus depuis les souces GIT" # 617
 msg_1_04="Retrait du pilote installé" # 606
 
 ## MENU UPDATE
 msg_2_01="Construire un module pour le noyau courant" # 614
 msg_2_02="Construire un module pour un noyau sélectionné" # 610
 msg_2_03="Mise à Jour d'Optimus" # 618
-msg_2_04="Retrait de la liste des mise à jours" # 609
+msg_2_04="Retrait de la liste des mises à jours" # 609
+
+## MENU OPTIMUS 
+msg_3_01="Installation de Bumblebee (virtualisation intergrée)"
+msg_3_02="Installation de Prime (un GPU à la fois)"
+msg_3_03="$vB\Two solutions:$end$v\n\t- Application intergrated with Bumblebee.\n\t- One GPU at a time with Prime.$end"
 
 ## MESSAGE INSTALL
 # from directory
@@ -103,20 +111,18 @@ m_01_06="Sélectionnez un fichier depuis le répertoire personnel" # 325
 # check_update
 m_01_07="Téléchargement des données ftp" # 206
 m_01_08="Contrôle de compatibilité" # 207
-#msg208="n'est pas compatible VDPAU"
-#msg209="compatible VDPAU de classe"
 m_01_09="n'est pas compatible." # 208
 m_01_10="compatible" # 209
 m_01_11="convient à votre matériel " # 210
 m_01_12="ne supporte plus votre matériel" # 211a
 
 # win_update
-m_01_13="Que voulez-vous faire?" # 215
+m_01_13="Que voulez-vous faire ?" # 215
 m_01_14a="est" # 215c1
 m_01_14b="n'est pas" # 215c2
 m_01_14c="BETA et Officiel sont" # 215c3
 m_01_16="dans votre répertoire" # 215e
-m_01_17="Retounez au menu \"Installer\" si besoin" # 215f
+m_01_17="Retounez au menu [Installer] si besoin" # 215f
 m_01_18="installé" # 215g
 m_01_19="Pilotes actuellement disponibles" # 201
 ### check available updates
@@ -126,7 +132,7 @@ m_01_20="La version $m_01_20a est :" # 203
 m_01_21="La dernière $m_01_20b est :" # 204
 
 # nv_cmd_uninstall
-m_01_22="Retrait des anciens paquets"
+m_01_70="Retrait des anciens paquets"
 
 # upgrade_kernel / upgrade_new_kernel
 m_02_01="Mise à jour du noyau" # 612
@@ -155,15 +161,14 @@ m_01_23="Remplacer le pilote de la distribution" # 218
 m_01_24="Multi GPU via optimus" # 218b
 m_01_25="Choix du répertoire d'installation" # 216
 m_01_26="Le répertoire par défaut prédéfini est"
-m_01_27="Installation en version multi GPU (optimus/bumblebee est présent)." # 219a
-m_01_28=", optimus/bumblebee n'a pas été détecté, L'installer depuis les sources GIT ?'.
+m_01_27a="Installation en version multi GPU" # 219a
+m_01_27b="existe"
+m_01_28=" n'a pas été détecté, L'installer depuis les sources GIT ?'.
 (confirmer en pressant ENTRÉE )" # 219
 m_01_29="Utiliser Bumblebee"
 m_01_30="Utiliser Prime"
-
-msg219b="Installation du pilote dans $predifined_dir." # 219b
-msg219c="Installation du pilote" # 219c
-msg219d="pour le matériel" # 219d
+m_01_31="bumblebee"
+m_01_32="prime"
 
 # optimus_src_ctrl
 m_02_16="Mise à jour"
@@ -184,142 +189,82 @@ m_02_28="Contrôler"
 m_02_29="Téléchargement et installation des sources"
 m_02_30="Compilation et installation des sources terminé"
 
-m_03_01=""
-
 # BUILDING
 # bb_build
-
 # bumble_build
-
 # primus_build
-
 # prime_build
 
 # installer_build
 m_03_51="$m_02_22"
 m_03_52="$m_02_23"
-m_03_53="Toutes les dépendences sont isntallées"
+m_03_53="Toutes les dépendences sont installées"
 # optimus_source_rebuild
-
 # re_build
-
 # install_drv
+m_03_60="Démarrage de l'installation..." # 301
+m_03_61="Copie de sauvegarde du pilote" # 303
+m_03_62="avec succès" # 305
+m_03_63="Je peux procéder à l'archivage." # 304
+m_03_64="sans succès." # 306
+m_03_65="Félicitation! Votre pilotes est installé." # 302
+#msg309="Enfoncer un touche pour continuer." # 328
+m_03_66="Aïe!$v Pas de paquet NVIDIA valide dans le répertoire \n Aller sur le site NVIDIA," # 310
+m_03_67="ici :" # 311
+m_03_68="ou sur le dépot ftp NVIDIA" # 316
+m_03_69="Installation du pilote" # 219c
+m_03_70="pour le matériel" # 219d
+
+# post_install
+
 
 # download_menu
 m_01_40="Choisissez la version à installer:" # 413
 m_01_41="officielle" # 413a
 m_01_42="beta" # 413b
-m_01_43="ancienne version" # 413c
-#msg414="téléchargement du pilote officiel" # 414
-#msg415="téléchargement du pilote BETA" # 415
+m_01_43a="Autre" # 419
+m_01_43b="ancienne version" # 413c
 # download_only
 m_01_44="téléchargement du pilote" # 415a
 m_01_45="Erreur de téléchargement\nLa taille du paquet local diffère de l'original.\nRecommencez." # 415b
 m_01_46="Téléchargement du pilote" # 415c
 m_01_47="achever." # 415d
 m_01_48="interrompu" # 415e
-m_01_49="$jOoops!$v Pas de nvidia-installer dans mon répertoire.\n Je dois installer un paquet en local" # 416
+m_01_49="Binaire $j\nvidia-installer$end$v manquant.\n Installation depuis le dépôt GIT ?" # 416
+m_01_50="Le paquet signifié" # 406
+m_01_51="n'existe pas" # 407
 
 # package_list
-m_01_50=""
+m_01_52="Liste des pilotes"
 # last_pack
-m_01_51=""
-m_01_52=""
-msg405="Contrôle du contenu distant..." # 405
+m_01_53="téléchargé à"
+m_01_54="temps restant"
+m_01_55="Contrôle du contenu distant..." # 405
+m_01_56="Préparation"
+m_01_57="Recherche de"
 
-### dependencies control
-msg101="La distribution n'est pas définie. Installez les dépendences du script manuellement " # 97
-#msg102="$y INSTALLATION EN COURS..." # 105
-#msg103="$y INSTALLATION TERMINÉE..." # 107
-### start messages
-msg120="$r Le pilote NVIDIA est actuellement chargé."
-msg121="$y Il est actuellement utilisé par le système"
-msg122="$v Le pilote n'est pas actuellement utilisé par le système.\n Il est donc possible de l'installer en session graphique."
-msg123="$v Le pilote NVIDIA n'est pas chargé.\nL'installation peut continuer en mode graphique."
-msg121a=" est ne peut être déchargé (sécurité du binaire NVIDIA).\n Vous-devez arrêter la session graphique et relancer$j $(basename $0)$y.\n Lancez la section$j 4$y du menu pour stopper la session graphique."
-msg121b=", je tente de le décharger."
-msg124="$y Pilote déchargé avec succès."
-msg125="$r Je n'ai pas pu déchargerle pilote\n l'installation ne pourra pas avoir lieu."
+# from_net
+# edit_script_conf
+m_01_58="Éditer le fichier de conf du script"
+m_01_59="Confirmer la réécriture"
 
-msg106=" Aucune connexion internet détectée.\n Dans le cas d'un control de mise à jour,\n une connexion valide est obligatoire." # 133
-msg_0_06="Connexion réseau " # 111
+# edit_xorg_conf
+m_01_60="Éditer le fichier xorg.conf"
 
-# Internet connection control function.
-msg116="valide"
-msg117="non valide."
-msg118="sur"
-
-
-
-
-
-
-
-msg211b="$v.\n Passez ou restez à une version antérieure" # 211b
-msg211="$msg211a$msg211b" # 211
-
-
-msg215a="La version installée ("
-msg215b=") est déjà la dernière mise à jour.\nRien à faire."
-
-
-
-
-
-msg301="Démarrage de l'installation..." # 311
-msg302="Félicitation! Votre pilotes est installé." # 313
-msg303="Copie de sauvegarde du pilote" # 321
-msg304="Je peux procéder à l'archivage." # 321
-msg305="avec succès" # 324
-msg306="sans succès." # 324
-msg307="Le script a besoin de cette sauvegarde pour l'archivage\n et d'autre opération. Faites le maunellement\n et demandez à l'auteur d'arranger çà." # 325
-
-msg309="Enfoncer un touche pour continuer." # 328
-msg310="Aïe!$v Vous n'avez pas de paquet NVIDIA valide dans votre répertoire \n JE vous suggère d'aller sur le site NVIDIA," # 334
-msg311="ici :" # 335
-msg312="puis revenez me voir!." # 337
-msg313="Retour au menu principal ou redémarrage du serveur X ?" # 338
-msg314="Menu Principale." # 339
-msg315="Redémarrer X." # 339
-msg316="ou sur le dépot ftp NVIDIA"
-# f2
-
-msg326="Utilez [TAB] et suivez le chemin jusqu'à votre pilote :" # 326
-### UPDATE FUNCTION, FROM INTERNET.
-# download functions
-msg401="SOYEZ PATIENT!" # 396
-msg402="TÉLÉCHARGEMENT TERMINÉ." # 398
-
-msg406="Le paquet signifié"
-msg407="n'existe pas"
-msg408="liste les paquets de"
-msg409="à la place"
-msg410="TÉLÉCHARGEMENT"
-# script
-msg412="Tapez $j[C]$v l'une de ces versions." # 429
-
-
-msg417=" Connectez moi et redémarrez le script."
-msg419="Autre"
-msg420="Choisissez un pilote dans la liste"
-msg421="Votre choix est :"
-msg422="ou un plus ancien dans le menu suivant."
-msg423="Sinon, tapez $j[M]$v pour retourner au menu principal."
-### ARCHIVING.
-# sub function method
-msg509="Sélectionnez $j$G$v dans le menu principal." # 500
-### UNINSTALL fUnction
-msg531="DÉ-INSTALLATION EN COURS!" # 604
-msg532="fait, retour au menu principal." # 606
-### MAIN MENU
-
-
-
-
+# read_help
+m_01_61="Aide Zenvidia "
+# read_nv_help
+m_01_62="Nvidia man-page"
+# read_changelog
+m_01_63="Nvidia changelog"
+# nv_config
+# glx_test Press [ctrl+c] to end test
+m_01_64="Presser [ctrl+c] pour arrêter"
 
 ## VOCABULARY
 w_01="Téléchargements"
 w_02="Téléchargement"
+w_03="terminé"
 
 
  
