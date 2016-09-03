@@ -72,26 +72,7 @@ vB='<span color=\"#005400\" weight=\"bold\">'
 
 ### FUNCTIONS
 ID(){
-## card id
-#pci_bus=$($d_lspci | grep NVIDIA | awk '{print $1}'|sed -n "s/[[:punct:]]/:/g;p")
-#pci=$($d_lspci -nn | grep NVIDIA | awk '{ print $1 }')
-#device=$($d_lspci -n | grep "$pci" | grep NVIVIA | cut -d ':' -f 4 | awk '{ print $1 }')
-#device=$($d_lspci -nn | grep NVIDIA | sed -n 's/^.*\([[:digit:]]\|[[:alpha:]]\)://;s/].*$//p')
-## vendor GeForce,Quadro,NVS,Tesla,GRID
-#for pci_card in {GeForce,Quadro,NVS,Tesla,GRID}; do
-#	detected=$(lspci -nn | grep NVIDIA | sed -n "/$pci_card/p")
-#	if [[ "$detected" != '' ]]; then
-#		if [[ $(printf "$detected"| grep "\[$pci_card") != '' ]]; then
-#			device_name=$(printf "$detected" | sed -n "s/^.*\[$pci_card/$pci_card/;s/\] .*$//p")
-#		else
-#			device_name=$(printf "$detected" | sed -n "s/^.*$pci_card/$pci_card/;s/\ \[.*$//p")
-#		fi
-#		pci_0=$(printf "$detected"| awk '{print $1}')
-#		if [ $($d_lspci|grep -c VGA) -gt 1 ]; then
-#			pci_1=$($d_lspci|grep VGA|grep -v "$pci_0"|awk '{print $1}')
-#		fi
-#	fi
-#done
+## graphic cards id
 	i=0
 	unset pci_n
 	for vnd_list in {10de,8086,1022}; do
@@ -330,7 +311,7 @@ if [ -f /proc/version ] ; then
 		
 	fi
 else
-	echo -e "\f$r $msg101 " ###
+	echo -e "\f$r $msg_00_12 " ###
 fi
 }
 efi_warnings(){
@@ -360,40 +341,12 @@ dep_control(){
 	fi
 }
 
-driver_loaded(){
-	if [ ! -x $install_dir/bin/optirun ]; then
-		if [[ $(/sbin/lsmod | grep "nvidia") != '' ]]; then
-			pilote_msg="$j$msg120$end\n"
-			if [[ $(/sbin/lsmod | grep -w nvidia | awk '{print $3}' | sed -n '1p') -gt 0 ]]; then
-				pilote_msg="$msg121"
-				if [ -e /tmp/.X0-lock ]; then
-					pilote_msg="$msg121a\n"
-				else
-					pilote_msg="$msg121b\n"
-					modprobe -r nvidia
-					if [[ ! $(/sbin/lsmod | grep "nvidia") != '' ]]; then
-						pilote_msg="$msg124\n"
-					else
-						pilote_msg="$msg125\n"
-						exit 0
-					fi
-				fi
-			else
-				pilote_msg="$msg122\n"
-			fi
-		else
-			pilote_msg="\f$msg123\n"
-		fi
-	else
-			pilote_msg="$v$msg122$end\n"
-	fi
-}
 connection_control(){
 	cnx=$(ping -c2 nvidia.com)
 	cnx=$?
-	(	[[ $(ping -c2 nvidia.com) ]]|| (zenity --width=300 --error --text="$v$msg106$end")
+	(	[[ $(ping -c2 nvidia.com) ]]|| (zenity --width=300 --error --text="$v$msg_00_11$end")
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
-	--text="$v$msg205...$end" 
+	--text="$v$msg_00_10...$end" 
 	if [ $cnx = 0 ]; then cnx_msg="$ansOK"
 	else cnx_msg=$ansNA
 	fi
@@ -463,22 +416,24 @@ optimus_src_ctrl(){
 	if [ -x $install_dir/bin/optirun ]; then
 		operande="$m_02_16"
 		(	c=33
-			for git_src in "bbswitch" "Bumblebee" "primus"; do
+			opti_list=( 'bbswitch' 'Bumblebee' 'primus' )
+			for git_src in "${opti_list[@]}"; do
 				cd $optimus_src/$git_src
-				if [[ "$git_src" == "bbswitch" ]]; then git_build=bb_build
-				elif [[ "$git_src" == "Bumblebee" ]]; then git_build=bumble_build
-				elif [[ "$git_src" == "primus" ]]; then git_build=primus_build
-				fi
+				build=$git_src
+				[[ $git_src == Bumblebee ]]&& build=bumble
 				echo "# GIT : $m_02_18 $git_src..." ; sleep 1
-				if [[ $(git pull | grep -o "up-to-date") != '' ]]; then
-					echo "# GIT : $(printf "$git_src"|sed -n 's/[[:alpha:]]/\U&/p') $m_02_19"; sleep 1
-				else
+#				if [[ $(git pull | grep -o "up-to-date") != '' ]]; then
+				git_build=$build\_build
+				git fetch --dry-run &>$optimus_src/tmp.log
+				if [[ $(cat $optimus_src/tmp.log|grep -c "master") -eq 1 ]]; then
 					echo "# GIT : $m_02_20 $git_src..."
 					make clean
 					git pull ; ${git_build}
 #					echo "$[ 100/$c ]"
 #					c=$[ $c-1 ]
 					sleep 1
+				else
+					echo "# GIT : $git_src $m_02_19"; sleep 1
 				fi
 				
 				echo "$c"; c=$[ $c+33 ]; sleep 1
@@ -490,7 +445,7 @@ optimus_src_ctrl(){
 		build_all
 	fi
 }
-optimus_dependencies_ctrl(){
+optimus_dependencies_ctrl(){ #
 	# optimus compiling dependecies check/install.
 	unset pkg_list
 	[ -x /usr/bin/git ]|| pkg_list+=("git")
@@ -770,53 +725,80 @@ exec \"\$@\"" > $nvdir/primusrun
 	chmod 755 $nvdir/primusrun
 	cp -f $nvdir/primusrun $tool_dir/bin
 }
-
+prime_src_ctrl(){
+	optimus_dependencies_ctrl 
+	if [ -x usr/sbin/nvidia-prime-select ]; then
+		operande="$m_02_16"
+		(	c=33
+				git_src='nvidia-prime-select'
+				cd $optimus_src/$git_src
+				echo "# GIT : $m_02_18 $git_src..." ; sleep 1
+				echo $[ $c+33 ]
+				git fetch --dry-run &>$optimus_src/tmp.log
+				if [[ $(cat $optimus_src/tmp.log|grep -c "master") -eq 1 ]]; then
+					echo "# GIT : $m_02_20 $git_src..."
+					make clean
+					git pull ; prime_build
+					sleep 1
+				else
+					echo "# GIT : $git_src $m_02_19"; sleep 1
+				fi
+				
+				echo $[ $c+50 ]; sleep 1
+			done
+			echo "100"; sleep 1
+		) | zenity --width=450 --title="Zenvidia (updating)" --progress --percentage=0 \
+		--auto-close --text="$y\GIT$end $v: $m_02_17.$end"
+	else
+		prime_build
+	fi
+}
+prime_build(){
+	( 
+	if [ -d $optimus_src/nvidia-prime-select ]; then
+		operande=Updating
+		echo "# GIT : $operande prime..."
+	else
+		operande=Installing
+		cd $optimus_src
+		echo "# GIT : $operande prime..."
+		git clone $prime_git
+	fi
+	cd $optimus_src/nvidia-prime-select
+	sleep 1
+	/usr/bin/make; /usr/bin/make install; sleep 1
+	echo "# GIT : $operande prime, done."; sleep 1
+	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close
+	cd $nvdir
+}
 driver_conf(){
 	# link driver for multi driver config
 	kern_dir=$KERNEL
 	echo "# DRIVER : Rename and backup driver..."; echo "$n"; n=$[ $n+4 ]
-	if [ -f $kernel_path/nvidia-modeset.ko ]; then
-		/usr/sbin/modprobe -r nvidia-modeset nvidia	
-	else
-		/usr/sbin/modprobe -r nvidia
-	fi
+	mods=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
+#	if [ -f $kernel_path/nvidia-modeset.ko ]; then
+#		/usr/sbin/modprobe -r nvidia-modeset nvidia	
+#	else
+#		/usr/sbin/modprobe -r nvidia
+#	fi
 	if [ -f $kernel_path/nvidia.ko ]; then
 		# Case : install without dkms process
 		cd $kernel_path
 		mkdir -p $croot_all/$kernel
 		if [ -f $kernel_path/nvidia.ko ]; then
-			cp -f ./nvidia.ko $croot_all/$kern_dir/
-			if [ -f nvidia-uvm.ko ]; then
-				cp -f ./nvidia-uvm.ko $croot_all/$kern_dir/
-			fi
-			if [ -f nvidia-modeset.ko ]; then
-				cp -f ./nvidia-modeset.ko $croot_all/$kern_dir/
-			fi
-			if [ -f nvidia-drm.ko ]; then
-				cp -f ./nvidia-drm.ko $croot_all/$kern_dir/
-			fi
-			echo "# driver : Driver install & backup success."; sleep 1
-			echo "$n"; n=$[ $n+4 ]
-			/usr/sbin/depmod -a
-		else
-			echo "# Optimus : ERROR "; sleep 1; echo "$n"; n=$[ $n+4 ]
-			zenity --width=450 --title="Zenvidia" --error \
-			--text="$j\Driver $version install abort$end$v.\nExit to main menu.$end"
-			base_menu
-		fi
-	else
-		# Case : install with dkms process
-		dkms_kernel=/lib/modules/$kern_dir/extra
-		cd $dkms_kernel
-		mkdir -p $dkms_kernel
-		if [ -f $dkms_kernel/nvidia.ko ]; then
-			cp -f ./nvidia.ko $croot_all/$kern_dir/
-			if [ -f nvidia-uvm.ko ]; then
-				cp -f ./nvidia-uvm.ko $croot_all/$kern_dir/
-			fi
-			if [ -f nvidia-modeset.ko ]; then
-				cp -f ./nvidia-modeset.ko $croot_all/$kern_dir/
-			fi
+			for mod in "${mods[@]}"; do
+				[ $kernel_path/$mod.ko ]&& cp -f ./$mod.ko $croot_all/$kern_dir/
+			done
+#			cp -f ./nvidia.ko $croot_all/$kern_dir/
+#			if [ -f nvidia-uvm.ko ]; then
+#				cp -f ./nvidia-uvm.ko $croot_all/$kern_dir/
+#			fi
+#			if [ -f nvidia-modeset.ko ]; then
+#				cp -f ./nvidia-modeset.ko $croot_all/$kern_dir/
+#			fi
+#			if [ -f nvidia-drm.ko ]; then
+#				cp -f ./nvidia-drm.ko $croot_all/$kern_dir/
+#			fi
 			echo "# DRIVER : Driver install & backup success."; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 			/usr/sbin/depmod -a
@@ -827,6 +809,36 @@ driver_conf(){
 			base_menu
 		fi
 	fi
+#	else
+#		# Case : install with dkms process
+#		dkms_kernel=/lib/modules/$kern_dir/extra
+#		cd $dkms_kernel
+#		mkdir -p $dkms_kernel
+#		if [ -f $dkms_kernel/nvidia.ko ]; then
+#			for mod in "${mods[@]}"; do
+#				[ $dkms_kernel/$mod.ko ]&& cp -f ./$mod.ko $croot_all/$kern_dir/
+#			done
+##			cp -f ./nvidia.ko $croot_all/$kern_dir/
+##			if [ -f nvidia-uvm.ko ]; then
+##				cp -f ./nvidia-uvm.ko $croot_all/$kern_dir/
+##			fi
+##			if [ -f nvidia-modeset.ko ]; then
+##				cp -f ./nvidia-modeset.ko $croot_all/$kern_dir/
+##			fi
+##			if [ -f nvidia-drm.ko ]; then
+##				cp -f ./nvidia-modeset.ko $croot_all/$kern_dir/
+##			fi
+#			echo "# DRIVER : Driver install & backup success."; sleep 1
+#			echo "$n"; n=$[ $n+4 ]
+#			/usr/sbin/depmod -a
+#		else
+#			echo "# DRIVER : ERROR "; sleep 1; echo "$n"; n=$[ $n+4 ]
+#			zenity --width=450 --title="Zenvidia" --error \
+#			--text="$j\Driver $version install abort$end$v.\nExit to main menu.$end"
+#			base_menu
+#		fi
+#	fi
+
 }
 ## VIRTUALIZER CONFIGURATION PART
 bumblebee_conf(){
@@ -878,9 +890,8 @@ EndSection
 	}
 	sec_files(){
 		printf "Section \"Files\"
-#	ModulePath \"$croot/nvidia.$new_version/$master$ELF_64\"
-#	ModulePath \"$croot/nvidia.$new_version/$master$ELF_32\"
-	ModulePath \"$croot/nvidia.$new_version/xorg/modules\"
+#	ModulePath \"$croot/nvidia.$new_version/xorg/modules\"
+	ModulePath \"$croot/nvidia/xorg/modules\"	
 	ModulePath \"usr/$master$ELF_64/xorg/modules\"
 EndSection
 Section \"Module\"
@@ -931,7 +942,7 @@ EndSection
 	screen_opt(){
 		printf "Option	\"Stereo\" \"0\"
 	Option	\"nvidiaXineramaInfoOrder\" \"DFP-${nm[0]}\"
-#	Option	\"metamodes\" \"DVI-I-1: nvidia-auto-select +0+0, HDMI-0: nvidia-auto-select +1920+180\"
+#	Option	\"metamodes\" \"DVI-I-1: nvidia-auto-select +0+0, HDMI-0: nvidia-auto-select +1920+1080\"
 #	Option	\"SLI\" \"Off\"
 #	Option	\"MultiGPU\" \"Off\"
 #	Option	\"BaseMosaic\" \"off\"
@@ -962,25 +973,24 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 \n" >> xorg.conf.nvidia.$new_version
 	}
 	
-	## TODO : implement modsettings config
-	if [ $optimus = 1 ]; then
+	if [ $use_bumblebee = 1 ]; then
 		conf_dir=$tool_dir/etc/bumblebee
 	else
 		conf_dir=/etc/X11
 	fi
 	cd $conf_dir
 	sec_layout
-	if [ $optimus = 0 ]; then
-		sec_files
-	fi
+#	if [ $use_bumblebee = 0 ]; then
+	sec_files
+#	fi
 #	for e in $pci_dev_nb; do
 	sec_device
 	sec_option
 #	sec_screen
-	if [ $optimus = 0 ]; then
-		ln -sf ./xorg.conf.nvidia.$new_version ./xorg.conf
-	else
+	if [ $use_bumblebee = 1 ]; then
 		ln -sf ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+	else
+		ln -sf ./xorg.conf.nvidia.$new_version ./xorg.conf
 	fi
 }
 ## TODO > standalone install auto config
@@ -1037,15 +1047,7 @@ post_install(){
 #			done
 #		done
 		if [ $optimus = 1 ]; then
-			echo "# Optimus : Configure and reload Bumblebee, if present..."; sleep 1
-			echo "$n"; n=$[ $n+4 ]
-#			if [ ! -d $croot/nvidia.$new_version ]; then
-#				mv -f $croot/$predifined_dir $croot/nvidia.$new_version
-#			fi
-#			cd $croot
-#			if [[ ! -f $croot/nvidia.$new_version ]]; then
-#				ln -sf -T ./nvidia.$new_version ./nvidia
-#			fi
+			# common to prime & bumblebee
 			if [ -e $xorg_dir/modules/libwfb.so ]; then
 				mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
 				ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg/modules/libwfb.so
@@ -1053,28 +1055,42 @@ post_install(){
 			[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
 			cd $croot
 			[ -f $croot/nvidia.$new_version ]|| ln -sf -T ./nvidia.$new_version ./nvidia
-			optimus_src_ctrl; echo "$n"; n=$[ $n+4 ]
-			driver_conf; echo "$n"; n=$[ $n+4 ]
-			bumblebee_conf; echo "$n"; n=$[ $n+2 ]
-			## TODO 
-			# [ mod_setting = 1 ]&& mod_setting_conf
 			xorg_conf; echo "$n"; n=$[ $n+2 ]
-			echo "# Optimus : Start or Restart Optimus service..."; sleep 1
-			echo "$n"; n=$[ $n+4 ]
-			if [[ $(cat /proc/version | grep -o "[Rr]ed [Hh]at") != '' ]]; then
-				/usr/bin/systemctl restart bumblebeed.service
+			driver_conf; echo "$n"; n=$[ $n+4 ]
+			# bumblebee
+			if [ $use_bumblebee = 1 ]; then
+				echo "# Optimus : Configure and load/reload Bumblebee..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				optimus_src_ctrl; echo "$n"; n=$[ $n+4 ]
+				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
+				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				if [[ $(cat /proc/version | grep -o "[Rr]ed [Hh]at") != '' ]]; then
+					/usr/bin/systemctl restart bumblebeed.service
+				else
+					/usr/bin/service restart bumblebeed
+				fi
+			# prime
 			else
-				/usr/bin/service restart bumblebeed
-			fi
-			cd $nvdir
-		fi
-		if [ $optimus = 0 ]; then
+				echo "# Optimus : Configure and load/reload Prime..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
+				echo "# Optimus : Start or Restart Prime service..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				if [[ $(cat /proc/version | grep -o "[Rr]ed [Hh]at") != '' ]]; then
+					/usr/bin/systemctl restart nvidia-prime-select.service
+				else
+					/usr/bin/service restart nvidia-prime-select
+				fi
+			fi		
+#		fi
+		else # [ $optimus = 0 ]
 			## TODO prepare xorg conf
 			## TODO ldconfig nvidia libs
-			driver_conf
-			
 			xorg_conf
+			driver_conf
 		fi
+		cd $nvdir
 	fi
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
 	echo "# Fixing broken libs if needeed..."; echo "$n"; n=$[ $n+4 ]
@@ -1090,19 +1106,21 @@ post_install(){
 	extracted=NVIDIA-Linux-$ARCH-$new_version
 	if [ -d $extracted ]; then
 		if [ -d $nvtmp/$extracted/32 ]; then
-			cp -f $extracted/libnvidia-fbc.so.$new_version $install_dir/$master$ELF_32/
+			if [ -s $install_dir/$master$ELF_32/libnvidia-fbc.so.$new_version ]|| \
+			( cp -f $extracted/libnvidia-fbc.so.$new_version $install_dir/$master$ELF_32/
 			cd $install_dir/$master$ELF_32/
 			ln -sf libnvidia-fbc.so.$new_version libnvidia-fbc.so.1
 			ln -sf libnvidia-fbc.so.1 libnvidia-fbc.so
 			cd $nvtmp
+			)
 		fi
 		for links in {fbc,cfg,gtk2,gtk3}; do
 			[ -s $install_dir/$master$ELF_64/libnvidia-$links.$new_version ]|| \
-			cp -f $extracted/libnvidia-$links.so.$new_version $install_dir/$master$ELF_64/
+			( cp -f $extracted/libnvidia-$links.so.$new_version $install_dir/$master$ELF_64/
 			cd $install_dir/$master$ELF_64/
 			ln -sf libnvidia-$links.so.$new_version libnvidia-$links.so.1
 			ln -sf libnvidia-$links.so.1 libnvidia-$links.so
-			cd $nvtmp
+			cd $nvtmp )
 		done
 	fi
 	/usr/sbin/ldconfig
@@ -1112,45 +1130,45 @@ post_install(){
 		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
 	fi
 }
-make_lib_list(){
-	## 	FIXME ##
-#	libclass
-	if [[ $ELF_TYPE == 64 ]]; then
-		## FIXME for debian ##
-		LIB_32=$master$ELF_32
-		LIB_64=$master$ELF_64
-	else
-		LIB_32=lib
-		LIB_64=lib
-	fi
-	
-	for LIB_X in $LIB_32 $LIB_64 ; do
-#		for lib_l in {libGL,libEGL,libEGLS,libOpenCL,libX11,libX11-xcb} ; do
-#		if [[ $(printf "$lib_l"| grep "libX11") != '' ]]; then
-#			[ -e /usr/$LIB_X/$lib_l.so.6 ]&& cp -ud /usr/$LIB_X/$lib_l.* $nvdir/bak/$LIB_X/
-#		else
-#			[ -e /usr/$LIB_X/$lib_l.so ]&& cp -ud /usr/$LIB_X/$lib_l.* $nvdir/bak/$LIB_X/
+#make_lib_list(){
+#	## 	FIXME ##
+##	libclass
+#	if [[ $ELF_TYPE == 64 ]]; then
+#		## FIXME for debian ##
+#		LIB_32=$master$ELF_32
+#		LIB_64=$master$ELF_64
+#	else
+#		LIB_32=lib
+#		LIB_64=lib
+#	fi
+#	
+#	for LIB_X in $LIB_32 $LIB_64 ; do
+##		for lib_l in {libGL,libEGL,libEGLS,libOpenCL,libX11,libX11-xcb} ; do
+##		if [[ $(printf "$lib_l"| grep "libX11") != '' ]]; then
+##			[ -e /usr/$LIB_X/$lib_l.so.6 ]&& cp -ud /usr/$LIB_X/$lib_l.* $nvdir/bak/$LIB_X/
+##		else
+##			[ -e /usr/$LIB_X/$lib_l.so ]&& cp -ud /usr/$LIB_X/$lib_l.* $nvdir/bak/$LIB_X/
+##		fi
+#		[ -e /usr/$LIB_X/libGL.so ]&& cp -ud /usr/$LIB_X/libGL.* $nvdir/bak/$LIB_X/
+#		[ -e /usr/$LIB_X/libEGL.so ]&& cp -ud /usr/$LIB_X/libEGL.* $nvdir/bak/$LIB_X/
+#		[ -e /usr/$LIB_X/libEGLS.so ]&& cp -ud /usr/$LIB_X/libEGLS.* $nvdir/bak/$LIB_X/
+#		[ -e /usr/$LIB_X/libOpenCL.so ]&& cp -ud /usr/$LIB_X/libOpenCL.* $nvdir/bak/$LIB_X/
+#		[ -e /usr/$LIB_X/libX11.so.6 ]&& cp -ud /usr/$LIB_X/libX11.* $nvdir/bak/$LIB_X/
+#		[ -e /usr/$LIB_X/libX11-xcb.so.1 ]&& cp -ud /usr/$LIB_X/libX11-xcb.* $nvdir/bak/$LIB_X/
+#		[ -h /usr/$LIB_X/libX11.so ]|| ln -sf ./libX11.so.6 ./libX11.so 
+#		if [ $LIB_X == $LIB_64 ]; then
+#			[ -e /usr/$LIB_X/libvdpau.so ]&& cp -ud /usr/$LIB_X/libvdpau.* $nvdir/bak/$LIB_X/
+#			[ -e /usr/$LIB_X/libwfb.so ]&& cp -ud /usr/$LIB_X/xorg/modules/libwfb.so $nvdir/bak/$LIB_X/xorg/modules/
+#			[ -e /usr/$LIB_X/xorg/modules/extensions/libglx.so ]&& cp -ud /usr/$LIB_X/xorg/modules/extensions/libglx.so $nvdir/bak/$LIB_X/xorg/modules/extensions/
+#			[ -e /usr/$LIB_X/xorg/modules/libwfb.so ]&& cp -ud /usr/$LIB_X/xorg/modules/libwfb.so $nvdir/bak/$LIB_X/xorg/modules/
+#			[ -d /usr/$LIB_X/vdpau ]&& cp -ud /usr/$LIB_X/vdpau/* $nvdir/bak/$LIB_X/vdpau/
+##		[ -d /usr/$LIB_X/xorg/modules ]&& cp -ud /usr/$LIB_64/xorg/modules* $nvdir/bak/$LIB_64/xorg/
 #		fi
-		[ -e /usr/$LIB_X/libGL.so ]&& cp -ud /usr/$LIB_X/libGL.* $nvdir/bak/$LIB_X/
-		[ -e /usr/$LIB_X/libEGL.so ]&& cp -ud /usr/$LIB_X/libEGL.* $nvdir/bak/$LIB_X/
-		[ -e /usr/$LIB_X/libEGLS.so ]&& cp -ud /usr/$LIB_X/libEGLS.* $nvdir/bak/$LIB_X/
-		[ -e /usr/$LIB_X/libOpenCL.so ]&& cp -ud /usr/$LIB_X/libOpenCL.* $nvdir/bak/$LIB_X/
-		[ -e /usr/$LIB_X/libX11.so.6 ]&& cp -ud /usr/$LIB_X/libX11.* $nvdir/bak/$LIB_X/
-		[ -e /usr/$LIB_X/libX11-xcb.so.1 ]&& cp -ud /usr/$LIB_X/libX11-xcb.* $nvdir/bak/$LIB_X/
-		[ -h /usr/$LIB_X/libX11.so ]|| ln -sf ./libX11.so.6 ./libX11.so 
-		if [ $LIB_X == $LIB_64 ]; then
-			[ -e /usr/$LIB_X/libvdpau.so ]&& cp -ud /usr/$LIB_X/libvdpau.* $nvdir/bak/$LIB_X/
-			[ -e /usr/$LIB_X/libwfb.so ]&& cp -ud /usr/$LIB_X/xorg/modules/libwfb.so $nvdir/bak/$LIB_X/xorg/modules/
-			[ -e /usr/$LIB_X/xorg/modules/extensions/libglx.so ]&& cp -ud /usr/$LIB_X/xorg/modules/extensions/libglx.so $nvdir/bak/$LIB_X/xorg/modules/extensions/
-			[ -e /usr/$LIB_X/xorg/modules/libwfb.so ]&& cp -ud /usr/$LIB_X/xorg/modules/libwfb.so $nvdir/bak/$LIB_X/xorg/modules/
-			[ -d /usr/$LIB_X/vdpau ]&& cp -ud /usr/$LIB_X/vdpau/* $nvdir/bak/$LIB_X/vdpau/
-#		[ -d /usr/$LIB_X/xorg/modules ]&& cp -ud /usr/$LIB_64/xorg/modules* $nvdir/bak/$LIB_64/xorg/
-		fi
-		cd $nvdir/bak/$LIB_X
-		[ -h /usr/$LIB_X/libX11.so ]|| ln -sf ./libX11.so.6 ./libX11.so
-		cd $nvdir
-	done
-}
+#		cd $nvdir/bak/$LIB_X
+#		[ -h /usr/$LIB_X/libX11.so ]|| ln -sf ./libX11.so.6 ./libX11.so
+#		cd $nvdir
+#	done
+#}
 
 ### INSTALLATION
 old_kernel(){
@@ -1215,7 +1233,7 @@ nv_cmd_try_legacy_first(){
 }
 nv_cmd_install_driver(){
 	driver_level=$(printf "$new_version"|cut -d. -f1)
-	nv_cmd_dkms_conf
+	[ $use_dkms = 0 ]|| nv_cmd_dkms_conf
 	nv_cmd_try_legacy_first
 	if [ ! -s $kernel_path/nvidia.ko ]|| \
 	[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
@@ -1254,7 +1272,7 @@ nv_cmd_install_driver(){
 		$nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-modprobe -u
 	fi
 }
-nv_cmd_dkms_conf (){
+nv_cmd_dkms_conf(){
 #	if [[ $(printf "$new_version") ]]; then 
 	if [[ $new_version ]]; then 
 		version=$new_version
@@ -1362,7 +1380,7 @@ nv_cmd_install_gl(){ ## NOT USED : RESERVED ##
 	fi
 }
 nv_cmd_install_glx(){
-	## FIXME : do the nvidia modules stay load after X servre crash ?
+	## FIXME : do the nvidia modules stay load after X server crash ?
 	[ -d $xorg_dir/modules/extensions/ ]|| mkdir -p $xorg_dir/modules/extensions/
 	cp -f libglx.so.$new_version $xorg_dir/modules/extensions/
 	cd $xorg_dir/modules/extensions/
@@ -1431,13 +1449,13 @@ nv_cmd_uninstall(){
 	( $tool_dir/bin/nvidia-installer --uninstall -s --no-x-check $temp $logfile \
 	-b --no-sigwinch-workaround --no-distro-scripts $no_check --no-nvidia-modprobe
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
-	--text="$v$m_01_22...$end"
+	--text="$v$m_01_70...$end"
 }
 ## INSTALL MODULE AND LIBRARIES PROCESS
 # MAIN
 install_drv(){
 	zenity --height=200 --title="Zenvidia" --list --radiolist --hide-header \
-	--text "$menu_msg\n$v$msg219c$end $j$new_version$end $v$msg219d$end $j$board$end.
+	--text "$menu_msg\n$v$m_03_69$end $j$new_version$end $v$m_03_70$end $j$board$end.
 \n$v$ansCF$end" --column "1" --column "2" --separator=";" true "$_0a" false "$MM"
 	if [ $? = 1 ]; then base_menu; fi
 	# backup driver repository (shits happens!)
@@ -1465,12 +1483,13 @@ install_drv(){
 			$nvdir/bak/$master$ELF_64 $nvdir/bak/$master$ELF_64/vdpau \
 			$nvdir/bak/lib$ELF_TYPE/xorg/modules/extensions
 		fi
-		make_lib_list; sleep 1
+		# TODO : to remove, probably 
+#		make_lib_list; sleep 1
 		# making installation directories in case installer doesn't find them
 		[ -d $croot_64 ] || ( mkdir -p $croot_32 $croot_64 $xorg_dir )	
 		# remove previous driver, because of "registered driver install break", if any
 		clean_previous
-		echo "# $msg301"; sleep 1; echo "$n"; n=$[ $n+4 ]
+		echo "# $m_03_60"; sleep 1; echo "$n"; n=$[ $n+4 ]
 #		installer_build
 		# choose between installer bianaries
 #		if [[ $($tool_dir/bin/nvidia-installer -v | awk '{print $3}'|sed -n '2p') != $new_version ]]; then
@@ -1519,7 +1538,7 @@ install_drv(){
 				fi
 #			else
 #				zenity --title="Zenvidia" --info --no-wrap \
-#				--text="$j$msg302$end" ; sleep 1
+#				--text="$j$m_03_65$end" ; sleep 1
 			fi
 		else
 			zenity --width=450 --title="Zenvidia" --error --no-wrap \
@@ -1529,7 +1548,7 @@ install_drv(){
 		
 		cd $nvtmp
 		if [ -s $nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-installer ]; then 
-			echo "# backup Nvidia-Installer to $nvdir"; sleep 1
+			echo "# Backup Nvidia-Installer to $nvdir"; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 			cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer $nvdir
 			sleep 1
@@ -1554,14 +1573,15 @@ install_drv(){
 			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 71.86.xx/,/Appendix B./p' > $nvdir/supported.71.86.xx
 		fi
 #		driver_version=$(cat $nvdir/version.txt)
+		# Backup install binary in release archive
 		if [ ! -f $nvdl/nv-update-$new_version ] ; then
 			cp -f $driverun $nvdl/nv-update-$new_version
 			if [[ -f $nvdl/nv-update-$new_version ]] ; then
-				echo "# $msg303 $new_version $msg305."; sleep 1; echo "$n"; n=$[ $n+4 ]
-				echo "# $msg304."; sleep 1; echo "$n"; n=$[ $n+4 ]
+				echo "# $m_03_61 $new_version $m_03_62."; sleep 1; echo "$n"; n=$[ $n+4 ]
+				echo "# $m_03_63."; sleep 1; echo "$n"; n=$[ $n+4 ]
 			else
 				zenity --width=450 --title="Zenvidia" --error --no-wrap \
-				--text="\n$v $msg303$j $new_version$v $msg306."
+				--text="\n$v $m_03_61$j $new_version$v $m_03_64."
 			fi
 		else
 			echo "# nv-update-$new_version already present in path, skip."; sleep 1
@@ -1573,6 +1593,7 @@ install_drv(){
 #		mv -f version.txt ../
 #		rm -rf $nvtmp/*
 		echo "100"; sleep 2
+		# FIXME Really needed ?
 		if [ $optimus = 0 ]; then
 			zenity --width=450 --title="Zenvidia" --warning \
 			--text="$vB\BE AWARE$end$v because of a GLX load issue,\nXserver will probably crash after libGLX install.$end"
@@ -1584,12 +1605,12 @@ install_drv(){
 #		) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close
 		) | zenity --width=450 --title="Zenvidia" --progress --percentage=1 --auto-close
 		zenity --title="Zenvidia" --info --no-wrap \
-		--text="$vB$msg302$end"
+		--text="$vB$m_03_65$end"
 		if [ $? = 0 ]; then base_menu; fi
 		base_menu
 	else
 		zenity --width=450 --title="Zenvidia" --error \
-		--text="$v$msg310$end\n$v$msg311$end$y\http://www.nvidia.fr/Download/Find.aspx?lang=en$end\n$v $msg316, $v$msg311$end$y ftp://download.nvidia.com/XFree86/$end"
+		--text="$v$m_03_66$end\n$v$m_03_67$end$y\http://www.nvidia.fr/Download/Find.aspx?lang=en$end\n$v $m_03_68, $v$m_03_67$end$y ftp://download.nvidia.com/XFree86/$end"
 		if [ $? = 0 ]; then base_menu; fi
 	fi
 }
@@ -1609,6 +1630,7 @@ upgrade_new_kernel(){
 }
 upgrade_kernel(){
 #	kernel_path=/lib/modules/$(uname -r)/misc/video
+	# FIXME
 	if_optimus
 	if [[ $(echo $NEW_KERNEL) != '' ]];then
 		KERNEL=$NEW_KERNEL
@@ -1719,7 +1741,7 @@ if_legacy(){
 	predifine=2
 	#croot_32=/usr/lib/$predifined_dir
 	croot=/usr
-	predifined_dir="nvidia-current"
+	predifined_dir=$predifined_dir
 	croot_64=$croot/$master$ELF_64/$predifined_dir
 	croot_32=$croot/$master$ELF_32/$predifined_dir
 	croot_all=$croot_64
@@ -1780,14 +1802,24 @@ install_dir_sel(){
 	case $dir_cmd in
 		"1") if_private; optimus=0 ;;
 		"2") if_legacy; optimus=0 ;;
-		"3") optimus=1
-			if [ -x $install_dir/bin/optirun ]; then
-				if_optimus
-				install_msg="$m_01_27$end"
+		"3") optimus=1; from_install=1
+			menu_optimus
+			if [ use_bumblebee=1 ]; then
+				opti_exec=$install_dir/bin/optirun
+				opti_ctrl=optimus_src_ctrl
+				msg=$m_01_31
 			else
-				install_msg="$j\ATTENTION$end$v$m_01_28$end"
+				opti_exec=/usr/sbin/nvidia-prime-select
+				opti_ctrl=prime_src_ctrl
+				msg=$m_01_32
+			fi
+			if [ -x $opti_exec ]; then
+				if_optimus
+				install_msg="$m_01_27a ($msg $m_01_27b)$end"
+			else
+				install_msg="$j\ATTENTION$end$v : $msg $m_01_28$end"
 				if [[ $? == 1 ]]; then
-					optimus_src_ctrl
+					${opti_ctrl}
 				else
 					exit 0
 				fi
@@ -1882,7 +1914,7 @@ check_update(){
 			comp_b="$vB$m_01_09$end"
 			comp_c="$v$m_01_12$end"
 			comp_check=1
-			comp_v=""	
+			comp_v=""
 		fi
 		if [ "$DEV_nm" == "${dev[$e]}" ]; then
 			COMP_L+=("$j${dev[$e]}$end $v($DRV), $comp_b$end\n$j$DRV$end $comp_c")
@@ -1990,12 +2022,12 @@ download_menu(){
 	unset DM_list
 	dn=1
 	if [ $if_update = 1 ]; then
-		D1=" $LAST_DRV ($msg413a)"
-		D2=" $LAST_BETA ($msg413b)"
+		D1=" $LAST_DRV ($m_01_41)"
+		D2=" $LAST_BETA ($m_01_42)"
 	else
-		D1=" $LAST_DRV ($msg413a)"
-		D2=" $LAST_BETA ($msg413b)"
-		D3=" $msg419 ($msg413c)"
+		D1=" $LAST_DRV ($m_01_41)"
+		D2=" $LAST_BETA ($m_01_42)"
+		D3=" $m_01_43a ($m_01_43b)"
 	fi
 	for drv_ld in {"$D1","$D2","$D3"}; do
 		if [[ "$drv_ld" != '' ]]; then
@@ -2006,7 +2038,7 @@ download_menu(){
 		fi
 	done		
 	dl_cmd=$(zenity --width=450 --height=300 --title="Zenvidia" --list --radiolist \
-	--text="$v$msg413$end" --hide-header \
+	--text="$v$m_01_40$end" --hide-header \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${DM_list[@]}" false $dn "$MM" )
 	if [ $? = 1 ]; then exit 0; fi
@@ -2046,18 +2078,20 @@ download_only(){
 		download_menu
 		if [ -f $nvupdate/$run_pack ]; then
 			zenity --info --title="Zenvidia" --no-wrap \
-			--text="$v $msg415c$end $j$LAST_PACK$end $v$msg415d.\n$MM$end"
+			--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_47.\n$MM$end"
 			mv -f $nvupdate/$run_pack $nvdl/nv-update-$LAST_PACK
 			chmod 755 $nvdl/nv-update-$LAST_PACK
 			base_menu
 		else
 			zenity --width=450  --title="Zenvidia" --error \
-			--text="$v $msg415c$end $j$LAST_PACK$end $v$msg415e.\n $msg406$end $j$run_pack$end $v$msg407.\n$MM.$end"	
+			--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_48.\n $m_01_50$end $j$run_pack$end $v$m_01_51.\n$MM.$end"	
 			base_menu
 		fi
 	else
-		zenity --width=450 --title="Zenvidia" --error --text="$v$msg416.\n$MM$end"
+		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
 		base_menu
+		# FIXME What nvidia-installer is doing here ?!
+		# TODO install from GIT, then back to download
 	fi
 }
 ### UPDATE FUNCTION, FROM INTERNET.
@@ -2069,7 +2103,7 @@ package_list(){
 #	PICK_DRV=$(zenity --width=450  --height=300 --title="Zenvidia" \
 #	--entry --text "Driver list" --entry-text="${drv_list[@]}")
 	PICK_DRV=$(zenity --width=450  --height=300 --title="Zenvidia" --list --radiolist \
-	--text "Driver list" --hide-header --column "1" --column "2" --separator=";" \
+	--text "$m_01_52" --hide-header --column "1" --column "2" --separator=";" \
 	"${drv_list[@]}")
 	if [ $? = 1 ]; then exit 0; fi
 }
@@ -2085,7 +2119,7 @@ last_pack(){
 			weight=$(tac $nvtmp/dl.log | grep "\%" | awk '{print $1}'| sed -n 1p)
 			speed=$(tac $nvtmp/dl.log | awk '{print $8}'| sed -n 2p)
 			left=$(tac $nvtmp/dl.log | awk '{print $9}'| sed -n 2p)
-			echo "# ($percent %) $weight downloaded at $speed/s, time left : $left"; sleep 1
+			echo "# ($percent %) $weight $m_01_53 $speed/s, $m_01_54 : $left"; sleep 1
 			echo "$percent" ; sleep 1
 #			if [[ $(printf "$speed"|grep -o "K\|M") != '' ]]; then
 				local_0=$(stat -c "%s" $nvupdate/$run_pack)
@@ -2098,14 +2132,14 @@ last_pack(){
 #			fi
 			if [ $percent = 99 ]; then
 				if [ $local_0 = $remote ]; then
-					echo "# $w_02 terminé (100 %)."; sleep 3
+					echo "# $w_02 $w_03 (100 %)."; sleep 3
 					echo "100"
 				fi
 			fi
 		done
 	}
 	( lftp -c "anon; cd ftp://download.nvidia.com/XFree86/Linux-$ARCH/$LAST_PACK/ ; ls > $nvtmp/bug_list ; quit" ; sleep 2
-	) | zenity --width=450 --progress --pulsate --auto-close --text="$v$msg405$end"
+	) | zenity --width=450 --progress --pulsate --auto-close --text="$v$m_01_55$end"
 	if [ "$(cat $nvtmp/bug_list | grep -w "$LAST_PCK")" != '' ] ; then
 		RUN_PACK=$(cat $nvtmp/bug_list | sed -n "s/^.*\ //p"|grep -w "$LAST_PACK"|sed -n "/.run$/p")
 	fi
@@ -2124,7 +2158,7 @@ last_pack(){
 	remote=$(cat $nvtmp/bug_list | grep -w "$run_pack"|sed -n "/.run$/p"|awk '{print $5}')
 	(
 	sleep 1
-	echo "Préparation..."; sleep 1
+	echo "$m_01_56..."; sleep 1
 	download_cmd
 	echo "# $w_02 $run_pack"
 #	progress=`tail -n 20 $nvtmp/dl.log | grep "\%" | sed -n "s/^.*\. //p"`
@@ -2132,13 +2166,13 @@ last_pack(){
 	track
 	[ $remote = $local_0 ]|| (kill -s 15 $dl_pid; download_cmd; track)
 	) | zenity --width=450 --progress --percentage=0 --auto-close \
-	--text="$v Recherche de $run_pack...$end" --title="$msg415a $LAST_PACK"
+	--text="$v Recherche de $run_pack...$end" --title="$m_01_44 $LAST_PACK"
 	rm -f $nvtmp/dl.log
 #	if [ -s $nvupdate/$run_pack ]; then
 #		
 #		local1=$(stat -c "%s" $nvupdate/$run_pack)
 #		[ $remote = $local1 ]|| \
-#		( zenity --width=450 --error --text="$v$msg415b$end" ; rm -f $nvtmp/dl.log ; last_pack )
+#		( zenity --width=450 --error --text="$v$m_01_45$end" ; rm -f $nvtmp/dl.log ; last_pack )
 #	fi
 }
 from_net(){
@@ -2150,7 +2184,7 @@ from_net(){
 		install_dir_sel
 		#rm -f $nvtmp/drvlist $nvtmp/last_up
 	else
-		zenity --width=450 --title="Zenvidia" --error --text="$v$msg416.\n$MM$end"
+		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
 		base_menu
 	fi
 }
@@ -2165,28 +2199,12 @@ drv_load(){
 drv_unload(){
 	/sbin/modprobe -r nvidia
 }
-### UNINSTALL fUnction
-#uninstall(){
-#	echo -e "$v $qst002 $j$qst001$v :"
-#	echo -e "\n$v ==>$j \c"
-#	read -n 1 yn
-#	if [ "$yn" == "$qst004" ] ; then
-#		
-#		echo -e "\n$r --->$y     $msg531$r     $y\r"
-#		cd $nvdir
-#		nv_cmd_uninstall
-#		echo -e "\f$v $msg532 \n" ; sleep 2
-#		menu
-#	else
-#		menu_install
-#	fi
-#}
 
 ## EDITION
 edit_script_conf(){
 	edit_script=$(zenity --width=500 --height=400 --title="Zenvidia" --text-info \
-	--editable --text="$v\Edit script config file$end" --filename="$script_conf" \
-	--checkbox="Confirm to overwrite" )
+	--editable --text="$v$m_01_58$end" --filename="$script_conf" \
+	--checkbox="$m_01_59" )
 #	exit_stat=$?
 	if [[ $(printf "$edit_script"| sed -n '1p') != '' ]]; then
 		printf "$edit_script" > $script_conf
@@ -2215,17 +2233,17 @@ edit_xorg_conf(){
 }
 read_help(){
 	zenity --width=500 --height=400 --title="Zenvidia" --text-info \
-	--text="$v\Help files for senvidia$end" --filename=""
+	--text="$v\Help files for zenvidia$end" --filename=""
 	menu_manage
 }
 read_nv_help(){
 	zenity --width=700 --height=400 --title="Zenvidia" --text-info \
-	--text="$v\Nvidia driver man page$end" --filename="$help_pages/README.txt"
+	--text="$v$m_01_62$end" --filename="$help_pages/README.txt"
 	menu_manage
 }
 read_changelog(){
 	zenity --width=600 --height=400 --title="Zenvidia" --text-info \
-	--text="$v\Nvidia $version changelog$end" --filename="$help_pages/NVIDIA_Changelog"
+	--text="$v$m_01_63 ($version)$end" --filename="$help_pages/NVIDIA_Changelog"
 	menu_manage
 }
 nv_config(){
@@ -2286,10 +2304,10 @@ glx_test(){
 	if [ -x $install_dir/bin/optirun ]; then
 		test_v='optirun -b virtualgl'
 		test_p='optirun -b primus'
-		test_cmd="$G20 (virtualgl),$G21 (virtualgl),$G20 (primus),$G21 (primus),$PM"
+		test_cmd="$_7a (virtualgl),$_7b (virtualgl),$_7a (primus),$_7b (primus),$PM"
 	else
 		test_x=''
-		test_cmd="$G20,$G21,$PM"
+		test_cmd="$_7a,$_7b,$PM"
 	fi
 	nt=1
 	unset test_list
@@ -2307,7 +2325,7 @@ glx_test(){
 #		n=$[ $n+1 ]
 #	done
 	menu_test=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
-	--title="Zenvidia" --text "$eN$G10$end" \
+	--title="Zenvidia" --text "$eN$_3e$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${test_list[@]}" )
 	if [ $? = 1 ]; then exit 0; fi
@@ -2321,10 +2339,10 @@ glx_test(){
 	fi
 	IFS=$ifs
 	case $menu_test in
-		"1") xterm $x_opt -e "printf \"$g Press [ctrl+c] to end test.\n\"; \
+		"1") xterm $x_opt -e "printf \"$g $m_01_64.\n\"; \
 		$test_x glxgears"; glx_test ;;
 		"2") $test_x glxspheres; glx_test ;;
-		"3") xterm $x_opt -e "printf \"$g Press [ctrl+c] to end test.\n\"; \
+		"3") xterm $x_opt -e "printf \"$g $m_01_64.\n\"; \
 		$test_x glxgears"; glx_test ;;
 		"4") $test_x glxspheres; glx_test ;;
 		"$nt") menu_manage ;;
@@ -2339,9 +2357,9 @@ glx_test(){
 manage_pcks(){
 	menu_packs=$(zenity --width=400 --height=300 --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "$eN$G9$end" \
+	--text "$eN$_3d$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
-	false 1 "$G9a" false 2 "$G9b" false 3 "$PM" )
+	false 1 "$_6a" false 2 "$_6b" false 3 "$PM" )
 	if [ $? = 1 ]; then exit 0; fi
 	case $menu_packs in
 		"1") remove_pcks ;;
@@ -2358,18 +2376,18 @@ remove_pcks(){
 	done
 	rm_packs=$(zenity --width=400 --height=300 --list \
 	--radiolist --hide-header --title="Zenvidia (remove)" \
-	--text "$eN$G9a$end" \
+	--text "$eN$_6a$end" \
 	--column "1" --column "2" --separator=";" \
 	"${packs_list[@]}" )
 	if [ $? = 1 ]; then exit 0; fi
 	pack_repo=$(printf "$rm_packs"|sed -n "s/^.*-//g;p")
-	zenity --width=450 --title="Zenvidia ($G9a)" --question \
-	--text="$v$G9d $rm_packs.\n$G9g$end" \
+	zenity --width=450 --title="Zenvidia ($_6a)" --question \
+	--text="$v$_6d $rm_packs.\n$_6g$end" \
 	--ok-label="$CC" --cancel-label="$R"
 	if [ $? = 0 ]; then
 		if [ -d $croot/nvidia.$pack_repo ]; then
-			zenity --width=450 --title="Zenvidia ($G9a)" --question \
-			--text="$v$G9f $croot.\n$G9g$end"
+			zenity --width=450 --title="Zenvidia ($_6a)" --question \
+			--text="$v$_6f $croot.\n$_6g$end"
 			if [ $? = 1 ]; then
 				rm -Rf $croot/nvidia.$$pack_repo
 			fi
@@ -2390,11 +2408,11 @@ backup_pcks(){
 	done
 	drive_packs=$(zenity --width=400 --height=300 --list \
 	--radiolist --hide-header --title="Zenvidia (backup)" \
-	--text "$eN$G9b$end" --column "1" --column "2" --separator=";" \
+	--text "$eN$_6b$end" --column "1" --column "2" --separator=";" \
 	"${drive_list[@]}" )
 	if [ $? = 1 ]; then exit 0; fi
-	zenity --width=450 --title="Zenvidia ($G9b)" --question \
-	--text="$v$G9e $drive_packs ?\n$G9g$end" \
+	zenity --width=450 --title="Zenvidia ($_6b)" --question \
+	--text="$v$_6e $drive_packs ?\n$_6g$end" \
 	--ok-label="$CC" --cancel-label="$R"
 	if [ $? = 0 ]; then
 		mod_src=/lib/modules/$(uname -r)/extra
@@ -2425,8 +2443,8 @@ backup_pcks(){
 			cp -d $install_dir/$master$ELF_64/libnvidia-* $croot/$drive_packs.bak$install_dir/$master$ELF_64/
 		fi
 		if [ $ko_version != $ko_repo ]; then
-			zenity --width=450 --title="Zenvidia ($G9b)" --question \
-			--text="$v$G9h ?\n$G9g$end"
+			zenity --width=450 --title="Zenvidia ($_6b)" --question \
+			--text="$v$_6h ?\n$_6g$end"
 			if [ $? = 0 ]; then
 				rm -Rf $croot/$drive_packs
 			fi
@@ -2440,6 +2458,31 @@ backup_pcks(){
 #restore_pcks(){
 #	
 #}
+menu_optimus(){
+#	opti_msg="\n$vB\Two solutions:$end$v
+#\t- Application intergrated with Bumblebee.
+#\t- One GPU at a time with Prime.$end"
+	opti_msg=$msg_3_03
+	menu_opti=$(zenity --width=400 --height=300 --list \
+	--radiolist --hide-header --title="Zenvidia" \
+	--text "$eN\Optimus$end\n$opti_msg" \
+	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	false 1 " Bumblebee" false 2 " Prime" false 5 "$PM" )
+	if [ $? = 1 ]; then exit 0; fi
+	if [ $from_install = 1 ]; then
+		case $menu_opti in
+			"1") menu_msg="$vB$msg_3_01$end"; use_bumblebee=1 ;;
+			"2") menu_msg="$vB$msg_3_02$end"; use_bumblebee=0 ;;
+		esac
+	else  # from_install = 0
+		case $menu_opti in
+			"1") menu_msg="$vB$msg_3_01$end"; use_bumblebee=1; build_all; base_menu ;;
+			"2") menu_msg="$vB$msg_3_02$end"; use_bumblebee=0; prime_build; base_menu ;;
+	#		"3") menu_install ;;
+			"3") exit 1 ;;
+		esac
+	fi
+}
 
 ### SUB MENU
 menu_install(){
@@ -2452,14 +2495,15 @@ menu_install(){
 	case $menu_inst in
 		"1") menu_msg="$vB$msg_1_01$end"; from_directory ;;
 		"2") menu_msg="$vB$msg_1_02$end"; up_check=2; check_update ;;
-		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
+#		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
+		"3") menu_msg="$vB$msg_1_03$end"; menu_optimus; base_menu	;;
 		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
 		"5") base_menu ;;
 	esac
 }
 menu_update(){
 	nu=1
-	if [ $use_dkms = 0 ]; then up_cmd_list="$_2a (dkms)","$_2a (force)","$_2b (dkms)",$_2c,$_2d
+	if [ $use_dkms = 1 ]; then up_cmd_list="$_2a (dkms)","$_2a (force)","$_2b (dkms)",$_2c,$_2d
 	else up_cmd_list=$_2a,$_2b,$_2c,$_2d
 	fi
 	unset up_list
@@ -2490,21 +2534,21 @@ menu_update(){
 #		"5") menu_msg="$v$msg_2_03$end"; optimus_src_ctrl; base_menu ;;
 #		"6") menu_msg="$v$msg_2_04$end"; up_check=1; check_update  ;;
 #		"7") base_menu ;;
-		if [ $use_dkms = 0 ]; then
+		if [ $use_dkms = 1 ]; then
 			case $menu_upd in
 				"1") menu_msg="$v$msg_2_01 (dkms)$end"
-					 upgrade_new=1; use_dkms=0; upgrade_kernel; base_menu ;;
+					 upgrade_new=1; use_dkms=1; upgrade_kernel; base_menu ;;
 				"2") menu_msg="$v$msg_2_01 (force)$end" 
-					 upgrade_new=1; use_dkms=1; force=0; upgrade_kernel; base_menu ;;
+					 upgrade_new=1; use_dkms=0; upgrade_kernel; base_menu ;;
 				"3") menu_msg="$v$msg_2_02 (dkms)$end"
-					 upgrade_new=0; use_dkms=0; upgrade_new_kernel; base_menu ;;
+					 upgrade_new=0; use_dkms=1; upgrade_new_kernel; base_menu ;;
 				"4") menu_msg="$v$msg_2_03$end"
 					 optimus_src_ctrl; base_menu ;;
 				"5") menu_msg="$v$msg_2_04$end"
 					 up_check=1; check_update  ;;
 				"6") base_menu ;;
 			esac
-		else
+		else # use_dkms = 0
 			case $menu_upd in
 				"1") menu_msg="$v$msg_2_01$end"
 					 upgrade_new=1; upgrade_kernel; base_menu ;;
@@ -2557,7 +2601,6 @@ menu_manage(){
 	--text "$eN$_04$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mng_list[@]}" false $nm "$MM")
-#	false 1 "$G5" false 2 "$G6" false 3 "$G7" false 4 "$G8" false 5 "$G9" false 6 "$G" )
 	if [ $? = 1 ]; then exit 0; fi
 	case $menu_mng in
 		"1") glx_test ;;
@@ -2572,7 +2615,6 @@ base_menu(){
 	devices=$(
 	for e in $pci_dev_nb; do
 		echo -e "$v$msg_00_04 $[${nm[$e]}+1] :$end\t\t $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end"
-#		echo -e "$v$msg_00_04 $((${nm[$e]}+1)) :$end\t\t $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end"
 	done
 	)	
 	menu_cmd=$(zenity --height=550 --title="Zenvidia" --list --radiolist --hide-header \
@@ -2585,8 +2627,8 @@ $v$msg_0_02$end\t\t $j$kernel_ver$end
 $v$msg_0_03$end\t\t $j$GCC$end
 $v$msg_0_04$end\t $j$NV_bin_ver$end\n
 $v$msg_0_05 : $end$dir_msg
-$v$msg_0_06 : $end $j$cnx_msg$end
-\n$v$msg601$end" \
+$v$msg_00_06 : $end $j$cnx_msg$end
+\n$v$ansWN$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	false 1 "$_01" false 2 "$_02" false 3 "$_03" false 4 "$_04" )
 	if [ $? = 1 ]; then exit 0; fi
@@ -2606,7 +2648,7 @@ first_start(){
 	version_id
 	compil_vars
 	install_controls
-	driver_loaded
+#	driver_loaded
 	connection_control
 	base_menu
 }
@@ -2619,6 +2661,7 @@ else
 	lang_define
 fi
 
+# INITIALS checks
 libclass; distro; ID ; arch ; first_start
 
 exit 0
