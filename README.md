@@ -1,77 +1,68 @@
 # Zenvidia
-Un script bash/zenity pour gérer les pilotes propriétaires **NVIDIA©**.
+This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 
-Avant propos
+History log
 ------------
-Je ne suis pas un codeur, le script est parfois très approximatif et a besoin de très nombreuses améliorations.
-Les tests ont été fait principalement en discret-graphic card pour **optimus** et **Bumblebee**. Je n'ai pas le matériel pour tester efficacement pour GPU unique.
+I'm not a "real" coder, my script syntax is often approximative and need a real improvement. So, all kind of help is welcome.
 
-C'est du hard developpement et il faut s'attendre à des plantages du serveur **X** pour les testeur sur GPU unique.
+All of the developpement test was made on a discret graphic card for **optimus** and **Bumblebee**. My only experience on single GPU is recent and only with **Fedora-Prime** project and now with the fork I made for my very customized purpose, **nvidia-prime-select**.
 
-Développé sous Fedora 22, puis 23, le script ne devrait pas apporté de bug majeur pour les utilisateurs de **Bumblebee** sous cette distribution.
+Since I add recently Prime to zenvidia, I was expecting some X server crash, but nothing appened. The only issue I had, Nvidia-installer refused to execute because of nvidia-drm module loaded, it was finally installed by the automatics scripts turn-arrounds.
 
-Pour l'amélioration du support multi distribution, il fadra envisager un mode de "plugin par distro" qui n'a pas ecore été développé pour le moment.
+This is a hard developpement, do not expect too much for now.
 
+------------
+Issues
+============
+ - Can't use nvidia-installer to install the driver and nvidia-installer send ERROR messsage. The script use its work-arround to solve that issue.
+ - Because of the driver and libs custom install dirs nvidia-installer send WARNINGS when installing libs. Don't take care of it.
+ - Don't use install.sh for now, it need an deep update before.
+ - OpenCL file in /etc is not update correctly, will be fix soon.
 
-# Introduction
+TODO
+=========
+ - Write per distro plugin, they are inside the code for the moment, not a very good way.
+ - Write color scheme outside the code, better way to customized gui colors.
+ - Clean the code of old and now useless functions.
+ - get user commments (hoping!)
+ - rewrite install.sh or write a Makefile.
+ - Add others languages packs (but need translators!).
+ - learn english (sic)
+ - taking some time to drink a beer with friends some day...
+ 
 
-Le projet initial, **Bashvidia**, est né au alentour de l'année 2010 en tant que projet personnel pour amélioré la maintenance des pilotes **NVIDIA©** dont l'interface **ncurse** montrait rapidement ses limites selon la distribution utilisée et aussi pour palier au manque cruel de paquets distribués à cette époque.
-
-Son seul objectif à ce moment-là était de controler les mise à jour, les télécharger et les installer.
-Il a rapidement évolué vers une interface permettant de gérer n'importe quel type de pilote afin de pouvoir les sauvegarder et les restaurer rapidement en cas de problème.
-
-L'interface graphique était une continuité naturelle, cependant le binaire **nvidia-installer** limitait un usage sous **X** et le projet tout d'abord mis à disposition sur **GoogleCode** est resté à l'abandon.
-
-Depuis **nvidia-installer** a évolué, de nouvelles options sont apparues, mais plutôt que de permettre simplement l'installation directement sous **X**, il laisse de possibilité de contourner le "tout terminal" qui semble tant lui tenir à cœur.
-
-Le projet de l'interface **Zenivia** a été initié dans le courant de l'année 2015, surtout pour permettre une meilleure gestion des **Discret Graphic Cards** et d'**Optimus**.
-
-Opérations actuellement disponibles
-===================================
-Installation des pilotes
+Usage
+==============
+Driver install
 ------------------------
   
- - depuis un paquet local.
- - depuis une archive téléchargée.
- - directement depuis le serveur NVIDIA©.
- - Installation d'optimus depuis les projets GIT.
+ - from local package.
+ - from a dowloaded package.
+ - from NVIDIA© server.
+ - Optimus installation from GIT (bumblebee and prime).
 
-Mises à jour
+Updates
 ------------
 
- - Contrôle des mises à jour pilote.
- - Mise à jour d'un nouveau kernel (option dkms ou non).
- - Mise à jour d'optimus depuis les projets GIT.
+ - driver updates check.
+ - New kernel update (with dkms or not).
+ - Optimus GIT sources update.
 
-Outils
+Tools
 ------
 
- - Édition de fichier xorg.conf (détection auto d'optimus).
- - Édition de configuration Zenvidia.
- - Démarrage de Nvidia-Settings (détection auto d'optimus).
- - Gestion des pilotes installés (suppression, archivage).
- - Re-compilation des divers dépendances (Bumblebee, etc).
+ - Edit xorg.conf file (optimus auto detection).
+ - Édit Zenvidia config file.
+ - Start Nvidia-Settings (optimus auto detection).
+ - Installed driver mangagement (remove, backups).
+ - Re-compile some depencies (Bumblebee, etc).
 
-Tests et support
+Tests and support
 ----------------
 
  - Test GLX.
- - Manuel et journal des modifications du pilote installé.
+ - Changelog and driver manual.
  
-------------
-Installation
-============
-Avant-propos
-------------
-Toutes les dépendances s'installent au premier démarrage du script.
-
-Exécution
----------
-Depuis un terminal, décompresser l'archive tar.gz. Entrer dans le répertoire créé, puis lancer le script **install.sh**.
-Répondre au questions. Valider. C'est terminé.
-
-L'installateur permet d'éditer le fichier de configuration après installation, c'est cependant optionnel.
-
 -------
 Licence
 =======
