@@ -35,6 +35,8 @@ TODO
 
 Usage
 ==============
+![zenvidia main](/capture/zen_master.png)
+
 Driver install
 ------------------------
   
@@ -42,6 +44,8 @@ Driver install
  - from a dowloaded package.
  - from NVIDIA© server.
  - Optimus installation from GIT (bumblebee and prime).
+ 
+![zenvidia install](/capture/zen_install.png) 
 
 Updates
 ------------
@@ -49,6 +53,8 @@ Updates
  - driver updates check.
  - New kernel update (with dkms or not).
  - Optimus GIT sources update.
+
+![zenvidia update](/capture/zen_update.png)
 
 Tools
 ------
@@ -59,12 +65,16 @@ Tools
  - Installed driver mangagement (remove, backups).
  - Re-compile some depencies (Bumblebee, etc).
 
+![zenvidia tools](/capture/zen_tools.png)
+
 Tests and support
 ----------------
 
  - Test GLX.
  - Changelog and driver manual.
  
+![zenvidia support](/capture/zen_support.png)
+
 -------
 Licence
 =======
