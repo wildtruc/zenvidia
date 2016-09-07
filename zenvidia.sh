@@ -27,16 +27,16 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
 # export PATH=${PATH}:XX
 # nvidia_ftp=download.nvidia.com/XFree86/Linux
 ## special dev only, DON'T EDIT OR UNCOMMENT'
-devel="/home/mike/Developpement/NVIDIA/zenvidia"
-EXEC=$devel
-script_conf=$devel/script.conf.devel
+#devel="/home/mike/Developpement/NVIDIA/zenvidia"
+#EXEC=$devel
+#script_conf=$devel/script.conf.devel
 
 cd /
 ### VARS
 ## Master Vars.
 install_dir="/usr/local"
 nvdir="$install_dir/NVIDIA"
-#script_conf=$nvdir/script.conf
+script_conf=$nvdir/script.conf
 predifined_dir="$install_dir/DRIVERS"
 croot="$install_dir/DRIVERS"
 locale="$nvdir/locale"							# language packs
