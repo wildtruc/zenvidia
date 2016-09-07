@@ -21,14 +21,16 @@ Issues
 
 TODO
 =========
- - Write per distro plugin, they are inside the code for the moment, not a very good way.
- - Write color scheme outside the code, better way to customized gui colors.
- - Clean the code of old and now useless functions.
- - get user commments (hoping!)
- - rewrite install.sh or write a Makefile.
- - Add others languages packs (but need translators!).
- - learn english (sic)
- - taking some time to drink a beer with friends some day...
+ - [ ] Fix Backup function.
+ - [ ] Fix GLX test for Prime use.
+ - [ ] Write per distro plugin, they are inside the code for the moment, not a very good way.
+ - [ ] Write color scheme outside the code, better way to customized gui colors.
+ - [ ] Clean the code of old and now useless functions.
+ - [ ] get user commments (hoping!)
+ - [ ] rewrite install.sh or write a Makefile.
+ - [ ] Add others languages packs (but need translators!).
+ - [ ] learn english (sic)
+ - [ ] taking some time to drink a beer with friends some day...
  
 
 Usage
