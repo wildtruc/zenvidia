@@ -45,9 +45,9 @@ See **Wiki** for **Issues**, **Todo list** and **demands**.
  - Changelog and driver manual.
 
 ##Install
-This will isntall in default behaviour with no possible custom place.
+This will install in default behaviour with no possible custom ability.
 
-Choose a directory to repo and :
+Choose a directory to clone repo and :
 ```sh
   git clone https://github.com/wildtruc/zenvidia.git
   cd zenvidia/
@@ -56,12 +56,44 @@ Choose a directory to repo and :
   make install
   # to remove all :
   make uninstall
-  # to remove safely (doesn't remove dowloaded driver packages)
+  # to remove safely (doesn't remove downloaded driver packages)
   make safeuninstall
 ```
 And :
 ```sh
   zenvidia.sh
+```
+
+The script will ask you for admin/superuser password, depend fo which distro you are using.
+
+##Configuration
+Most part of the basic.conf file vars will be updated during the script execution.
+
+You just have to adjust manually :
+ - language setting (FR, EN, DE, IT, ES, etc.).
+ - default user name, maybe, depends of your distro behaviour.
+ - CUDA setting
+ - DKMS setting
+
+```
+# default desktop user id
+def_user=$USER
+# locale language for ui
+LG=EN
+
+## Basic config vars
+# use CUDA module by default (1) or not (0)
+cuda=1
+# use dkms script by default (1) or not (0)
+use_dkms=1
+# force use of direct (0) or indirect (1) GL libs
+use_indirect=0
+# force use of libglvnd (1) or not (0)
+use_glvnd=0
+# driver install type:  optimus (1), single GPU (0) 
+install_type=0
+# optimus install type: prime (0), bumblebee (1) 
+use_bumblebee=0
 ```
 
 ---------
