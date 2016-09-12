@@ -17,10 +17,10 @@ For now and because needed install.sh update, follows **#Install** section.
 ##Issues
 
  - Don't use install.sh for now, it need an deep update before.
- - Can't use nvidia-installer to install the driver and nvidia-installer send ERROR messsage. The script use its work-arround to solve that issue (prime/bumblebee issue only ?).
- - Because of the driver and libs custom install dirs nvidia-installer send WARNINGS when installing libs. Don't take care of it.
- - OpenCL file in /etc is not update correctly, will be fix soon.
- - 
+ - Can't use nvidia-installer to install the driver and nvidia-installer send ERROR messsage. This is nvidia-drm fault. The script use its work-arround to solve that issue (prime/bumblebee issue only ?).
+ - Because of the driver and libs custom install dirs nvidia-installer send WARNINGS when installing libs. Don't take care of it. Nvidia-isntaller like to complain anyway.
+ - There a very anoying issue with libnvidia-wfb.so over Bumblebee and Prime. The script work arround and replace it by the system default libwfb.so, waiting for Nvidia© DEVs to fix this issue, but I don't thing they really care.
+  The big matter with this issue is the window manager use it constantly, so there are troubles in desktop behaviour, particulary in game fullscreen mode activation or FPS. Well it sucks... 
 
 ##TODO
 
