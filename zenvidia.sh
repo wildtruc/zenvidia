@@ -2160,7 +2160,7 @@ glx_test(){
 	done
 	
 	menu_test=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
-	--title="Zenvidia" --text "$jB$_3e$end" \
+	--title="Zenvidia" --text "$jB$_4a$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${test_list[@]}" false $nt "$MM")
 	if [ $? = 1 ]; then exit 0; fi
