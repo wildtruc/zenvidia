@@ -51,13 +51,13 @@ Choose a directory to repo and :
 ```sh
   git clone https://github.com/wildtruc/zenvidia.git
   cd zenvidia/
-# then :
-# to install to default :
-make install
-# to remove all :
-make uninstall
-# to remove safely (doesn't remove dowloaded driver packages)
-make safeuninstall
+  # then :
+  # to install to default :
+  make install
+  # to remove all :
+  make uninstall
+  # to remove safely (doesn't remove dowloaded driver packages)
+  make safeuninstall
 ```
 And :
 ```sh
