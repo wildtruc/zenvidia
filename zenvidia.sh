@@ -129,7 +129,7 @@ ID(){
 distro_id(){
 	unset distro_list
 	if [ -f /proc/version ] ; then
-		distro_list=( Ubuntu Debian 'Fedora' 'Red\ Hat' Mandriva )
+		distro_list=( Ubuntu Debian 'Fedora' 'Red\ Hat' Mandriva mageia )
 		for distro in "${distro_list[@]}" ; do
 			proc_version=$(cat /proc/version | grep -c "$distro")
 			if [ $proc_version -gt 0 ] ; then
@@ -420,13 +420,23 @@ bumble_build(){
 		echo "# GIT : Optimus : Copy bumblebee$sys_c_ext in systemd path."; sleep 1
 		cp -f ./scripts/systemd/bumblebeed.* /usr/lib/systemd/system/
 	fi
-	if [[ $($sys_c status bumblebeed$sys_c_ext | grep -o "inactive") != '' ]]; then
-		echo "# Optimus : Enable bumblebee$sys_c_ext at boot start."; sleep 1
-		/usr/bin/$sys_c enable bumblebeed$sys_c_ext
-		/usr/bin/$sys_c start bumblebeed$sys_c_ext
-
+	if [ $sys_old = 1]; then
+		if [[ $($sys_c bumblebeed status | grep -o "inactive") != '' ]]; then
+			echo "# Optimus : Enable bumblebee$sys_c_ext at boot start."; sleep 1
+			$sys_c enable bumblebeed$sys_c_ext
+			$sys_c bumblebeed start
+		else
+			$sys_c bumblebeed restart
+		fi
+	else
+		if [[ $($sys_c status bumblebeed$sys_c_ext | grep -o "inactive") != '' ]]; then
+			echo "# Optimus : Enable bumblebee$sys_c_ext at boot start."; sleep 1
+			$sys_c enable bumblebeed$sys_c_ext
+			$sys_c start bumblebeed$sys_c_ext
+		else
+			$sys_c restart bumblebeed$sys_c_ext
+		fi
 	fi
-	/usr/bin/$sys_c restart bumblebeed$sys_c_ext
 	cd $nvdir
 }
 primus_build(){
@@ -525,7 +535,7 @@ optimus_source_rebuild(){
 			b=$[ $b+1 ]
 		done
 		menu_build=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
-			--title="Zenvidia" --text "$jB$G10$end" \
+			--title="Zenvidia" --text "$jB$_3e$end" \
 			--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 			"${build_list[@]}" false $b "$PM")
 		if [ $? = 1 ]; then exit 0; fi
@@ -898,10 +908,14 @@ if_blacklist(){ # <<< NOT USED <<< TODO
 		usermod -a -G bumblebee $USER
 	fi
 	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
-		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/ 
+		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
 		$sys_c enable bumblebeed$sys_c_ext
+		if [ $sys_old = 1 ]
+			$sys_c bumblebeed restart
+		else 
+			$sys_c restart bumblebeed$sys_c_ext
+		fi
 	fi
-	/usr/bin/$sys_c restart bumblebeed$sys_c_ext
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
 }
@@ -931,7 +945,11 @@ post_install(){
 				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
 				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				/usr/bin/$sys_c restart bumblebeed$sys_c_ext
+				if [ $sys_old = 1 ]
+					$sys_c bumblebeed restart
+				else 
+					$sys_c restart bumblebeed$sys_c_ext
+				fi
 			# prime
 			else
 				echo "# Optimus : Configure and load/reload Prime..."; sleep 1
@@ -939,7 +957,11 @@ post_install(){
 				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
 				echo "# Optimus : Start or Restart Prime service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				/usr/bin/$sys_c restart nvidia-prime$sys_c_ext
+				if [ $sys_old = 1 ]
+					$sys_c nvidia-prime restart
+				else 
+					$sys_c restart nvidia-prime$sys_c_ext
+				fi
 			fi		
 #		fi
 		else # [ $optimus = 0 ]
@@ -1536,7 +1558,11 @@ upgrade_kernel(){
 			new_version=$version
 			driver_conf
 			echo "# $m_02_05."; sleep 1
-			/usr/bin/$sys_c restart bumblebeed$sys_c_ext
+			if [ $sys_old = 1 ]
+				$sys_c bumblebeed restart
+			else 
+				$sys_c restart bumblebeed$sys_c_ext
+			fi
 		fi
 		echo "# $m_02_06" ; sleep 1
 	fi
