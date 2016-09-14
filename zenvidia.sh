@@ -52,12 +52,12 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Developpement/NVIDIA/zenvidia
-conf_dir=$devel
-basic_conf=$devel/basic.conf.devel
-script_conf=$devel/script.conf.devel
-color_conf=$devel/color.conf
-locale=$devel/translations/
+#devel=/home/mike/Developpement/NVIDIA/zenvidia
+#conf_dir=$devel
+#basic_conf=$devel/basic.conf.devel
+#script_conf=$devel/script.conf.devel
+#color_conf=$devel/color.conf
+#locale=$devel/translations/
 ################################################
 
 ## configuration file
