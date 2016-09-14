@@ -15,6 +15,10 @@ For now and because needed install.sh update, follows **#Install** section.
 See **Wiki** for **Issues**, **Todo list** and **demands**.
 
 ------------
+##News
+Stay tuned on **WIKI**, I recently made some stupid hack mistake, so come to **Wiki** and update regulary till it isn't marked as **STABLE** on this page.
+
+------------
 
 ##Usage
 
