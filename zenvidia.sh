@@ -52,12 +52,12 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Developpement/NVIDIA/zenvidia
-#conf_dir=$devel
-#basic_conf=$devel/basic.conf.devel
-#script_conf=$devel/script.conf.devel
-#color_conf=$devel/color.conf
-#locale=$devel/translations/
+devel=/home/mike/Developpement/NVIDIA/zenvidia
+conf_dir=$devel
+basic_conf=$devel/basic.conf.devel
+script_conf=$devel/script.conf.devel
+color_conf=$devel/color.conf
+locale=$devel/translations/
 ################################################
 
 ## configuration file
@@ -161,9 +161,9 @@ root_id(){
 # elf types
 libclass(){
 	if [ $(uname -p |grep -c "64") -gt 0 ] ; then
-		ELF_TYPE=""
-	else
 		ELF_TYPE="64"
+	else
+		ELF_TYPE=""
 	fi
 }
 ## system arch
@@ -645,17 +645,18 @@ prime_build(){
 	( 
 	if [ -d $optimus_src/nvidia-prime-select ]; then
 		operande=Updating
+		cd $optimus_src/nvidia-prime-select
 		echo "# GIT : $operande prime..."
 		git pull
+		/usr/bin/make install; sleep 1
 	else
 		operande=Installing
-		cd $optimus_src
+		cd $optimus_src/nvidia-prime-select
 		echo "# GIT : $operande prime..."
 		git clone $prime_git
+		/usr/bin/make install; sleep 1
 	fi
-	cd $optimus_src/nvidia-prime-select
-	sleep 1
-	/usr/bin/make install; sleep 1
+	if [ $new_version ]; then version=$new_version; fi
 	if [ -f /etc/nvidia-prime/xorg.conf.nvidia.$version ]; then
 		cd /etc/nvidia-prime
 		cp -f ./xorg.conf.nvidia.$version ./xorg.nvidia.conf
@@ -741,7 +742,7 @@ xorg_conf(){
 		printf "Section \"Files\"
 #	ModulePath \"$croot/nvidia.$new_version/xorg/modules\"
 	ModulePath \"$croot/nvidia/xorg/modules\"	
-	ModulePath \"usr/$master$ELF/xorg/modules\"
+	ModulePath \"/usr/$master$ELF/xorg/modules\"
 EndSection
 \n\n" > xorg.conf.nvidia.$new_version
 	}
@@ -910,7 +911,7 @@ if_blacklist(){ # <<< NOT USED <<< TODO
 	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
 		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
 		$sys_c enable bumblebeed$sys_c_ext
-		[ $sys_old = 1 ] if; then
+		if [ $sys_old = 1 ]; then
 			$sys_c bumblebeed restart
 		else 
 			$sys_c restart bumblebeed$sys_c_ext
@@ -927,14 +928,12 @@ post_install(){
 			# common to prime & bumblebee
 			if [ -e $xorg_dir/modules/libwfb.so ]; then
 				mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
-				ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg/modules/libwfb.so
+				ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
 			fi
 			[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
 			cd $croot
 #			[ -f $croot/nvidia.$new_version ]|| ln -sf -T ./nvidia.$new_version ./nvidia
-			if [ -d $croot/nvidia ]&&[ -h $croot/nvidia ]; then
-				ln -sf -T ./nvidia.$new_version ./nvidia
-			fi
+			ln -sf -T ./nvidia.$new_version ./nvidia
 			xorg_conf; echo "$n"; n=$[ $n+2 ]
 			driver_conf; echo "$n"; n=$[ $n+4 ]
 			# bumblebee
@@ -1072,39 +1071,43 @@ nv_cmd_try_legacy_first(){
 }
 nv_cmd_install_driver(){
 #	driver_level=$(printf "$new_version"|cut -d. -f1)
-	[ $use_dkms = 0 ]|| nv_cmd_dkms_conf
-	nv_cmd_try_legacy_first
-	if [ ! -s $kernel_path/nvidia.ko ]|| \
-	[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
-		[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
-		cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
-		if [ $use_dkms = 1 ]; then
-			if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel ]; then
-				if [[ $(cat /usr/src/nvidia-$new_version/dkms.conf|grep -o "$new_version") == '' ]]; then
-					nv_cmd_dkms_conf
-				fi
-				version=$new_version
-				# Compil and install DKMS modules				
-				nv_build_dkms
-				# In case of modules compil errors, force it from source
-				if [ ! -s $kernel_path/nvidia.ko ]|| \
-				[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
-					echo "# DKMS compilation ERROR !!"; sleep 2 
-					echo "# Force MODULES compilation from source..."; sleep 1
-					nv_cmd_make_src
+	if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
+		[ $use_dkms = 0 ]|| nv_cmd_dkms_conf
+		nv_cmd_try_legacy_first
+		if [ ! -s $kernel_path/nvidia.ko ]|| \
+		[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
+			[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
+			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
+			if [ $use_dkms = 1 ]; then
+				if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel ]; then
+					if [[ $(cat /usr/src/nvidia-$new_version/dkms.conf|grep -o "$new_version") == '' ]]; then
+						nv_cmd_dkms_conf
+					fi
+					version=$new_version
+					# Compil and install DKMS modules				
+					nv_build_dkms
+					# In case of modules compil errors, force it from source
+					if [ ! -s $kernel_path/nvidia.ko ]|| \
+					[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
+						echo "# DKMS compilation ERROR !!"; sleep 2 
+						echo "# Force MODULES compilation from source..."; sleep 1
+						nv_cmd_make_src
+					fi
 				fi
 			fi
+			if [ $use_dkms = 0 ]; then
+				echo "# Nvidia MODULES compilation..."; sleep 1 
+				nv_cmd_make_src
+			fi
 		fi
-		if [ $use_dkms = 0 ]; then
-			echo "# Nvidia MODULES compilation..."; sleep 1 
-			nv_cmd_make_src
+		if [ ! -f $kernel_path/nvidia.ko ]; then
+			zenity --width=450 --title="Zenvidia" --error \
+			--text="$j INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')$end."
+			exit 0
 		fi
-	fi
-	if [ ! -f $kernel_path/nvidia.ko ]; then
-		zenity --width=450 --title="Zenvidia" --error \
-		--text="$j INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')$end."
-		exit 0
-	fi
+	else
+		echo "# DRIVER ALREADY INSTALL, SKIPING THIS STEP."; sleep 2
+	fi	
 #	if [ $driver_level -ge 355 ]; then
 #		$nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-modprobe -u -m
 #	else
@@ -1417,8 +1420,8 @@ install_drv(){
 					rm -f $buildtmp/template-*
 					zenity --width=450 --title="Zenvidia" --error \
 					--text="$vB\DRIVER INSTALL ABORT ABNORMALY$end\n$v\check $(echo "$driver_logfile" | sed -n 's/^.*=//p').$end"
+					exit 0
 				fi
-				exit 0
 			fi
 		fi
 		## create base libs install directories
@@ -2524,9 +2527,9 @@ $v$msg_00_06 : $end $j$cnx_msg$end
 first_start(){
 	### FIRST START
 	compil_vars
-	version_id
-	root_id
 	libclass
+	root_id
+	version_id
 	ID
 	arch
 #	distro
