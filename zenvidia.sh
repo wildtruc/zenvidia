@@ -910,7 +910,7 @@ if_blacklist(){ # <<< NOT USED <<< TODO
 	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
 		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
 		$sys_c enable bumblebeed$sys_c_ext
-		if [ $sys_old = 1 ]
+		[ $sys_old = 1 ] if; then
 			$sys_c bumblebeed restart
 		else 
 			$sys_c restart bumblebeed$sys_c_ext
@@ -945,7 +945,7 @@ post_install(){
 				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
 				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				if [ $sys_old = 1 ]
+				if [ $sys_old = 1 ]; then
 					$sys_c bumblebeed restart
 				else 
 					$sys_c restart bumblebeed$sys_c_ext
@@ -957,7 +957,7 @@ post_install(){
 				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
 				echo "# Optimus : Start or Restart Prime service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				if [ $sys_old = 1 ]
+				if [ $sys_old = 1 ]; then
 					$sys_c nvidia-prime restart
 				else 
 					$sys_c restart nvidia-prime$sys_c_ext
@@ -1558,7 +1558,7 @@ upgrade_kernel(){
 			new_version=$version
 			driver_conf
 			echo "# $m_02_05."; sleep 1
-			if [ $sys_old = 1 ]
+			if [ $sys_old = 1 ]; then
 				$sys_c bumblebeed restart
 			else 
 				$sys_c restart bumblebeed$sys_c_ext
