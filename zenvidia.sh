@@ -239,24 +239,23 @@ compil_vars(){
 	primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
 	xt_options='-fn 8x13 -geometry 80x24+'$[ (($term_x_dsp-640)/2)-20 ]'+0 -title'
-	esc_message=""
+	esc_message="printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\""
 }
 # define installed driver version, if any
 version_id(){
-	if [ -d /lib/modules/$KERNEL ]; then
-		mod_version=$($d_modinfo -F version nvidia)
-		if [[ $mod_version != '' ]]; then
-			if [[ -s /lib/modules/$KERNEL/extra/nvidia.ko ]]; then
+	version=$(cat $nvdir/version.txt)
+	mod_version=$($d_modinfo -F version nvidia)
+	ver_txt=$(printf "$version"|sed -n "s/\.//p")
+	ver_mod=$(printf "$mod_version"|sed -n "s/\.//p")
+	if [[ $version ]]; then
+		if [[ $mod_version ]]; then
+			if [[ $ver_mod -ge $ver_txt ]]; then
 				version=$mod_version
 			fi
-		else
-			if [[ $(cat $nvdir/version.txt) != '' ]]; then
-			version=$(cat $nvdir/version.txt)
-			else
-				version="undefined"
-			fi			
 		fi
-	fi
+	else
+		version="undefined"
+	fi			
 }
 
 nv_gen_keys(){ # <<< NOT USED
@@ -524,7 +523,7 @@ installer_build(){
 	fi
 }
 optimus_source_rebuild(){
-	if [ -x $install_dir/bin/optirun ]; then
+#	if [ -x $install_dir/bin/optirun ]; then
 		unset build_list
 		rebuild_list=("bbswitch" "Bumblebee" "Primus" "Prime" "Nvidia-Installer" "$_5a")
 		operande="Rebuild"; b=1
@@ -548,7 +547,7 @@ optimus_source_rebuild(){
 			"6") git_src="nvidia-installer"; re_build ;;
 			"$b") menu_modif ;;
 		esac
-	fi	
+#	fi	
 }
 re_build(){
 	menu_msg="$v\You're going to compile$end $j$git_src$end."
@@ -626,8 +625,7 @@ prime_src_ctrl(){
 				git fetch --dry-run &>$optimus_src/tmp.log
 				if [[ $(cat $optimus_src/tmp.log|grep -c "master") -eq 1 ]]; then
 					echo "# GIT : $m_02_20 $git_src..."
-					make clean
-					git pull ; prime_build
+					prime_build
 					sleep 1
 				else
 					echo "# GIT : $git_src $m_02_19"; sleep 1
@@ -635,7 +633,7 @@ prime_src_ctrl(){
 				
 				echo $[ $c+50 ]; sleep 1
 			echo "100"; sleep 1
-		) | zenity --width=450 --title="Zenvidia (updating)" --progress --percentage=0 \
+		) | zenity --width=450 --title="Zenvidia ($operande)" --progress --percentage=0 \
 		--auto-close --text="$y\GIT$end $v: $m_02_17.$end"
 	else
 		prime_build
@@ -646,20 +644,44 @@ prime_build(){
 	if [ -d $optimus_src/nvidia-prime-select ]; then
 		operande=Updating
 		cd $optimus_src/nvidia-prime-select
-		echo "# GIT : $operande prime..."
+		echo "# GIT : $operande Prime..."
+		git fetch --dry-run &>$optimus_src/tmp.log
+		if [[ $(cat $optimus_src/tmp.log|grep -c "master") -eq 1 ]]; then
+		cmd_line="# $operande Prime from GIT source:\n
 		git pull
-		/usr/bin/make install; sleep 1
+		/usr/bin/make install
+		$esc_message
+		sleep 3"
+		else
+			echo "# GIT : Already Up-to-date. Skip"; sleep 2
+		fi
+#		git pull
+#		/usr/bin/make install
+		sleep 1
 	else
 		operande=Installing
-		cd $optimus_src/nvidia-prime-select
-		echo "# GIT : $operande prime..."
+		cd $optimus_src
+		echo "# GIT : $operande Prime..."
+		cmd_line="# $operande Prime from GIT source repo:\n
 		git clone $prime_git
-		/usr/bin/make install; sleep 1
+		cd $optimus_src/nvidia-prime-select
+		/usr/bin/make install
+		$esc_message
+		sleep 3"
+#		git clone $prime_git
+#		cd $optimus_src/nvidia-prime-select
+#		/usr/bin/make install
+		sleep 1
 	fi
+	
+	x_opt="$xt_options Zenvidia_Prime_$operande"
+	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
 	if [ -f /etc/nvidia-prime/xorg.conf.nvidia.$version ]; then
-		cd /etc/nvidia-prime
-		cp -f ./xorg.conf.nvidia.$version ./xorg.nvidia.conf
+		if [ ! $(cat /etc/nvidia-prime/xorg.nvidia.conf| grep -o "$version") ]; then
+			cd /etc/nvidia-prime
+			cp -f ./xorg.conf.nvidia.$version ./xorg.nvidia.conf
+		fi
 	fi
 	echo "# GIT : $operande prime, done."; sleep 1
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close
@@ -1057,12 +1079,13 @@ nv_cmd_try_legacy_first(){
 	[ $use_dkms = 0 ]|| dkms="--dkms"
 	x_opt="$xt_options Zenvidia_Nvidia_Installer"
 	xterm $x_opt -e "
-	$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
-	--skip-module-unload --no-distro-scripts \
-	--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
-	$SIGN_S $SElinux $temp --log-file-name=$driver_logfile
-	depmod -a
-	printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\" ; sleep 3"
+$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
+--skip-module-unload --no-distro-scripts \
+--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
+$SIGN_S $SElinux $temp --log-file-name=$driver_logfile
+depmod -a
+$esc_message
+sleep 2"
 #	$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 #	--skip-module-unload --no-distro-scripts \
 #	--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
@@ -1162,9 +1185,8 @@ nv_build_dkms(){
 	$remove_dkms
 	/usr/sbin/dkms build -m nvidia/$version -k $KERNEL
 	/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
-	printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\"
-	sleep 3
-	"
+	$esc_message
+	sleep 2"
 #	xterm $x_opt -hold -e "/usr/sbin/dkms build -m nvidia/$version"
 #	echo "# Install DKMS modules to KERNEL PATH..."; sleep 1
 #	x_opt="-sb -b 5 -bg black -bd green -bw 0 -title Zenvidia_build -geometry 110"
@@ -1367,7 +1389,7 @@ backup_old_version(){
 		cp -Rf /var/lib/dkms/nvidia/$bak_version $bak_dir/var/lib/dkms/nvidia/
 		cp -Rf /usr/src/nvidia-$bak_version $bak_dir/usr/src/
 		cp -Rf /etc/{OpenCL,zenvidia} $bak_dir/etc/
-		cp -Rf /usr/local/bin/nvidia.* $bak_dir/usr/local/bin/
+		cp -Rf /usr/local/bin/nvidia-* $bak_dir/usr/local/bin/
 		cp -Rf /usr/local/lib$ELF_64/libnvidia-{{cfg,fbc,gtk2,gtk3}.{so,so.1},*.$bak_version} $bak_dir/usr/local/lib$ELF_64/
 		cp -Rf /usr/local/lib$ELF_32/libnvidia-{fbc{.so,.so.1},*.$bak_version} $bak_dir/usr/local/lib$ELF_32/
 		cp -Rf /usr/local/share/nvidia $bak_dir/usr/local/share/
