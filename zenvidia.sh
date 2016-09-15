@@ -983,6 +983,8 @@ post_install(){
 				else 
 					$sys_c restart nvidia-prime$sys_c_ext
 				fi
+				usr/sbin/nvidia-prime-select nvidia
+				usr/sbin/nvidia-prime-select nvidiaonly
 			fi		
 #		fi
 		else # [ $optimus = 0 ]
@@ -1013,6 +1015,7 @@ post_install(){
 		done
 	done
 	cd $nvtmp
+	## fix gui libraries install if broken
 	extracted=NVIDIA-Linux-$ARCH-$new_version
 	if [ -d $extracted ]; then
 		if [ -d $nvtmp/$extracted/32 ]; then
@@ -1033,7 +1036,15 @@ post_install(){
 			cd $nvtmp )
 		done
 	fi
-	/usr/sbin/ldconfig
+	## symlink libvdpau_nvidia to system
+	for lib_V in "$master$ELF_32 $master$ELF_64"; do
+		link_v=$(ls -l /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| sed -n "s/^.*-> //p")
+		if [[ ! $(printf "$link_v"|grep -o "$new_version") ]]; then
+			ln -sf $croot_all/$lib_V/vdpau/libvdpau_nvidia.so.$new_version /usr/$lib_V/vdpau/libvdpau_nvidia.so.1 
+		fi
+	done
+	## link now all new libraries
+	ldconfig	
 	echo "$n"; n=$[ $n+4 ]
 	if [ ! -h /usr/share/nvidia ]; then
 		rm -f /usr/share/nvidia
@@ -2100,11 +2111,11 @@ drv_unload(){
 ## EDITION
 edit_script_conf(){
 	edit_script=$(zenity --width=500 --height=400 --title="Zenvidia" --text-info \
-	--editable --text="$v$m_01_58$end" --filename="$script_conf" \
+	--editable --text="$v$m_01_58$end" --filename="$basic_conf" \
 	--checkbox="$m_01_59" )
 #	exit_stat=$?
 	if [[ $(printf "$edit_script"| sed -n '1p') != '' ]]; then
-		printf "$edit_script" > $script_conf
+		printf "$edit_script" > $basic_conf
 	fi
 #	if [ $exit_stat = 0 ]; then menu_manage
 #	elif [ $exit_stat = 1 ]; then exit 0
