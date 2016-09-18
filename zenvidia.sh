@@ -493,7 +493,6 @@ installer_build(){
 		else
 			echo "# $m_03_53..."; sleep 2
 		fi
-		echo "# Proceed to Nvidia-installer control."; sleep 2
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$y\GIT :$end$v Nvidia-Installer sources dependencies control.$end"
 	if [ $n ]; then pulsate="--percentage=$n" ; else pulsate='--pulsate'; fi
