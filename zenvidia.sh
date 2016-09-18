@@ -27,6 +27,7 @@
 ## Master Vars.
 install_dir=/usr/local						# default tools & system install directory
 nvdir=$install_dir/NVIDIA						# default Zenvidia directory
+conf_dir="$install_dir/NVIDIA"
 #conf_dir="/usr/local/etc"						# default conf directory << TODO
 conf_dir=$nvdir
 basic_conf=$nvdir/basic.conf
@@ -400,26 +401,29 @@ bumble_build(){
 		if [ ! -x $optimus_src/Bumblebee/configure ]; then
 			/usr/bin/autoreconf -fi
 		fi
-		[[ $( $d_modinfo -F version nvidia ) == $version ]]|| \
+#		[[ $( $d_modinfo -F version nvidia ) == $version ]]|| \
+		[[ $mod_version == $version ]]|| \
 		version=$( $d_modinfo -F version nvidia )
 		nvroot="nvidia"
-		[[ $(printf "$xorg_dir") != "" ]]|| xorg_dir=$croot/$nvroot/xorg
+		[ -d $xorg_dir ]|| xorg_dir=$croot/$nvroot/xorg
+#		[[ $(printf "$xorg_dir") != "" ]]|| xorg_dir=$croot/$nvroot/xorg
 		./configure --prefix=$tool_dir CONF_DRIVER=nvidia \
 		CONF_DRIVER_MODULE_NVIDIA=nvidia \
 		CONF_LDPATH_NVIDIA=$croot/$nvroot/$master$ELF_64:$croot/$nvroot/$master$ELF_32 \
 		CONF_MODPATH_NVIDIA=$xorg_dir/modules,/usr/lib$ELF_TYPE/xorg/modules  
 		/usr/bin/make 
 		/usr/bin/make install
-		## FIXME : make nvidia conf links ##
-		## FIXME : bumblebee conf link broken at recompil
-		## FIXME : remove old conf files
-		
 		echo "# GIT : $operande bumblebee, done."; sleep 1
 		) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close
 	fi
 	if [ ! -e /usr/lib/systemd/system/bumblebeed$sys_c_ext ]; then
 		echo "# GIT : Optimus : Copy bumblebee$sys_c_ext in systemd path."; sleep 1
 		cp -f ./scripts/systemd/bumblebeed.* /usr/lib/systemd/system/
+	fi
+	if [[ $(ls -l $tool_dir/etc/bumblebee/bumblebee.conf| sed -n "s/^.*-> //p") != $version ]]; then
+		cd $tool_dir/etc/bumblebee/
+		ln -sf ./bumblebee.$version ./bumblebee.conf
+		ln -sf ./xorg.conf.nvidia.$version ./xorg.conf.nvidia
 	fi
 	if [ $sys_old = 1]; then
 		if [[ $($sys_c bumblebeed status | grep -o "inactive") != '' ]]; then
@@ -492,18 +496,23 @@ installer_build(){
 		echo "# Proceed to Nvidia-installer control."; sleep 2
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$y\GIT :$end$v Nvidia-Installer sources dependencies control.$end"
-	echo "$n"; n=$[ $n+4 ]
+	if [ $n ]; then pulsate="--percentage=$n" ; else pulsate='--pulsate'; fi
+	( [ $n ]&& echo "$n"; n=$[ $n+4 ]
 	# Install or upgrade from source
 	if [ -d $optimus_src/nvidia-installer ]; then
+		git fetch --dry-run &>$optimus_src/tmp.log
+		pull_it=$(cat $optimus_src/tmp.log|grep -c "master")
 		cd $optimus_src/nvidia-installer
 		echo "# GIT : Controling nvidia-installer..." ; sleep 1
 		if [[ $operande = "Rebuild" ]]; then
 			proc="Re-building"
+			## check git pull first
+			[ $pull_it = 0 ]|| git pull
+			make clean
 			inst_build
-			optimus_source_rebuild
 		else
 			proc="Updating"
-			if [[ $(git pull | grep -o "up-to-date") == '' ]]; then
+			if [ $pull_it = 1 ]; then
 				echo "# GIT : Updating nvidia-installer..."
 				make clean
 				git pull ; inst_build
@@ -512,7 +521,7 @@ installer_build(){
 			else
 				echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
 			fi
-			echo "$n"; n=$[ $n+4 ]
+			[ $n ]&& echo "$n"; n=$[ $n+4 ]
 		fi
 	else
 		proc="Installing"
@@ -521,8 +530,10 @@ installer_build(){
 		/usr/bin/git clone $nv_git
 		inst_build
 		echo "# GIT : $proc nvidia-installer done."; sleep 2
-		echo "$n"; n=$[ $n+4 ]
+		[ $n ]&& echo "$n"; n=$[ $n+4 ]
 	fi
+	) | zenity --width=450 --title="Zenvidia" --progress $pulsate --auto-close \
+	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
 }
 optimus_source_rebuild(){
 #	if [ -x $install_dir/bin/optirun ]; then
@@ -545,28 +556,32 @@ optimus_source_rebuild(){
 			"2") git_src="Bumblebee"; re_build ;;
 			"3") git_src="primus"; re_build ;;
 			"4") git_src="nvidia-prime-select"; prime_build ;;
+			"5") git_src="nvidia-installer"; re_build ;;
 			"6") dkms_rebuild; base_menu ;;
-			"6") git_src="nvidia-installer"; re_build ;;
 			"$b") menu_modif ;;
 		esac
 #	fi	
 }
 re_build(){
 	menu_msg="$v\You're going to compile$end $j$git_src$end."
-	zenity --width=450 --height=200 --title="Zenvidia" --list --radiolist --hide-header \
-	--text "$menu_msg\n$v$ansCF$end" --column "1" --column "2" --separator=";" \
-	true "$MM10" false "$MM"
+	menu_re_build=$(zenity --width=450 --height=200 --title="Zenvidia" --list --radiolist --hide-header \
+	--text "$menu_msg\n$v$ansWN$end" --column "1" --column "2" --column "3" --separator=";" \
+	--hide-column 2 false 1 "$ansCF" false 2 "$MM")
 	if [ $? = 1 ]; then base_menu; fi
-	cd $optimus_src/$git_src
-	b_text=" GIT : Rebuilding $git_src..."
-	if [[ "$git_src" == "bbswitch" ]]; then git_build=bb_build
-	elif [[ "$git_src" == "Bumblebee" ]]; then git_build=bumble_build
-	elif [[ "$git_src" == "primus" ]]; then git_build=primus_build
-	elif [[ "$git_src" == "nvidia-installer" ]]; then git_build=installer_build
-	fi
-	make clean
-#	git pull
-	${git_build}
+	case $menu_re_build in
+		"1") cd $optimus_src/$git_src
+			b_text=" GIT : Rebuilding $git_src..."
+			if [[ "$git_src" == "bbswitch" ]]; then git_build=bb_build
+			elif [[ "$git_src" == "Bumblebee" ]]; then git_build=bumble_build
+			elif [[ "$git_src" == "primus" ]]; then git_build=primus_build
+			elif [[ "$git_src" == "nvidia-installer" ]]; then git_build=installer_build
+			fi
+			make clean
+			${git_build}
+			;;
+		"2") optimus_source_rebuild ;;
+	esac
+	
 }
 primus_script(){
 	printf "#!/bin/bash
@@ -949,6 +964,8 @@ if_blacklist(){ # <<< NOT USED <<< TODO
 	fi
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
+
+# TODO TODO < sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
 }
 
 post_install(){
@@ -1116,8 +1133,8 @@ nv_cmd_install_driver(){
 	if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
 		[ $use_dkms = 0 ]|| nv_cmd_dkms_conf
 		nv_cmd_try_legacy_first
-		if [ ! -s $kernel_path/nvidia.ko ]|| \
-		[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
+#		if [ ! -s $kernel_path/nvidia.ko ]|| \
+		if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
 			[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
 			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
 			if [ $use_dkms = 1 ]; then
@@ -1129,8 +1146,8 @@ nv_cmd_install_driver(){
 					# Compil and install DKMS modules				
 					nv_build_dkms
 					# In case of modules compil errors, force it from source
-					if [ ! -s $kernel_path/nvidia.ko ]|| \
-					[[ $($d_modinfo -F version nvidia) != $new_version ]]; then
+#					if [ ! -s $kernel_path/nvidia.ko ]|| \
+					if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
 						echo "# DKMS compilation ERROR !!"; sleep 2 
 						echo "# Force MODULES compilation from source..."; sleep 1
 						nv_cmd_make_src
@@ -1165,13 +1182,13 @@ nv_cmd_update(){
 		fi
 	fi
 	nv_cmd_try_legacy_first
-	if [ ! -s $kernel_path/nvidia.ko ]|| \
-	[[ $($d_modinfo -F version nvidia) != $version ]]; then
+#	if [ ! -s $kernel_path/nvidia.ko ]|| \
+	if [[ $($d_modinfo -F version nvidia) != $version ]]; then
 		if [ $use_dkms = 1 ]; then
 			force=0	
 			nv_build_dkms
-			if [ ! -e $kernel_path/nvidia.ko ]|| \
-			[[ $($d_modinfo -F version nvidia) != $version ]]; then
+#			if [ ! -e $kernel_path/nvidia.ko ]|| \
+			if [[ $($d_modinfo -F version nvidia) != $version ]]; then
 				echo "# DKMS compilation ERROR !!"; sleep 2 
 				echo "# Force MODULES compilation from source..."; sleep 1
 				nv_cmd_make_src
@@ -1462,7 +1479,7 @@ install_drv(){
 		mod_version=$($d_modinfo -F version nvidia)
 		if [[ $(cat $driver_logfile | grep -o "ERROR") != '' ]]; then
 			if [[ $(cat $driver_logfile | grep "Installation has failed.") != '' ]]; then
-				if [[ $($d_modinfo -F version nvidia ) != $new_version ]]; then
+				if [[ $mod_version != $new_version ]]; then
 					rm -f $buildtmp/template-*
 					zenity --width=450 --title="Zenvidia" --error \
 					--text="$vB\DRIVER INSTALL ABORT ABNORMALY$end\n$v\check $(echo "$driver_logfile" | sed -n 's/^.*=//p').$end"
@@ -2342,7 +2359,7 @@ backup_pcks(){
 	if [ $? = 0 ]; then
 		backup_old_version
 	#		mod_src=/lib/modules/$(uname -r)/extra
-		ko_version=$($d_modinfo -F version nvidia)
+		ko_version=$mod_version
 	#		ko_repo=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
 	#		drv_id=$ko_repo
 	#		if [[ $ko_version == $ko_repo ]]; then
