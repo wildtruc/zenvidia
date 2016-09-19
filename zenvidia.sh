@@ -198,23 +198,28 @@ $vB\YOU SHALL REBOOT THE SYSTEM AFTER KEY GEN PROCESS$end"
 # dependencies control
 dep_control(){
 	unset deplist
-	[ -x /usr/bin/lftp ]|| deplist+=("lftp")
-	[ -x /usr/bin/xterm ]|| deplist+=("xterm")
-	[ -x /usr/bin/make ]|| deplist+=("gcc")
-	[ -x /usr/sbin/dkms ]|| deplist+=("dkms")
-	[ -d $kernel_src ]|| deplist+=("$kernel_hd")
+	[ -x /usr/bin/lftp ]|| deplist+=("$p_lftp")
+	[ -x /usr/bin/xterm ]|| deplist+=("$p_xterm")
+	[ -x /usr/bin/make ]|| deplist+=("$p_gcc")
+	[ -x /usr/bin/git ]|| deplist+=("$p_git")
+	[ -x /usr/sbin/dkms ]|| deplist+=("$p_dkms")
+	[ -d $kernel_src ]|| deplist+=("$p_kernel")
+	[ -e /usr/include/ncurses/ncurses.h ]|| deplist+=("$p_ncurses")
+	[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
+	[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
+	[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
 #	if [[ $(echo "${deplist[*]}") != '' ]] ; then
 	if [[ "${deplist[*]}" ]] ; then
-		zenity --question --text="$v Required dependencies are not met.\n Will you install them now ?$end" --ok-label="Install"
+		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
 		if [ $? = 0 ]; then
-			( $PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]} #$PKG 
+			( 
+			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; echo -e \"$esc_message\""
 			) | zenity --progress --pulsate --auto-close --text="Installing missing dependencies..."
 		else
 			exit 0
 		fi
 	fi
 }
-
 connection_control(){
 	cnx=$(ping -c2 nvidia.com)
 	cnx=$?
@@ -233,7 +238,11 @@ compil_vars(){
 	else
 		NV_bin_ver='none'
 	fi
-	GCC=$(gcc --version | grep "gcc" | sed -n "s/^.*) //p"| awk '{print $1}')
+	if [[ $(gcc --version | grep "gcc") ]]; then
+		GCC=$(gcc --version | grep "gcc" | sed -n "s/^.*) //p"| awk '{print $1}')
+	else
+		GCC='none'
+	fi
 	KERNEL=$(uname -r)
 	OLD_KERNEL=$(ls -1 /lib/modules | sed -n '/'$KERNEL'/{g;1!p};h')
 	# xterm default vars and messages.
@@ -333,13 +342,13 @@ optimus_src_ctrl(){
 optimus_dependencies_ctrl(){ #
 	# optimus compiling dependecies check/install.
 	unset pkg_list
-	[ -x /usr/bin/git ]|| pkg_list+=("git")
-	[ -e /usr/bin/autoconf ]|| pkg_list+=("autoconf")
-	[ -e /usr/include/glib-2*/glib.h ]|| pkg_list+=("glib2-devel")
-	[ -e /usr/include/gnu/stubs-32.h ]|| pkg_list+=("glibc-devel.i686")
-	[ -e /usr/include/bsd/bsd.h ]|| pkg_list+=("libbsd-devel")
-	[ -e /usr/include/X11/X.h ]|| pkg_list+=("libX11-devel libbsd-devel")
-	[ -e /usr/sbin/dkms ]|| pkg_list+=("dkms")
+	[ -x /usr/bin/git ]|| pkg_list+=("$p_git")
+	[ -e /usr/bin/autoconf ]|| pkg_list+=("$p_autoconf")
+	[ -e /usr/include/glib-2*/glib.h ]|| pkg_list+=("$p_glib2")
+	[ -e /usr/include/gnu/stubs-32.h ]|| pkg_list+=("$p_glibc")
+	[ -e /usr/include/bsd/bsd.h ]|| pkg_list+=("$p_libbsd")
+	[ -e /usr/include/X11/X.h ]|| pkg_list+=("$p_libX11")
+#	[ -e /usr/sbin/dkms ]|| pkg_list+=("$p_dkms")
 	(	sleep 2
 		if [[ ${pkg_list[@]} != '' ]]; then
 			echo "# $m_02_22..."
@@ -458,9 +467,9 @@ primus_build(){
 		sed -i "s/PRIMUS_SYNC        ?= 0/PRIMUS_SYNC        ?= 1/" Makefile
 		sed -i "s/\/usr\/\$\$LIB\/nvidia/\/opt\/nvidia\/\$\$LIB/g" Makefile
 #		sed -i "s/\/usr\/\$\$LIB\/nvidia/\/opt\/nvidia\/\$\$LIB/" Makefile
-		## TODO glx primus backup first		
 		LIBDIR=$master$ELF_64 /usr/bin/make && CXX=g++\ -m32 LIBDIR=$master$ELF_32 /usr/bin/make
 		[ -d $croot/primus ]|| mkdir -p $croot/primus
+		[ -d $croot/primus ]&& cp -Rf $croot/primus $croot/primus.bak
 		cp -Rf ./$master$ELF_32 $croot/primus
 		cp -Rf ./$master$ELF_64 $croot/primus
 		) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close $b_text
@@ -470,68 +479,110 @@ primus_build(){
 	fi
 	cd $nvdir
 }
+#installer_build(){
+#	inst_build(){
+#		(	cd $optimus_src/nvidia-installer
+#			make
+#			make install
+#		) | zenity --width=450 --title="Zenvidia (installing)" --progress pulsate \
+#		--auto-close --text="$y\GIT$end $v: $proc nvidia-installer from sources.$end"	
+#	}
+#	# Dependencies control
+#	unset inst_list
+##	[ -e /usr/sbin/dkms ]|| inst_list+=("dkms")
+#	[ -e /usr/include/ncurses/ncurses.h ]|| inst_list+=("ncurses-devel")
+#	[ -e /usr/include/libkmod.h ]|| inst_list+=("kmod-devel")
+#	[ -e /usr/include/pci/config.h ]|| inst_list+=("pciutils-devel")
+#	[ -e /usr/include/pciaccess.h ]||  inst_list+=("libpciaccess-devel")
+#	(	sleep 2
+#		if [[ ${inst_list[@]} != '' ]]; then
+#			echo "# $m_03_51..."
+#			$PKG_INSTALLER $pkg_opts$pkg_cmd ${inst_list[@]}
+#			echo "# $m_03_52."; sleep 2
+#		else
+#			echo "# $m_03_53..."; sleep 2
+#		fi
+#	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
+#	--text="$y\GIT :$end$v Nvidia-Installer sources dependencies control.$end"
+#	if [ $n ]; then pulsate="--percentage=$n" ; else pulsate='--pulsate'; fi
+#	( [ $n ]&& echo "$n"; n=$[ $n+4 ]
+#	# Install or upgrade from source
+#	if [ -d $optimus_src/nvidia-installer ]; then
+#		git fetch --dry-run &>$optimus_src/tmp.log
+#		pull_it=$(cat $optimus_src/tmp.log|grep -c "master")
+#		cd $optimus_src/nvidia-installer
+#		echo "# GIT : Controling nvidia-installer..." ; sleep 1
+#		if [[ $operande = "Rebuild" ]]; then
+#			proc="Re-building"
+#			## check git pull first
+#			[ $pull_it = 0 ]|| git pull
+#			make clean
+#			inst_build
+#		else
+#			proc="Updating"
+#			if [ $pull_it = 1 ]; then
+#				echo "# GIT : Updating nvidia-installer..."
+#				make clean
+#				git pull ; inst_build
+#				sleep 2
+#				echo "# GIT : $proc nvidia-installer done."; sleep 1
+#			else
+#				echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
+#			fi
+#			[ $n ]&& echo "$n"; n=$[ $n+4 ]
+#		fi
+#	else
+#		proc="Installing"
+#		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
+#		mkdir -p $optimus_src/nvidia-installer
+#		/usr/bin/git clone $nv_git
+#		inst_build
+#		echo "# GIT : $proc nvidia-installer done."; sleep 2
+#		[ $n ]&& echo "$n"; n=$[ $n+4 ]
+#	fi
+#	) | zenity --width=450 --title="Zenvidia" --progress $pulsate --auto-close \
+#	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
+#}
 installer_build(){
-	inst_build(){
-		(	cd $optimus_src/nvidia-installer
-			make
-			make install
-		) | zenity --width=450 --title="Zenvidia (installing)" --progress pulsate \
-		--auto-close --text="$y\GIT$end $v: $proc nvidia-installer from sources.$end"	
-	}
-	# Dependencies control
-	unset inst_list
-#	[ -e /usr/sbin/dkms ]|| inst_list+=("dkms")
-	[ -e /usr/include/ncurses/ncurses.h ]|| inst_list+=("ncurses-devel")
-	[ -e /usr/include/libkmod.h ]|| inst_list+=("kmod-devel")
-	[ -e /usr/include/pci/config.h ]|| inst_list+=("pciutils-devel")
-	[ -e /usr/include/pciaccess.h ]||  inst_list+=("libpciaccess-devel")
-	(	sleep 2
-		if [[ ${inst_list[@]} != '' ]]; then
-			echo "# $m_03_51..."
-			$PKG_INSTALLER $pkg_opts install ${inst_list[@]}
-			echo "# $m_03_52."; sleep 2
-		else
-			echo "# $m_03_53..."; sleep 2
-		fi
-	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
-	--text="$y\GIT :$end$v Nvidia-Installer sources dependencies control.$end"
-	if [ $n ]; then pulsate="--percentage=$n" ; else pulsate='--pulsate'; fi
-	( [ $n ]&& echo "$n"; n=$[ $n+4 ]
-	# Install or upgrade from source
-	if [ -d $optimus_src/nvidia-installer ]; then
-		git fetch --dry-run &>$optimus_src/tmp.log
-		pull_it=$(cat $optimus_src/tmp.log|grep -c "master")
-		cd $optimus_src/nvidia-installer
-		echo "# GIT : Controling nvidia-installer..." ; sleep 1
-		if [[ $operande = "Rebuild" ]]; then
-			proc="Re-building"
-			## check git pull first
-			[ $pull_it = 0 ]|| git pull
-			make clean
-			inst_build
-		else
-			proc="Updating"
-			if [ $pull_it = 1 ]; then
-				echo "# GIT : Updating nvidia-installer..."
+	( # Install or upgrade from source
+	if [ $first_start = 0 ]; then
+		if [ -d $optimus_src/nvidia-installer ]; then
+			git fetch --dry-run &>$optimus_src/tmp.log
+			pull_it=$(cat $optimus_src/tmp.log|grep -c "master")
+			cd $optimus_src/nvidia-installer
+			echo "# GIT : Controling nvidia-installer..." ; sleep 1
+			if [[ $operande = "Rebuild" ]]; then
+				proc="Re-building"
+				## check git pull first
+				[ $pull_it = 0 ]|| git pull
 				make clean
-				git pull ; inst_build
-				sleep 2
-				echo "# GIT : $proc nvidia-installer done."; sleep 1
+				make; make install
 			else
-				echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
+				proc="Updating"
+				if [ $pull_it = 1 ]; then
+					echo "# GIT : Updating nvidia-installer..."
+					make clean
+					git pull
+					make ; make install
+					sleep 2
+					echo "# GIT : $proc nvidia-installer done."; sleep 1
+				else
+					echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
+				fi
+
 			fi
-			[ $n ]&& echo "$n"; n=$[ $n+4 ]
 		fi
 	else
 		proc="Installing"
 		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
 		mkdir -p $optimus_src/nvidia-installer
-		/usr/bin/git clone $nv_git
-		inst_build
+		cd $optimus_src/nvidia-installer
+		git clone $nv_git
+		make ; make install
 		echo "# GIT : $proc nvidia-installer done."; sleep 2
-		[ $n ]&& echo "$n"; n=$[ $n+4 ]
+
 	fi
-	) | zenity --width=450 --title="Zenvidia" --progress $pulsate --auto-close \
+	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
 }
 optimus_source_rebuild(){
@@ -2213,30 +2264,6 @@ lang_define(){
 		exit 0
 	fi
 }
-install_controls(){
-	if [ -d $nvdir ] ; then
-		mkdir -p $buildtmp $nvtmp $nvlog $nvupdate $nvdl $locale
-	fi
-	nvdl_last=$(ls -1 $nvdl/|sed -n '$p')	
-	if [[ $nvdl_last != '' ]] ; then
-		for changes in $(ls -1 $nvdl ); do
-			if [[ $(stat -c "%a" $nvdl/$changes) != 755 ]]; then
-				chmod 755 $nvdl/$changes
-			fi
-		done
-	fi
-	dep_control
-	if [ -d $install_dir/NVIDIA ] ; then
-		dir_msg="$j $ansOK$end"
-	else
-		dir_msg="$j $ansNF\n$y$msg_00_07$end"
-		install_dir=$(zenity --file-selection --directory \
-		--text="$v$msg_00_07.\n$msg_00_08$end :")
-		sed -ni "s/nvdir=\"\(.*\)\"/nvdir=\"$install_dir\/NVIDIA\"/i;p" $script_conf
-		sed -ni "s/install_dir=\"\(.*\)\"/install_dir=\"$install_dir\"/i;p" $script_conf
-		mkdir -p $nvtmp $nvlog $nvupdate $nvdl $locale
-	fi
-}
 ### TERTIARY MENU
 glx_test(){
 	if [ $use_bumblebee = 1 ]; then
@@ -2599,21 +2626,52 @@ $v$msg_00_06 : $end $j$cnx_msg$end
 		"4") if_update=1; menu_manage ;;
 	esac
 }
-
-first_start(){
+install_controls(){
+	# check nvidia dir presence
+	if [ -d $install_dir/NVIDIA ] ; then
+		dir_msg="$j $ansOK$end"
+	else		
+		dir_msg="$j $ansNF\n$y$msg_00_07$end"
+		zenity --width=400 --error --no-wrap --title="Zenvidia" \
+		--text="$dir_msg"
+	fi
+	# check/change run packages permission
+	nvdl_last=$(ls -1 $nvdl/|sed -n '$p')
+	if [ -s $nvdl/$nvdl_last ] ; then
+		for changes in $(ls -1 $nvdl ); do
+			if [[ $(stat -c "%a" $nvdl/$changes) != 755 ]]; then
+				chmod 755 $nvdl/$changes
+			fi
+		done
+	fi
+}
+first_start_cmd(){
 	### FIRST START
-	compil_vars
-	libclass
-	root_id
-	version_id
-	ID
-	arch
-#	distro
-	install_controls
-#	driver_loaded
+	unset dir_list
+	dir_list=("$buildtmp" "$nvtmp" "$nvlog" "$nvupdate" "$nvdl" "$locale")
+	for i_dir in "${dir_list[@]}"; do
+		[ -d $i_dir ]|| mkdir -p $i_dir
+	done
+	dep_control
+	[ -s $tool_dir/bin/nvidia-installer ]|| installer_build
+	sed -i "s/first_start=1/first_start=0/" $script_conf
+	# check nvidia dir is correctly created
+	if [ -d $install_dir/NVIDIA ] ; then
+		dir_msg="$j $ansOK$end"
+	else		
+		dir_msg="$j $ansNF\n$y$msg_00_07$end"
+		zenity --width=400 --error --no-wrap --title="Zenvidia" \
+		--text="$dir_msg"
+	fi
 	connection_control
 	base_menu
 }
+start_cmd(){
+	install_controls
+	connection_control
+	base_menu
+}
+
 ### SCRIPT INTRO
 #if [[ $(cat $locale/script.conf| grep "LG=$LG") == '' ]]; then
 if [[ $(cat $basic_conf| grep "LG=$LG") == '' ]]; then
@@ -2624,8 +2682,15 @@ else
 fi
 
 # INITIALS checks
-#libclass; distro; ID ; arch ; first_start
-#root_id; libclass; ID ; arch ; first_start
-first_start
-
+compil_vars
+libclass
+root_id # << distro_id < distro
+version_id
+ID
+arch
+if [ $first_start = 1 ]; then
+	first_start_cmd
+else
+	start_cmd
+fi
 exit 0
