@@ -68,7 +68,7 @@ msg_00_01="     DRIVER STUFFER PRO" # 701*
 msg_00_02="System :" # 706*
 msg_00_04="Card" # 708*
 msg_00_06="Repositories are met" # 710
-msg_00_07="NVIDIA repository dosn't exist'" # 711*
+msg_00_07="NVIDIA repository doesn't exist" # 711*
 msg_00_08="Choose a place (prefer /usr/local/)" # 712*
 
 # connection_control
