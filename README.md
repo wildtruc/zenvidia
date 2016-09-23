@@ -77,7 +77,8 @@ Zenvidia notify is taskbar notifier checking at user session boot time for drive
 It comes with 3 options:
  - -a > check all.
  - -z > check zenvidia script and nvidia drivers.
- - -n > check nvidia drivers only
+ - -n > check nvidia drivers only.
+
 Default desktop entry file is set to ```-a```, to have an other behavior you have to edit the autostart file with your desktop session autostart manager. 
 
 To install it just do in a terminal with normal user priviledge :
