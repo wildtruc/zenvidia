@@ -49,6 +49,7 @@ Stay tuned on **WIKI**, I recently made some stupid hack mistake, so come to **W
  - Changelog and driver manual.
 
 ##Install
+###Zenvidia
 This will install in default behaviour with no possible custom ability.
 
 Choose a directory to clone repo and :
@@ -67,8 +68,23 @@ And :
 ```sh
   zenvidia.sh
 ```
+Or by the desktop menu entry in Setting menu.
 
 The script will ask you for admin/superuser password, depend fo which distro you are using.
+
+###Zen Notify
+Zenvidia notify is taskbar notifier checking at user session boot time for driver & other GIT repos updates.
+It comes with 3 options:
+ - -a > check all.
+ - -z > check zenvidia script and nvidia drivers.
+ - -n > check nvidia drivers only
+Default desktop entry file is set to ```-a```, to have an other behavior you have to edit the autostart file with your desktop session autostart manager. 
+
+To install it just do in a terminal with normal user priviledge :
+```sh
+  zen_notify.sh -a
+```
+It will check updates and install itself automatically.
 
 ##Configuration
 Most part of the basic.conf file vars will be updated during the script execution.
