@@ -26,6 +26,7 @@ _2b="Update driver for an other kernel" # G2
 _2c="Optimus source update (Bumblebee)" # G3
 _2d="Optimus source update (Prime)"
 _2e="Driver upgrade" # G4
+_2f="Zenvidia update"
 ## menu modif 
 _3a="Edit xorg.conf " # G5
 _3b="Edit script config" # G6
@@ -97,7 +98,7 @@ msg_2_01="Build module for current kernel" # 614
 msg_2_02="Build module for the selected kernel" # 610
 msg_2_03="Optimus update (Bumblebee)" # 618
 msg_2_04="Optimus update (Prime)"
-msg_2_05=""
+msg_2_05="Zenvidia update"
 msg_2_06="Check driver updates list" # 609
 
 ## MENU OPTIMUS 
@@ -279,7 +280,9 @@ w_01="Downloads"
 w_02="Download"
 w_03="ended"
 
- 
+## update notification
+msg_driver="driver update is out"
+msg_git="a GIT update is out"
 
 
 

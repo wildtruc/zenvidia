@@ -26,6 +26,7 @@ _2b="Mettre à jour le pilote pour un autre kernel" # G2
 _2c="Mise à jour des sources Optimus (Bumblebee) " # G3
 _2d="Mise à jour des sources Optimus (Prim) " # G3
 _2e="Mise à niveau du pilote" # G4
+_2f="Mise à jour Zenvidia"
 ## menu modif 
 _3a="Éditer le fichier xorg.conf" # G5
 _3b="Éditer le fichier de configuration" # G6
@@ -95,7 +96,7 @@ msg_2_01="Construire un module pour le noyau courant" # 614
 msg_2_02="Construire un module pour un noyau sélectionné" # 610
 msg_2_03="Mise à Jour d'Optimus (Bumblebee)" # 618
 msg_2_04="Mise à jour d'Optimus (Prime)"
-msg_2_05=""
+msg_2_05="Mise à jour Zenvidia"
 msg_2_06="Retrait de la liste des mises à jours" # 609
 
 ## MENU OPTIMUS 
@@ -270,7 +271,9 @@ w_01="Téléchargements"
 w_02="Téléchargement"
 w_03="terminé"
 
-
+## update notification
+msg_driver="est sorti. VIIITE"
+msg_git="un mise à jour GIT est sortie"
  
 
 
