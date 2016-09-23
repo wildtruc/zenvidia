@@ -21,17 +21,17 @@ fi
 # update zenvidia shell & associates
 shell_list=('zenvidia.sh' 'zen_notify.sh')
 for shell in "${shell_list[@]}"; do
-	d_orig=$(stat -c "%Y" $install_dir/$shell)
+	d_orig=$(stat -c "%Y" $install_dir/bin/$shell)
 	d_update=$(stat -c "%Y" ./$shell)
 	if [ $d_update -gt $d_orig ]; then
-		cp -f ./$shell $install_dir/
+		cp -f ./$shell $install_dir/bin/
 	fi
 done
 #update distro plugins and translations
 up_list=( 'distro' 'translations' )
 for up_dir in "${up_list[@]}"; do
 	ls_dir=$(ls -1 $up_dir )
-	for w_dif in "$ls_dir"; do
+	for w_dif in $ls_dir; do
 		w_orig=$(stat -c "%s" $nvdir/$up_dir/$w_dif)
 		w_update=$(stat -c "%s" ./$up_dir/$w_dif)
 		if [ $w_update -gt $w_orig ]||[ ! -f $nvdir/$up_dir/$w_dif ]; then
