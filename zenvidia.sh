@@ -701,6 +701,7 @@ zenvidia_update(){
 		git fetch --dry-run &>$local_src/tmp.log
 		if [[ $(cat $local_src/tmp.log|grep -c "master") -eq 1 ]]; then
 			cmd_line="printf \"# Proceeding to script update:\n\n\"
+			git pull
 			make update; $esc_message; sleep 3"
 			xterm -hold $xt_options -title Zenvidia_update -e "$cmd_line"
 		else
