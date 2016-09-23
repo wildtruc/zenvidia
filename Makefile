@@ -15,7 +15,7 @@ install:
 	cp -f ./*.conf $(INSTALL_DIR)/
 	cp -f ./zenvidia.sh $(BIN_DIR)/
 	cp -f ./zen_notify.sh $(BIN_DIR)/
-	cp -f ./zenvidia.desktop $(INSTALL_DIR)/share/applications/
+	cp -f ./desktop_files/zenvidia.desktop $(INSTALL_DIR)/share/applications/
 	cp -f ./swiss_knife.png $(INSTALL_DIR)/share/pixmaps/
 
 uninstall:
