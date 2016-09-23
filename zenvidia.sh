@@ -703,7 +703,7 @@ zenvidia_update(){
 			cmd_line="printf \"# Proceeding to script update:\n\n\"
 			git pull
 			make update; $esc_message; sleep 3"
-			xterm -hold $xt_options -title Zenvidia_update -e "$cmd_line"
+			xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 		else
 			echo "# GIT : Zenvidia already up-to-date. Skipping..."
 		fi
