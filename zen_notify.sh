@@ -16,7 +16,7 @@ locale=$nvdir/translations
 . $basic_conf
 
 if [ ! -s home/$USER/.config/autostart/zen_notify.desktop ]; then
-	cp -f $local_src/zenvidia/zen_notify.desktop /home/$USER/.config/autostart/
+	cp -f $local_src/zenvidia/desktop_files/zen_notify.desktop /home/$USER/.config/autostart/
 fi
 if [ $locale/$LG\_PACK ]; then
 	PACK=$LG\_PACK
