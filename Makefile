@@ -4,7 +4,7 @@ CONF_DIR = /usr/local/etc/zenvidia
 DRIVER_DIR = /usr/local/DRIVERS
 NVIDIA_BAK = /usr/local/NVIDIA_DRIVERS
 
-.PHONY: all install uninstall safeuninstall
+.PHONY: all install uninstall safeuninstall update
 
 all: install
 
