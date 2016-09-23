@@ -14,6 +14,9 @@ install:
 	cp -Rf ./distro $(INSTALL_DIR)/
 	cp -f ./*.conf $(INSTALL_DIR)/
 	cp -f ./zenvidia.sh $(BIN_DIR)/
+	cp -f ./zen_notify.sh $(BIN_DIR)/
+	cp -f ./zenvidia.desktop $(INSTALL_DIR)/share/applications/
+	cp -f ./swiss_knife.png $(INSTALL_DIR)/share/pixmaps/
 
 uninstall:
 	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
@@ -24,3 +27,6 @@ safeuninstall:
 	cp -Rf $(INSTALL_DIR)/release/ $(NVIDIA_BAK)/
 	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/zenvidia.sh
+	
+update:
+	./update.sh
