@@ -53,8 +53,8 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Developpement/NVIDIA/zenvidia
-script_conf=$devel/script.conf.devel
+#devel=/home/mike/Developpement/NVIDIA/zenvidia
+#script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
