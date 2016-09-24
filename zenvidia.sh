@@ -53,8 +53,8 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Developpement/NVIDIA/zenvidia
-#script_conf=$devel/script.conf.devel
+devel=/home/mike/Developpement/NVIDIA/zenvidia
+script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
@@ -197,6 +197,7 @@ dep_control(){
 	[ -x /usr/bin/lftp ]|| deplist+=("$p_lftp")
 	[ -x /usr/bin/xterm ]|| deplist+=("$p_xterm")
 	[ -x /usr/bin/make ]|| deplist+=("$p_gcc")
+	[ -x /usr/bin/wget ]|| deplist+=("$p_wget")
 	[ -x /usr/bin/git ]|| deplist+=("$p_git")
 	[ -x /usr/sbin/dkms ]|| deplist+=("$p_dkms")
 	[ -d $kernel_src ]|| deplist+=("$p_kernel")
@@ -286,7 +287,9 @@ subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid"
 	printf "$append_conf\n" > $nvdir/nv_ssl.conf
 	# create keys
-	/usr/bin/openssl req -x509 -new -nodes -utf8 -sha256 -days 36500 -batch -config $nvdir/nv_ssl.conf -outform DER -out $nvdir/public_key.der -out $nvdir/public_key.x509 -keyout $nvdir/private_key.priv
+	/usr/bin/openssl req -x509 -new -nodes -utf8 -sha256 -days 36500 -batch \
+	-config $nvdir/nv_ssl.conf -outform DER -out $nvdir/public_key.der \
+	-out $nvdir/public_key.x509 -keyout $nvdir/private_key.priv
 	if [ -e $nvdir/public_key.der ]; then
 #		rm -f $nvdir/nv_ssl.conf
 		# secure them
@@ -430,6 +433,10 @@ Bumblebee_build(){
 		ln -sf ./bumblebee.$version ./bumblebee.conf
 		ln -sf ./xorg.conf.nvidia.$version ./xorg.conf.nvidia
 	fi
+	if [ $(cat /etc/group | grep -c "bumblebee") -eq 0 ]; then
+		groupadd bumblebee
+		usermod -a -G bumblebee $USER
+	fi
 	if [ $sys_old = 1]; then
 		if [[ $($sys_c bumblebeed status | grep -o "inactive") != '' ]]; then
 			echo "# Optimus : Enable bumblebee$sys_c_ext at boot start."; sleep 1
@@ -485,17 +492,26 @@ installer_build(){
 			echo "# GIT : Controling nvidia-installer..." ; sleep 1
 			if [[ $operande = "Rebuild" ]]; then
 				proc="Re-building"
-				## check git pull first
+				cmd_line="printf \"# Downloading GIT repo :\n\n\"
 				[ $pull_it = 0 ]|| git pull
-				make clean
-				make; make install
+				printf \"# Installing to system :\n\n\"
+				make clean ; make ; make install ; $esc_message"
+				## check git pull first
+#				[ $pull_it = 0 ]|| git pull
+#				make clean
+#				make; make install
 			else
 				proc="Updating"
 				if [ $pull_it = 1 ]; then
+					cmd_line="printf \"# Checking GIT repo :\n\n\"
+					make clean ; git pull
+					printf \"# Installing new diffs :\n\n\"
+					make ; make install; $esc_message"
 					echo "# GIT : Updating nvidia-installer..."
-					make clean
-					git pull
-					make ; make install
+#					make clean
+#					git pull
+#					make ; make install
+					xterm $xt_options --title Compiling -e "$cmd_line" 
 					sleep 2
 					echo "# GIT : $proc nvidia-installer done."; sleep 1
 				else
@@ -506,11 +522,16 @@ installer_build(){
 		fi
 	else
 		proc="Installing"
-		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
-		mkdir -p $local_src/nvidia-installer
-		cd $local_src/nvidia-installer
+		cmd_line="printf \"# Downloading GIT repo :\n\n\"
 		git clone $nv_git
-		make ; make install
+		printf \"# Installing to system :\n\n\"
+		make ; make install ; $esc_message"
+		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
+#		mkdir -p $local_src/nvidia-installer
+		cd $local_src
+#		git clone $nv_git
+#		make ; make install
+		xterm $xt_options --title Compiling -e "$cmd_line" 
 		echo "# GIT : $proc nvidia-installer done."; sleep 2
 
 	fi
@@ -952,24 +973,31 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 }
 
 if_blacklist(){ # <<< NOT USED <<< TODO
-	if [[ $(cat /etc/modprobe.d/blacklist.conf | grep "nouveau") == '' ]]; then
+#	if [[ $(cat /etc/modprobe.d/blacklist.conf | grep "nouveau") == '' ]]; then
+	if [ $(cat /etc/modprobe.d/blacklist.conf | grep -c "nouveau") -eq 0 ]; then
 		printf "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
+	fi
+#	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau pci=nocrs pci=realloc'
+	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau'
+	if [ $(cat $grub_dir/grub.cfg|grep -c "$nouveau_unset") -eq 0 ]; then
+		sed -i "s/ ro rhgb / ro $nouveau_unset rhgb /" $grub_dir/grub.cfg
 	fi
 #	mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r)-nouveau.img
 #	dracut /boot/initramfs-$(uname -r).img $(uname -r)
-	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
-		groupadd bumblebee
-		usermod -a -G bumblebee $USER
+#	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
+#		groupadd bumblebee
+#		usermod -a -G bumblebee $USER
+#	fi
+#	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
+#		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
+#		$sys_c enable bumblebeed$sys_c_ext
+#		if [ $sys_old = 1 ]; then
+#			$sys_c bumblebeed restart
+#		else 
+#			$sys_c restart bumblebeed$sys_c_ext
+#		fi
 	fi
-	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
-		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
-		$sys_c enable bumblebeed$sys_c_ext
-		if [ $sys_old = 1 ]; then
-			$sys_c bumblebeed restart
-		else 
-			$sys_c restart bumblebeed$sys_c_ext
-		fi
-	fi
+
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
 

@@ -7,8 +7,8 @@ locale=$nvdir/translations
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Developpement/NVIDIA/zenvidia
-#script_conf=$devel/script.conf.devel
+devel=/home/mike/Developpement/NVIDIA/zenvidia
+script_conf=$devel/script.conf.devel
 ################################################
 
 [ $script_conf ]|| exit 0
@@ -33,10 +33,10 @@ lftp -c "anon; cd ftp://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.tx
 LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
 LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
 #LAST_BETA='370.29'
-if [-s $nvdir/version.txt]; then
+if [ -s $nvdir/version.txt ]; then
 	version=$(cat $nvdir/version.txt|sed -n "s/\.//p")
 else
-	version=$(modinfo -F version nvidia)
+	version=$(modinfo -F version nvidia|sed -n "s/\.//p")
 fi
 for driver in "$LAST_DRV,official" "$LAST_BETA,beta"; do
 	drv_short=$(printf "$driver"|cut -d',' -f1 |sed -n "s/\.//p")
