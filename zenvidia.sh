@@ -53,8 +53,8 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Developpement/NVIDIA/zenvidia
-#script_conf=$devel/script.conf.devel
+devel=/home/mike/Developpement/NVIDIA/zenvidia
+script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
@@ -1855,40 +1855,48 @@ check_update(){
 	fi
 	TF=1; w_height=355
 	for DRV in $DIFF_list; do
-		(wget -q -O $nvtmp/compat.$TF \
+		(wget -q -O $nvtmp/vd_compat.$TF \
 		ftp://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
 		sleep 1
 		)| zenity width=400 --title="Zenvidia" --progress --pulsate \
 		--auto-close --text="$v$m_01_08$end ($DRV)..."
-	for e in $pci_dev_nb; do
-		DEV_filter=$(cat $nvtmp/compat.$TF|sed -n "/devid${slot_id[$e]}\"/,/^.*<td>/{n;p}")
-		DEV_nm=$(printf "$DEV_filter"|sed -n '1p'|sed -n 's/<[^>]*//g;s/>//g;p')
-		VDPAU=$(printf "$DEV_filter"|sed -n '$p'|sed -n 's/<[^>]*//g;s/>//g;p')
-		if [ "$DEV_nm" == "${dev[$e]}" ]; then
-			if [ $VDPAU != '' ]; then 
-				COMP_V=0
-				comp_v="(VDPAU class $VDPAU)"
+		cat $nvtmp/vd_compat.$TF | grep "<tr\|<td\|</tr>"| \
+		perl -n -pe "s|(<(/\|)t[r,d](>\| id=\"))||,s|(\">\|</td>)\n|,|p" > $nvtmp/compat.$TF
+#		perl -n -pe "s|(<tr>\|<tr id=\"\|<td>)||,s|(\">\|</td>)\n|,|;s|</tr>$||p" > $nvtmp/compat.$TF
+		for e in $pci_dev_nb; do
+#			DEV_filter=$(cat $nvtmp/compat.$TF|sed -n "/devid${slot_id[$e]}\"/,/^.*<td>/{n;p}")
+#			DEV_nm=$(printf "$DEV_filter"|sed -n '1p'|sed -n 's/<[^>]*//g;s/>//g;p')
+#			VDPAU=$(printf "$DEV_filter"|sed -n '$p'|sed -n 's/<[^>]*//g;s/>//g;p')
+			DEV_filter=$(cat $nvtmp/compat.$TF|grep "${slot_id[$e]}")
+			DEV_filter=$(printf "$DEV_filter"| grep "${dev[$e]}")
+			DEV_nm=$(printf "$DEV_filter"|cut -d"," -f2)
+			VDPAU=$(printf "$DEV_filter"|cut -d"," -f4)
+#			if [ "$DEV_nm" == "${dev[$e]}" ]; then
+			if [[ $DEV_filter ]]; then
+				if [ $VDPAU != '' ]; then 
+					COMP_V=0
+					comp_v="(VDPAU class $VDPAU)"
+				else
+					COMP_V=1
+					comp_v=""	
+				fi
+				COMP_B=0
+				comp_b="$m_01_10. $comp_v"
+				comp_c="$v$m_01_11$end"
+				comp_check=0
 			else
+				COMP_B=1
 				COMP_V=1
-				comp_v=""	
+				comp_b="$vB$m_01_09$end"
+				comp_c="$v$m_01_12$end"
+				comp_check=1
+				comp_v=""
 			fi
-			COMP_B=0
-			comp_b="$m_01_10. $comp_v"
-			comp_c="$v$m_01_11$end"
-			comp_check=0
-		else
-			COMP_B=1
-			COMP_V=1
-			comp_b="$vB$m_01_09$end"
-			comp_c="$v$m_01_12$end"
-			comp_check=1
-			comp_v=""
-		fi
-		if [ "$DEV_nm" == "${dev[$e]}" ]; then
-			COMP_L+=("$j${dev[$e]}$end $v($DRV), $comp_b$end\n$j$DRV$end $comp_c")
-			w_height=$(($w_height+30))
-		fi
-	done
+			if [[ $DEV_filter ]]; then
+				COMP_L+=("$j${dev[$e]}$end $v($DRV), $comp_b$end\n$j$DRV$end $comp_c")
+				w_height=$(($w_height+30))
+			fi
+		done
 		((TF++))
 	done
 	ifs=$IFS
@@ -1937,6 +1945,7 @@ win_update(){
 		fi		
 		extra_msg="\n$start_msg$more_msg\n$v$end_msg$end"
 	else
+		ui_mod=1	
 		extra_msg="\n$v$m_01_13$end"
 	fi
 	if [ $ui_mod = 0 ]; then
@@ -2145,16 +2154,16 @@ last_pack(){
 }
 from_net(){
 # download functions
-	if [ -e $nvdir/nvidia-installer ] ; then
+#	if [ -e $nvdir/nvidia-installer ] ; then
 		cd $nvupdate
 		download_menu
 		driverun=$nvdl/nv-update-$LAST_PACK
 		install_dir_sel
 		#rm -f $nvtmp/drvlist $nvtmp/last_up
-	else
-		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
-		base_menu
-	fi
+#	else
+#		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
+#		base_menu
+#	fi
 }
 
 drivercall(){ ls $nvtmp | grep "$version"; }
