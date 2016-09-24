@@ -235,7 +235,7 @@ m_01_45="Erreur de téléchargement\nLa taille du paquet local diffère de l'ori
 m_01_46="Téléchargement du pilote" # 415c
 m_01_47="achever." # 415d
 m_01_48="interrompu" # 415e
-m_01_49="Binaire $j\nvidia-installer$end$v manquant.\n Installation depuis le dépôt GIT ?" # 416
+m_01_49="Binaire$end $j\nvidia-installer$end$v manquant.\n Installation depuis le dépôt GIT ?" # 416
 m_01_50="Le paquet signifié" # 406
 m_01_51="n'existe pas" # 407
 
