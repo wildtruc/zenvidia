@@ -53,8 +53,8 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Developpement/NVIDIA/zenvidia
-script_conf=$devel/script.conf.devel
+#devel=/home/mike/Developpement/NVIDIA/zenvidia
+#script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
@@ -972,7 +972,7 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 	fi
 }
 
-if_blacklist(){ # <<< NOT USED <<< TODO
+if_blacklist(){
 #	if [[ $(cat /etc/modprobe.d/blacklist.conf | grep "nouveau") == '' ]]; then
 	if [ $(cat /etc/modprobe.d/blacklist.conf | grep -c "nouveau") -eq 0 ]; then
 		printf "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
@@ -982,22 +982,6 @@ if_blacklist(){ # <<< NOT USED <<< TODO
 	if [ $(cat $grub_dir/grub.cfg|grep -c "$nouveau_unset") -eq 0 ]; then
 		sed -i "s/ ro rhgb / ro $nouveau_unset rhgb /" $grub_dir/grub.cfg
 	fi
-#	mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r)-nouveau.img
-#	dracut /boot/initramfs-$(uname -r).img $(uname -r)
-#	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
-#		groupadd bumblebee
-#		usermod -a -G bumblebee $USER
-#	fi
-#	if [[ $(cat /etc/group | grep -o "bumblebee") == '' ]]; then
-#		cp $nvdir/systemd/bumblebeed$sys_c_ext /lib/systemd/system/
-#		$sys_c enable bumblebeed$sys_c_ext
-#		if [ $sys_old = 1 ]; then
-#			$sys_c bumblebeed restart
-#		else 
-#			$sys_c restart bumblebeed$sys_c_ext
-#		fi
-	fi
-
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
 
@@ -1112,6 +1096,8 @@ post_install(){
 		rm -f /usr/share/nvidia
 		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
 	fi
+	if_blacklist
+	echo "# Blacklisting nouveau driver in grub..."; echo "$n"; n=$[ $n+4 ]
 }
 
 ### INSTALL
