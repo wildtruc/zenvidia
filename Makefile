@@ -1,4 +1,4 @@
-_DIR = $(_DIR)
+_DIR = /usr/local
 INSTALL_DIR = $(_DIR)/NVIDIA
 BIN_DIR = $(_DIR)/bin
 CONF_DIR = $(_DIR)/etc/zenvidia
@@ -22,12 +22,16 @@ install:
 uninstall:
 	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/zenvidia.sh
+	rm -f $(BIN_DIR)/zen_notify.sh
+	rm -f $(_DIR)/share/applications/zenvidia.desktop
 	
 safeuninstall:
 	mkdir $(NVIDIA_BAK)
 	cp -Rf $(INSTALL_DIR)/release/ $(NVIDIA_BAK)/
 	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/zenvidia.sh
+	rm -f $(BIN_DIR)/zen_notify.sh
+	rm -f $(_DIR)/share/applications/zenvidia.desktop
 	
 update:
 	./update.sh
