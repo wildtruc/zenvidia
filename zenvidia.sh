@@ -940,22 +940,24 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 \n" >> xorg.conf.nvidia.$new_version
 	}
 ## xorg conf to file
-	if [ $use_bumblebee = 1 ]; then
-		x_conf_dir=$tool_dir/etc/bumblebee
-		cd $x_conf_dir
-		sec_files
-		sec_device
-		sec_option_op
-	elif [ $use_bumblebee = 0 ]; then
-		x_conf_dir=/etc/nvidia-prime
-		if [ -f $x_conf_dir/xorg.nvidia.conf ]; then
-			mv -f $x_conf_dir/xorg.nvidia.conf $x_conf_dir/xorg.nvidia.conf.bak
+	if [ $optimus = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			x_conf_dir=$tool_dir/etc/bumblebee
+			cd $x_conf_dir
+			sec_files
+			sec_device
+			sec_option_op
+		elif [ $use_bumblebee = 0 ]; then
+			x_conf_dir=/etc/nvidia-prime
+			if [ -f $x_conf_dir/xorg.nvidia.conf ]; then
+				mv -f $x_conf_dir/xorg.nvidia.conf $x_conf_dir/xorg.nvidia.conf.bak
+			fi
+			cd $x_conf_dir
+			sec_files
+			sec_module
+			sec_device
+			sec_option_op
 		fi
-		cd $x_conf_dir
-		sec_files
-		sec_module
-		sec_device
-		sec_option_op
 	else
 		x_conf_dir=/etc/X11
 		cd $x_conf_dir
@@ -991,7 +993,7 @@ if_blacklist(){
 ## AFTER INSTALL
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
-	if [[ -d $croot_32 || -d $croot_64 ]]; then
+	if [ -d $croot_32 ]||[ -d $croot_64 ]; then
 		if [ $optimus = 1 ]; then
 			# common to prime & bumblebee
 			if [ -e $xorg_dir/modules/libwfb.so ]; then
@@ -1136,15 +1138,14 @@ nv_cmd_try_legacy_first(){
 #	if [ $use_dkms = 1 ]; then dkms="--dkms"; else dkms=''; fi
 	[ $cuda = 1 ]|| unified="--no-unified-memory"
 	[ $use_dkms = 0 ]|| dkms="--dkms"
-	x_opt="$xt_options -title Zenvidia_Nvidia_Installer"
-	xterm $x_opt -e "
+	xterm $xt_options -title Zenvidia_Nvidia_Installer -e "
 $install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 --skip-module-unload --no-distro-scripts \
 --kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
 $SIGN_S $SElinux $temp --log-file-name=$driver_logfile
 depmod -a
 $esc_message
-sleep 2"
+sleep 4"
 #	$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 #	--skip-module-unload --no-distro-scripts \
 #	--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
@@ -1237,15 +1238,13 @@ nv_build_dkms(){
 		add_dkms="/usr/sbin/dkms add -m nvidia/$version -k $KERNEL"
 	fi	
 	echo "# Build & install DKMS modules..."; sleep 1
-	x_opt="$xt_options -title Zenvidia_dkms_build"
-	xterm $x_opt -e "
+	xterm $xt_options -title Zenvidia_dkms_build -e "
 	$add_message
 	$add_dkms
 	$remove_dkms
-	/usr/sbin/dkms build -m nvidia/$version -k $KERNEL
 	/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
 	$esc_message
-	sleep 2"
+	sleep 4"
 #	xterm $x_opt -hold -e "/usr/sbin/dkms build -m nvidia/$version"
 #	echo "# Install DKMS modules to KERNEL PATH..."; sleep 1
 #	x_opt="-sb -b 5 -bg black -bd green -bw 0 -title Zenvidia_build -geometry 110"
@@ -1270,7 +1269,7 @@ nv_cmd_make_src(){
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 #		make clean; make
-		make clean; xterm $x_opt -e "make; printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\" ; sleep 3"
+		make clean; xterm $xt_options -title Compiling -e "make; $esc_message ; sleep 4"
 		if [ $driver_level -lt 355 ]; then
 			cd uvm/; make clean; xterm $x_opt -e "make" ; cd ../
 		fi
@@ -1362,8 +1361,7 @@ nv_cmd_install_libs(){
 	[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
 #	$nocheck --no-kernel-module --no-opengl-files --skip-module-unload \
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect \
-	x_opt="$xt_options -title Zenvidia_install_libs"
-	xterm $x_opt -e "
+	xterm $xt_options -title Zenvidia_install_libs -e "
 	$install_bin -s -z -N --no-x-check \
 	$nocheck --no-kernel-module --skip-module-unload \
 	--no-recursion --opengl-headers $add_glvnd $force_glvnd \
@@ -1371,7 +1369,7 @@ nv_cmd_install_libs(){
 	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules --opengl-prefix=$croot_all \
 	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
-	printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\" ; sleep 3"
+	$esc_message ; sleep 4"
 #	$install_bin -s -z -N --no-x-check \
 #	$nocheck --no-kernel-module --skip-module-unload \
 #	--no-recursion --opengl-headers $add_glvnd \
@@ -1508,6 +1506,11 @@ install_drv(){
 					--text="$vB\DRIVER INSTALL ABORT ABNORMALY$end\n$v\check $(echo "$driver_logfile" | sed -n 's/^.*=//p').$end"
 					exit 0
 				fi
+			else
+				zenity --width=450 --title="Zenvidia" --info \
+				--text="$vB\DRIVER INSTALL SEND ERROR !$end\n\n$v\It probably mean it didn't compil properly with any work arround.
+	You can go on with libraries install\n or abort now and check what was going wrong.$end"
+				if [ $? = 1 ]; then base_menu; fi
 			fi
 		fi
 		## create base libs install directories
