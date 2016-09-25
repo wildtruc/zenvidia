@@ -6,6 +6,7 @@ MM="Back to main menu"
 I="Quit"
 CC="Confirm"
 R="Back to main"
+GO="Go on"
 
 ## Main Menu Vars
 _01="Install" # Aa
