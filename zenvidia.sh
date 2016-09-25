@@ -1525,10 +1525,11 @@ You can go on with libraries install\n or abort now and install drivers later.$e
 			fi
 		else
 			if [ $mod_version ]; then
-			zenity --width=450 --title="Zenvidia" --question \
-			--text="$vB\DRIVER LEGACY INSTALL SEND ERROR MESSAGE !$end\n\n$v\Doesn't mean $mod_version has not install, it did.\nYou can still go on with libraries install or abort now.$end" \
-			--ok-label="$GO" --cancel-label="$R"
-			if [ $? = 1 ]; then base_menu; fi
+				zenity --width=450 --title="Zenvidia" --question \
+				--text="$vB\DRIVER LEGACY INSTALL SEND ERROR MESSAGE !$end\n\n$v\Doesn't mean $mod_version has not install, it did.\nYou can still go on with libraries install or abort now.$end" \
+				--ok-label="$GO" --cancel-label="$R"
+				if [ $? = 1 ]; then base_menu; fi
+			fi
 		fi
 		## create base libs install directories
 		for d in "$croot/$predifined_dir $croot_32 $croot_64 $xorg_dir"; do
