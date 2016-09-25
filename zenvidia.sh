@@ -751,7 +751,7 @@ driver_conf(){
 		# Case : install without dkms process
 		cd $kernel_path
 		mkdir -p $croot_all/$kernel
-		if [ -f $kernel_path/nvidia.ko ]; then
+		if [ -s $kernel_path/nvidia.ko ]; then
 			for mod in "${mods[@]}"; do
 				[ $kernel_path/$mod.ko ]&& cp -f ./$mod.ko $croot_all/$KERNEL/
 			done
@@ -829,7 +829,7 @@ EndSection
 	}
 	sec_device(){
 		for e in $pci_dev_nb; do
-			if [ $use_bumblebee = 0 ]; then
+			if [ $optimus = 1 ]&&[ $use_bumblebee = 0 ]; then
 				pci_slot='bus_id:0:0'
 			else
 				pci_slot=$(printf "${slot[$e]}"| sed -n "s/^0//;s/:0/:/;s/\./:/p")
@@ -994,16 +994,24 @@ if_blacklist(){
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
 	if [ -d $croot_32 ]||[ -d $croot_64 ]; then
+		# libnvidia-wfb.so is finally broken every where ?!! 
+		if [ -e $xorg_dir/modules/libwfb.so ]; then
+			mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
+			ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
+		fi
+		[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
+		cd $croot
+		ln -sf -T ./nvidia.$new_version ./nvidia		
 		if [ $optimus = 1 ]; then
 			# common to prime & bumblebee
-			if [ -e $xorg_dir/modules/libwfb.so ]; then
-				mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
-				ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
-			fi
-			[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
-			cd $croot
-#			[ -f $croot/nvidia.$new_version ]|| ln -sf -T ./nvidia.$new_version ./nvidia
-			ln -sf -T ./nvidia.$new_version ./nvidia
+#			if [ -e $xorg_dir/modules/libwfb.so ]; then
+#				mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
+#				ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
+#			fi
+#			[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
+#			cd $croot
+##			[ -f $croot/nvidia.$new_version ]|| ln -sf -T ./nvidia.$new_version ./nvidia
+#			ln -sf -T ./nvidia.$new_version ./nvidia
 			xorg_conf; echo "$n"; n=$[ $n+2 ]
 			driver_conf; echo "$n"; n=$[ $n+4 ]
 			# bumblebee
@@ -1054,8 +1062,9 @@ post_install(){
 	fi
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
 	echo "# Fixing broken libs if needed..."; echo "$n"; n=$[ $n+4 ]
+	elf_lib=( "$master$ELF_32" "$master$ELF_64" )
 	cd $install_dir
-	for lib_X in "$master$ELF_32 $master$ELF_64"; do
+	for lib_X in "${elf_lib[@]}"; do
 		for old_lib in {fbc,cfg,gtk2,gtk3}; do
 			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$old_version ]; then
 				rm -f $install_dir/$lib_X/libnvidia-$old_lib.so.$old_version
@@ -1085,7 +1094,7 @@ post_install(){
 		done
 	fi
 	## symlink libvdpau_nvidia to system
-	for lib_V in "$master$ELF_32 $master$ELF_64"; do
+	for lib_V in "${elf_lib[@]}"; do
 		link_v=$(ls -l /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| sed -n "s/^.*-> //p")
 		if [[ ! $(printf "$link_v"|grep -o "$new_version") ]]; then
 			ln -sf $croot_all/$lib_V/vdpau/libvdpau_nvidia.so.$new_version /usr/$lib_V/vdpau/libvdpau_nvidia.so.1 
@@ -1239,9 +1248,7 @@ nv_build_dkms(){
 	fi	
 	echo "# Build & install DKMS modules..."; sleep 1
 	xterm $xt_options -title Zenvidia_dkms_build -e "
-	$add_message
-	$add_dkms
-	$remove_dkms
+	$add_message ; $add_dkms ; $remove_dkms
 	/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
 	$esc_message
 	sleep 4"
@@ -1347,6 +1354,9 @@ DEST_MODULE_LOCATION[$n1]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf
 		printf "BUILT_MODULE_NAME[$n2]=\"\${PACKAGE_NAME}-drm\"
 DEST_MODULE_LOCATION[$n2]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf 
 #DEST_MODULE_LOCATION[$n2]=\"/extra\"\n" >> $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/dkms.conf
+	fi
+	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/ ]; then
+		cp -f /usr/src/nvidia-$version/dkms.conf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/
 	fi
 }
 nv_cmd_install_libs(){
@@ -1507,11 +1517,18 @@ install_drv(){
 					exit 0
 				fi
 			else
-				zenity --width=450 --title="Zenvidia" --info \
-				--text="$vB\DRIVER INSTALL SEND ERROR !$end\n\n$v\It probably mean it didn't compil properly with any work arround.
-	You can go on with libraries install\n or abort now and check what was going wrong.$end"
+				zenity --width=450 --title="Zenvidia" --question \
+				--text="$vB\DRIVER LEGACY INSTALL SEND ERROR !$end\n\n$v\It probably mean it didn't compil properly with any work arround.
+You can go on with libraries install\n or abort now and install drivers later.$end" \
+				--ok-label="$GO" --cancel-label="$R"
 				if [ $? = 1 ]; then base_menu; fi
 			fi
+		else
+			if [ $mod_version ]; then
+			zenity --width=450 --title="Zenvidia" --question \
+			--text="$vB\DRIVER LEGACY INSTALL SEND ERROR MESSAGE !$end\n\n$v\Doesn't mean $mod_version has not install, it did.\nYou can still go on with libraries install or abort now.$end" \
+			--ok-label="$GO" --cancel-label="$R"
+			if [ $? = 1 ]; then base_menu; fi
 		fi
 		## create base libs install directories
 		for d in "$croot/$predifined_dir $croot_32 $croot_64 $xorg_dir"; do
