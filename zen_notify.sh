@@ -3,18 +3,9 @@
 ## basics
 nvdir=/usr/local/NVIDIA
 script_conf=$nvdir/script.conf
+basic_conf=$nvdir/basic.conf
 locale=$nvdir/translations
 local_src=/usr/local/src
-#nfs
-192.168.10.1:/export/datastore(0)	/media/datastore(0)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-192.168.10.1:/export/datastore(1)	/media/datastore(1)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-192.168.10.1:/export/datastore(2)	/media/datastore(2)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-#192.168.10.1:/export/ftp	  /media/datastore	  nfs	  user,noauto,nolock,rw,defaults	0 0
-#192.168.10.1:/export/stock	  /media/raspistore	  nfs	  user,noauto,nolock,rw,defaults	0 0
-192.168.10.1:/export/datastore(3)	/media/datastore(3)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-192.168.10.1:/export/datastore(4)	/media/datastore(4)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-192.168.10.1:/export/datastore(5)	/media/datastore(5)	  nfs	  user,noauto,nolock,rw,defaults	0 0
-
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
@@ -22,13 +13,11 @@ local_src=/usr/local/src
 #script_conf=$devel/script.conf.devel
 ################################################
 
-local_src=
-
 [ $script_conf ]|| exit 0
 . $script_conf
 . $basic_conf
 
-if [ ! -s home/$USER/.config/autostart/zen_notify.desktop ]; then
+if [ -e home/$USER/.config/autostart/zen_notify.desktop ]; then
 	cp -f $local_src/zenvidia/desktop_files/zen_notify.desktop /home/$USER/.config/autostart/
 fi
 if [ $locale/$LG\_PACK ]; then
@@ -38,6 +27,7 @@ else
 	msg_driver="driver update is out"
 	msg_git="a GIT update is out"
 fi
+[ -d $nvtmp ]|| mkdir -p $nvtmp
 nvtmp=/home/$USER/tmp
 ARCH=$(uname -p)
 
@@ -64,10 +54,12 @@ source_ctrl(){
 [ -d $local_src ]|| exit 0
 for local_list in "${local_src_list[@]}"; do
 	local_git=$local_src/$local_list
+	if [ -d $local_git ]; then	
 	cd $local_git
-	git fetch --dry-run &>$local_src/notif.log
-	if [[ $(cat $local_src/notif.log|grep -c "master") -eq 1 ]]; then
-		zenity --notification --window-icon=swiss_knife --text="$local_list : $msg_git !"
+	git fetch --dry-run &>/home/$USER/notif.log	
+		if [[ $(cat /home/$USER/notif.log|grep -c "master") -eq 1 ]]; then
+			zenity --notification --window-icon=swiss_knife --text="$local_list : $msg_git !"
+		fi
 	fi
 done
 }
