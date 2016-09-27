@@ -6,7 +6,7 @@ local_src=/usr/local/src
 local_src=<or your zenvidia source here>
 nvidia_ftp=download.nvidia.com/XFree86/Linux
 
-if [ -e home/$USER/.config/autostart/zen_notify.desktop ]; then
+if [ ! -e home/$USER/.config/autostart/zen_notify.desktop ]; then
 	cp -f $local_src/zen_notify.desktop /home/$USER/.config/autostart/
 	[ -e $local_src/swiss_knife.png ]&& cp -f $local_src/swiss_knife.png /usr/local/share/pixmaps/
 fi
