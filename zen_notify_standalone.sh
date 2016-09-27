@@ -12,6 +12,7 @@ if [ -e home/$USER/.config/autostart/zen_notify.desktop ]; then
 fi
 msg_driver="driver update is out"
 msg_git="a GIT update is out"
+[ -d $nvtmp ]|| mkdir -p $nvtmp
 nvtmp=/home/$USER/tmp
 ARCH=$(uname -p)
 
@@ -39,10 +40,10 @@ source_ctrl(){
 [ -d $local_src ]|| exit 0
 for local_list in "${local_src_list[@]}"; do
 	local_git=$local_src/$local_list
-	if [ -d $local_git ]; then
+
 		cd $local_git
-		git fetch --dry-run &>$local_src/notif.log
-		if [[ $(cat $local_src/notif.log|grep -c "master") -eq 1 ]]; then
+		git fetch --dry-run &>/home/$USER/notif.log
+		if [[ $(cat /home/$USER/notif.log|grep -c "master") -eq 1 ]]; then
 			zenity --notification --window-icon=swiss_knife --text="$local_list : $msg_git !"
 		fi
 	fi
