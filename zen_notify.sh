@@ -17,7 +17,7 @@ local_src=/usr/local/src
 . $script_conf
 . $basic_conf
 
-if [ -e home/$USER/.config/autostart/zen_notify.desktop ]; then
+if [ ! -e home/$USER/.config/autostart/zen_notify.desktop ]; then
 	cp -f $local_src/zenvidia/desktop_files/zen_notify.desktop /home/$USER/.config/autostart/
 fi
 if [ $locale/$LG\_PACK ]; then
