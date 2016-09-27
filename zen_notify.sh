@@ -4,12 +4,25 @@
 nvdir=/usr/local/NVIDIA
 script_conf=$nvdir/script.conf
 locale=$nvdir/translations
+local_src=/usr/local/src
+#nfs
+192.168.10.1:/export/datastore(0)	/media/datastore(0)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+192.168.10.1:/export/datastore(1)	/media/datastore(1)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+192.168.10.1:/export/datastore(2)	/media/datastore(2)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+#192.168.10.1:/export/ftp	  /media/datastore	  nfs	  user,noauto,nolock,rw,defaults	0 0
+#192.168.10.1:/export/stock	  /media/raspistore	  nfs	  user,noauto,nolock,rw,defaults	0 0
+192.168.10.1:/export/datastore(3)	/media/datastore(3)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+192.168.10.1:/export/datastore(4)	/media/datastore(4)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+192.168.10.1:/export/datastore(5)	/media/datastore(5)	  nfs	  user,noauto,nolock,rw,defaults	0 0
+
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
 #devel=/home/mike/Developpement/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
 ################################################
+
+local_src=
 
 [ $script_conf ]|| exit 0
 . $script_conf

@@ -53,8 +53,8 @@ dl_delay=2
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Developpement/NVIDIA/zenvidia
-#script_conf=$devel/script.conf.devel
+devel=/home/mike/Developpement/NVIDIA/zenvidia
+script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
@@ -2071,26 +2071,20 @@ download_menu(){
 	
 }
 download_only(){
-#	if [ -e $nvdir/nvidia-installer ] ; then
-		cd $nvupdate
-		download_menu
-		if [ -f $nvupdate/$run_pack ]; then
-			zenity --info --title="Zenvidia" --no-wrap \
-			--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_47.\n$MM$end"
-			mv -f $nvupdate/$run_pack $nvdl/nv-update-$LAST_PACK
-			chmod 755 $nvdl/nv-update-$LAST_PACK
-			base_menu
-		else
-			zenity --width=450  --title="Zenvidia" --error \
-			--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_48.\n $m_01_50$end $j$run_pack$end $v$m_01_51.\n$MM.$end"	
-			base_menu
-		fi
-#	else
-#		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
-#		base_menu
-#		# FIXME What nvidia-installer is doing here ?!
+	cd $nvupdate
+	download_menu
+	if [ -f $nvupdate/$run_pack ]; then
+		zenity --info --title="Zenvidia" --no-wrap \
+		--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_47.\n$MM$end"
+		mv -f $nvupdate/$run_pack $nvdl/nv-update-$LAST_PACK
+		chmod 755 $nvdl/nv-update-$LAST_PACK
+		base_menu
+	else
+		zenity --width=450  --title="Zenvidia" --error \
+		--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_48.\n $m_01_50$end $j$run_pack$end $v$m_01_51.\n$MM.$end"	
+		base_menu
+	fi
 #		# TODO install from GIT, then back to download
-#	fi
 }
 ### UPDATE FUNCTION, FROM INTERNET.
 package_list(){
@@ -2120,15 +2114,7 @@ last_pack(){
 			left=$(tac $nvtmp/dl.log | awk '{print $9}'| sed -n 2p)
 			echo "# ($percent %) $weight $m_01_53 $speed/s, $m_01_54 : $left"; sleep 1
 			echo "$percent" ; sleep 1
-#			if [[ $(printf "$speed"|grep -o "K\|M") != '' ]]; then
-				local_0=$(stat -c "%s" $nvupdate/$run_pack)
-#			else
-#				if [ $speed != '' ]; then
-#					local_0=$(printf "$speed"|sed -n 's/\[\|\]//g;p')
-#				else
-#					local_0=$(stat -c "%s" $run_pack)
-#				fi
-#			fi
+			local_0=$(stat -c "%s" $nvupdate/$run_pack)
 			if [ $percent = 99 ]; then
 				if [ $local_0 = $remote ]; then
 					echo "# $w_02 $w_03 (100 %)."; sleep 3
@@ -2167,36 +2153,14 @@ last_pack(){
 	) | zenity --width=450 --progress --percentage=0 --auto-close \
 	--text="$v Recherche de $run_pack...$end" --title="$m_01_44 $LAST_PACK"
 	rm -f $nvtmp/dl.log
-#	if [ -s $nvupdate/$run_pack ]; then
-#		
-#		local1=$(stat -c "%s" $nvupdate/$run_pack)
-#		[ $remote = $local1 ]|| \
-#		( zenity --width=450 --error --text="$v$m_01_45$end" ; rm -f $nvtmp/dl.log ; last_pack )
-#	fi
 }
 from_net(){
 # download functions
-#	if [ -e $nvdir/nvidia-installer ] ; then
 		cd $nvupdate
 		download_menu
 		driverun=$nvdl/nv-update-$LAST_PACK
 		install_dir_sel
 		#rm -f $nvtmp/drvlist $nvtmp/last_up
-#	else
-#		zenity --width=450 --title="Zenvidia" --error --text="$v$m_01_49.\n$MM$end"
-#		base_menu
-#	fi
-}
-
-drivercall(){ ls $nvtmp | grep "$version"; }
-### RESTART X SESSION
-drv_load(){
-    /sbin/modprobe -r nvidia
-    /sbin/depmod -a
-    /sbin/modprobe nvidia
-}
-drv_unload(){
-	/sbin/modprobe -r nvidia
 }
 
 ## EDITION
@@ -2214,10 +2178,12 @@ edit_script_conf(){
 	menu_modif
 }
 edit_xorg_conf(){
-	if [ $use_bumblebee = 1 ]; then
-		xorg_cfg=$tool_dir/etc/bumblebee/xorg.conf.nvidia
-	elif [ $use_bumblebee = 0 ]; then
-		xorg_cfg=/etc/nvidia-prime/xorg.nvidia.conf
+	if [ $optimus = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			xorg_cfg=$tool_dir/etc/bumblebee/xorg.conf.nvidia
+		elif [ $use_bumblebee = 0 ]; then
+			xorg_cfg=/etc/nvidia-prime/xorg.nvidia.conf
+		fi
 	else
 		xorg_cfg=/etc/X11/xorg.conf
 	fi
