@@ -16,7 +16,16 @@ See **Wiki** for **Issues**, **Todo list** and **demands**.
 
 ------------
 ##News
-Stay tuned on **WIKI**, I recently made some stupid hack mistake, so come to **Wiki** and update regulary till it isn't marked as **STABLE** on this page.
+
+Pretty **STABLE** now (hopefully) and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like).
+
+But still stay tuned on **WIKI** and use regulary the Zenvidida update tool.
+
+Been test over Bumblebee, Prime and standalone.
+
+Hoping it'll do the same it does for me.
+
+Still need plugins updates for Ubuntu, Arch, Gentoo, etc.
 
 ------------
 
