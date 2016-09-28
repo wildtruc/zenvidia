@@ -96,6 +96,20 @@ To install it just do in a terminal with normal user priviledge :
 ```
 It will check updates and install itself automatically.
 
+###Zen Notify Standalone
+Same as Zen Notify but working without Zenvidia and Zenvidia conf.
+
+You need to download 'swiss_knife.png' image and the autostart desktop file from the ```/desktop_files``` repo in the same directory as ```zen_notify_standalone.sh```. Then edit ```zen_notify_standalone.sh``` with a text editor and replace the tempory text in ```local_src=``` with the name of directory where you download script, image and desktop file. 
+
+Don't forget to replace the desktop file zen_notify_standalone option to check the way you want.
+
+To install, just do in a terminal :
+```sh
+  zen_notify_standalone.sh
+```
+
+That's it.
+
 ##Configuration
 Most part of the basic.conf file vars will be updated during the script execution.
 
