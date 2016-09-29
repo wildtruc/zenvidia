@@ -3,12 +3,14 @@
 ## basics
 nvdir=/usr/local/NVIDIA
 local_src=/usr/local/src
-local_src=<or your zenvidia source here>
+local_dir='.'
 nvidia_ftp=download.nvidia.com/XFree86/Linux
 
-if [ ! -e home/$USER/.config/autostart/zen_notify.desktop ]; then
-	cp -f $local_src/zen_notify.desktop /home/$USER/.config/autostart/
-	[ -e $local_src/swiss_knife.png ]&& cp -f $local_src/swiss_knife.png /usr/local/share/pixmaps/
+if [ ! -e /home/$USER/.config/autostart/zen_notify.desktop ]; then
+	cp -f $local_dir/zen_notify.desktop /home/$USER/.config/autostart/
+	sed -i "s/Exec=.*$/Exec=zen_notify_standalone.sh -n/" /home/$USER/.config/autostart/zen_notify.desktop
+	[ -e $local_dir/swiss_knife.png ]&& cp -f $local_dir/swiss_knife.png /usr/local/share/pixmaps/
+	
 fi
 msg_driver="driver update is out"
 msg_git="a GIT update is out"
@@ -40,7 +42,7 @@ source_ctrl(){
 [ -d $local_src ]|| exit 0
 for local_list in "${local_src_list[@]}"; do
 	local_git=$local_src/$local_list
-
+	if [ -d $local_git ]; then
 		cd $local_git
 		git fetch --dry-run &>/home/$USER/notif.log
 		if [[ $(cat /home/$USER/notif.log|grep -c "master") -eq 1 ]]; then

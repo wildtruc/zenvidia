@@ -41,6 +41,7 @@ if [ -s $nvdir/version.txt ]; then
 else
 	version=$(modinfo -F version nvidia|sed -n "s/\.//p")
 fi
+[ $version ]|| version=0
 for driver in "$LAST_DRV,official" "$LAST_BETA,beta"; do
 	drv_short=$(printf "$driver"|cut -d',' -f1 |sed -n "s/\.//p")
 	release=$(printf "$driver"|cut -d',' -f2)
@@ -55,8 +56,8 @@ source_ctrl(){
 for local_list in "${local_src_list[@]}"; do
 	local_git=$local_src/$local_list
 	if [ -d $local_git ]; then	
-	cd $local_git
-	git fetch --dry-run &>/home/$USER/notif.log	
+		cd $local_git
+		git fetch --dry-run &>/home/$USER/notif.log	
 		if [[ $(cat /home/$USER/notif.log|grep -c "master") -eq 1 ]]; then
 			zenity --notification --window-icon=swiss_knife --text="$local_list : $msg_git !"
 		fi
