@@ -9,12 +9,35 @@ nvdir=$install_dir/NVIDIA
 # update script config
 if [ -s $nvdir/script.conf ]; then
 	script_conf=$nvdir/script.conf
+	basic_conf=$nvdir/basic.conf
 else
 	script_conf=./script.conf
+	basic_conf=./basic.conf
 fi
 [ -s $script_conf ]|| exit 0
 . $script_conf
-cp -f ./script.conf $nvdir/
+
+unset conf_list shell_list up_list
+# update basic and script conf 
+conf_list=("$script_conf" "$basic_conf")
+for conf in "${conf_list[@]}"; do
+	c_old=$conf
+	c_new=$(printf "$conf"|sed -n "s/^.*\///p")
+	c_orig=$(stat -c "%s" $c_old)
+	c_update=$(stat -c "%s" ./$c_new)
+	if [ $c_update -gt $c_orig ]; then
+		diff $c_new $c_old | grep "<\|>" &>/tmp/nv_diff.log
+		ifs=$IFS
+		IFS=$(echo -en "\n\b")
+		diff_list=$(cat /tmp/nv_diff.log|grep "<")
+		for c_list in $diff_list; do
+			if [ $(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">") -eq 0 ]; then
+				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
+			fi
+		done
+		IFS=$ifs
+	fi
+done
 if [ $first_start = 0 ]; then
 	sed -i "s/first_start=1/first_start=0/i" $nvdir/script.conf
 fi

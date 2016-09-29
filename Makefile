@@ -36,3 +36,4 @@ safeuninstall:
 	
 update:
 	./update.sh
+

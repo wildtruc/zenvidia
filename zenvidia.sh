@@ -50,11 +50,13 @@ docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
 #kernel_src="--kernel-source-path"
 dl_delay=2
+xt_hold=0
+xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Developpement/NVIDIA/zenvidia
-script_conf=$devel/script.conf.devel
+#devel=/home/mike/Developpement/NVIDIA/zenvidia
+#script_conf=$devel/script.conf.devel
 ################################################
 
 ## configuration file
@@ -210,7 +212,7 @@ dep_control(){
 		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
 		if [ $? = 0 ]; then
 			( 
-			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; echo -e \"$esc_message\""
+			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; 				echo -e \"$esc_message\"; sleep $xt_delay"
 			) | zenity --progress --pulsate --auto-close --text="Installing missing dependencies..."
 		else
 			exit 0
@@ -245,9 +247,14 @@ compil_vars(){
 	# xterm default vars and messages.
 	primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
-	xt_options=$xt_colors' -fn 8x13 -geometry 80x24+'$[ (($term_x_dsp-660)/2)$dock ]'+0'
-#	esc_message="printf \"\n# Wait terminal to auto-close or press [ctrl+c].\n\""
-	esc_message="printf \"\n# Terminal will auto-close in a few seconds.\n\""
+	[ $xt_hold = 0 ]|| x_hold=' -hold'
+	if [ $xt_hold = 1 ]; then
+		esc_message="printf \"\n# Close xterm window to escape.\n\""
+		x_hold=' -hold'
+	else
+		esc_message="printf \"\n# Terminal will auto-close in $xt_delay seconds.\n\""
+	fi
+	xt_options=$xt_colors''$x_hold' -fn 8x13 -geometry 80x24+'$[ (($term_x_dsp-660)/2)$dock ]'+0'
 }
 # define installed driver version, if any
 version_id(){
@@ -506,7 +513,7 @@ installer_build(){
 					cmd_line="printf \"# Checking GIT repo :\n\n\"
 					make clean ; git pull
 					printf \"# Installing new diffs :\n\n\"
-					make ; make install; $esc_message"
+					make ; make install; $esc_message; sleep $xt_delay"
 					echo "# GIT : Updating nvidia-installer..."
 #					make clean
 #					git pull
@@ -525,7 +532,7 @@ installer_build(){
 		cmd_line="printf \"# Downloading GIT repo :\n\n\"
 		git clone $nv_git
 		printf \"# Installing to system :\n\n\"
-		make ; make install ; $esc_message"
+		make ; make install ; $esc_message; sleep $xt_delay"
 		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
 #		mkdir -p $local_src/nvidia-installer
 		cd $local_src
@@ -669,7 +676,7 @@ prime_build(){
 #		git pull
 #		/usr/bin/make install
 #		$esc_message
-#		sleep 3"
+#		sleep $xt_delay"
 		git pull
 		/usr/bin/make install
 		else
@@ -685,15 +692,14 @@ prime_build(){
 #		cd $local_src/nvidia-prime-select
 #		/usr/bin/make install
 #		$esc_message
-#		sleep 3"
+#		sleep $xt_delay"
 		git clone $prime_git
 		cd $local_src/nvidia-prime-select
 		/usr/bin/make install
 		sleep 1
 	fi
-	
-	x_opt="$xt_options -title Zenvidia_Prime_$operande"
-	xterm $x_opt -e "$cmd_line"
+#	x_opt="$xt_options -title Zenvidia_Prime_$operande"
+#	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
 	if [ -f /etc/nvidia-prime/xorg.conf.nvidia.$version ]; then
 		if [ ! $(cat /etc/nvidia-prime/xorg.nvidia.conf| grep -o "$version") ]; then
@@ -723,7 +729,7 @@ zenvidia_update(){
 		if [[ $(cat $local_src/tmp.log|grep -c "master") -eq 1 ]]; then
 			cmd_line="printf \"# Proceeding to script update:\n\n\"
 			git pull
-			make update; $esc_message; sleep 3"
+			make update; $esc_message; sleep $xt_delay"
 			xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 		else
 			echo "# GIT : Zenvidia already up-to-date. Skipping..."
@@ -735,7 +741,7 @@ zenvidia_update(){
 		git clone $zenvidia_git; cd zenvidia
 		printf \"\n# Proceeding to script update:\n\n\" 
 		make update; $esc_message
-		sleep 3"
+		sleep $xt_delay"
 #		cd zenvidia
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	fi
@@ -1154,7 +1160,7 @@ $install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 $SIGN_S $SElinux $temp --log-file-name=$driver_logfile
 depmod -a
 $esc_message
-sleep 4"
+sleep $xt_delay"
 #	$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 #	--skip-module-unload --no-distro-scripts \
 #	--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
@@ -1251,7 +1257,7 @@ nv_build_dkms(){
 	$add_message ; $add_dkms ; $remove_dkms
 	/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
 	$esc_message
-	sleep 4"
+	sleep $xt_delay"
 #	xterm $x_opt -hold -e "/usr/sbin/dkms build -m nvidia/$version"
 #	echo "# Install DKMS modules to KERNEL PATH..."; sleep 1
 #	x_opt="-sb -b 5 -bg black -bd green -bw 0 -title Zenvidia_build -geometry 110"
@@ -1276,7 +1282,7 @@ nv_cmd_make_src(){
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 #		make clean; make
-		make clean; xterm $xt_options -title Compiling -e "make; $esc_message ; sleep 4"
+		make clean; xterm $xt_options -title Compiling -e "make; $esc_message ; sleep $xt_delay"
 		if [ $driver_level -lt 355 ]; then
 			cd uvm/; make clean; xterm $x_opt -e "make" ; cd ../
 		fi
@@ -1379,7 +1385,7 @@ nv_cmd_install_libs(){
 	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules --opengl-prefix=$croot_all \
 	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
-	$esc_message ; sleep 4"
+	$esc_message ; sleep $xt_delay"
 #	$install_bin -s -z -N --no-x-check \
 #	$nocheck --no-kernel-module --skip-module-unload \
 #	--no-recursion --opengl-headers $add_glvnd \
@@ -2170,7 +2176,7 @@ edit_script_conf(){
 	--checkbox="$m_01_59" )
 #	exit_stat=$?
 	if [[ $(printf "$edit_script"| sed -n '1p') != '' ]]; then
-		printf "$edit_script" > $basic_conf
+		printf "$edit_script\n" > $basic_conf
 	fi
 #	if [ $exit_stat = 0 ]; then menu_manage
 #	elif [ $exit_stat = 1 ]; then exit 0
@@ -2191,7 +2197,7 @@ edit_xorg_conf(){
 	--text="$v\Edit xorg config file$end" --filename="$xorg_cfg" \
 	--checkbox="Confirm to overwrite" )
 	if [[ $(printf "$edit_xorg"| sed -n '1p') != '' ]]; then
-		printf "$edit_xorg" > $xorg_cfg
+		printf "$edit_xorg\n" > $xorg_cfg
 	fi
 #	if [ $? = 0 ]; then menu_manage
 #	elif [ $? = 1 ]; then exit 0
