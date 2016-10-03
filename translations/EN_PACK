@@ -34,6 +34,7 @@ _3b="Edit script config" # G6
 _3c="Nvidia Settings" # G8
 _3d="Manage drivers packages" # G9
 _3e="Build/Rebuild" # G10
+_3f="Broken install repair"
 ## menu manage
 _4a="GLX test" # G15
 _4b="Manual" # G16
@@ -129,7 +130,7 @@ m_01_12="doesn't fit your hadrware anymore" # 211a
 # win_update
 m_01_13="What do you want to do ?" # 215
 m_01_14a="is" # 215c1
-m_01_14b="isn't'" # 215c2
+m_01_14b="is not" # 215c2
 m_01_14c="Official and BETA are" # 215c3
 m_01_16="in your repository" # 215e
 m_01_17="Go back to \"Install\" menu if needed" # 215f
