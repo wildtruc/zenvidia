@@ -727,14 +727,18 @@ zenvidia_update(){
 		cd $local_src/zenvidia
 		echo "# GIT : Updating Zenvidia..."
 		git fetch --dry-run &>$local_src/tmp.log
-		if [[ $(cat $local_src/tmp.log|grep -c "master") -eq 1 ]]; then
-			cmd_line="printf \"# Proceeding to script update:\n\n\"
+#		if [[ $(cat $local_src/tmp.log|grep -c "master") -eq 1 ]]; then
+			cmd_line="if [[ $(cat $local_src/tmp.log|grep -c \"master\") -eq 1 ]]; then
+			printf \"# Proceeding to script update:\n\n\"
 			git pull
-			make update; $esc_message; sleep $xt_delay"
+			make update; $esc_message; sleep $xt_delay
+			else
+			echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
+			fi"
 			xterm $xt_options -title Zenvidia_update -e "$cmd_line"
-		else
-			echo "# GIT : Zenvidia already up-to-date. Skipping..."
-		fi
+#		else
+#			echo "# GIT : Zenvidia already up-to-date. Skipping..."
+#		fi
 	else
 		cd $local_src
 		echo "# GIT : Cloning Zenvidia..."; sleep 3
