@@ -2,7 +2,7 @@
 
 ## basics
 nvdir=/usr/local/NVIDIA
-local_src=/usr/local/src
+local_src=/usr/local/zenvidia_src
 local_dir='.'
 nvidia_ftp=download.nvidia.com/XFree86/Linux
 

@@ -5,7 +5,7 @@ nvdir=/usr/local/NVIDIA
 script_conf=$nvdir/script.conf
 basic_conf=$nvdir/basic.conf
 locale=$nvdir/translations
-local_src=/usr/local/src
+local_src=/usr/local/src/zenvidia_src
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
@@ -57,8 +57,8 @@ for local_list in "${local_src_list[@]}"; do
 	local_git=$local_src/$local_list
 	if [ -d $local_git ]; then	
 		cd $local_git
-		git fetch --dry-run &>/home/$USER/notif.log	
-		if [[ $(cat /home/$USER/notif.log|grep -c "master") -eq 1 ]]; then
+		git fetch --dry-run &>$nvtmp/notif.log	
+		if [[ $(cat $nvtmp/notif.log|grep -c "master") -eq 1 ]]; then
 			zenity --notification --window-icon=swiss_knife --text="$local_list : $msg_git !"
 		fi
 	fi
