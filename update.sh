@@ -23,9 +23,11 @@ conf_list=("$script_conf" "$basic_conf")
 for conf in "${conf_list[@]}"; do
 	c_old=$conf
 	c_new=$(printf "$conf"|sed -n "s/^.*\///p")
-	c_orig=$(stat -c "%s" $c_old)
-	c_update=$(stat -c "%s" ./$c_new)
-	if [ $c_update -gt $c_orig ]; then
+#	c_orig=$(stat -c "%s" $c_old)
+#	c_update=$(stat -c "%s" ./$c_new)
+	c_orig=$(stat -c "%Y" $c_old)
+	c_update=$(stat -c "%Y" ./$c_new)
+#	if [ $c_update -gt $c_orig ]; then
 		diff $c_new $c_old | grep "<\|>" &>/tmp/nv_diff.log
 		ifs=$IFS
 		IFS=$(echo -en "\n\b")
@@ -33,16 +35,16 @@ for conf in "${conf_list[@]}"; do
 		for c_list in $diff_list; do
 			diff_count=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">")
 			if [ $diff_count -eq 0 ]; then
-				printf "\n# Diff of $diff_count in $c_new to be updated.\n\n"
+				printf "\n# Diff in $c_new:\n> $c_list.\n\n"
 				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
 			fi
 		done
 		IFS=$ifs
 		if [[ $conf == $script_conf ]]; then
-			printf "# Replacing $conf by new version."
-			cp -f $conf $nvdir/
+			printf "\n# Replacing $conf by new version.\n"
+			cp -f $c_new $nvdir/
 		fi
-	fi
+#	fi
 done
 if [ $first_start = 0 ]; then
 	sed -i "s/first_start=1/first_start=0/i" $nvdir/script.conf
@@ -61,8 +63,10 @@ up_list=( 'distro' 'translations' )
 for up_dir in "${up_list[@]}"; do
 	ls_dir=$(ls -1 $up_dir )
 	for w_dif in $ls_dir; do
-		w_orig=$(stat -c "%s" $nvdir/$up_dir/$w_dif)
-		w_update=$(stat -c "%s" ./$up_dir/$w_dif)
+#		w_orig=$(stat -c "%s" $nvdir/$up_dir/$w_dif)
+#		w_update=$(stat -c "%s" ./$up_dir/$w_dif)
+		w_orig=$(stat -c "%Y" $nvdir/$up_dir/$w_dif)
+		w_update=$(stat -c "%Y" ./$up_dir/$w_dif)
 		if [ $w_update -gt $w_orig ]||[ ! -f $nvdir/$up_dir/$w_dif ]; then
 			cp -f ./$up_dir/$w_dif $nvdir/$up_dir/
 		fi
