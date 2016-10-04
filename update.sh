@@ -23,11 +23,9 @@ conf_list=("$script_conf" "$basic_conf")
 for conf in "${conf_list[@]}"; do
 	c_old=$conf
 	c_new=$(printf "$conf"|sed -n "s/^.*\///p")
-#	c_orig=$(stat -c "%s" $c_old)
-#	c_update=$(stat -c "%s" ./$c_new)
 	c_orig=$(stat -c "%Y" $c_old)
 	c_update=$(stat -c "%Y" ./$c_new)
-#	if [ $c_update -gt $c_orig ]; then
+	if [ $c_update -ne $c_orig ]; then
 		diff $c_new $c_old | grep "<\|>" &>/tmp/nv_diff.log
 		ifs=$IFS
 		IFS=$(echo -en "\n\b")
@@ -37,14 +35,16 @@ for conf in "${conf_list[@]}"; do
 			if [ $diff_count -eq 0 ]; then
 				printf "\n# Diff in $c_new:\n> $c_list.\n\n"
 				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
+			else
+				if [[ $conf == $script_conf ]]; then
+					diff_old=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep ">"| sed -n "s/> //p")
+					diff_new=$(printf "$c_list"| grep "<"| sed -n "s/< //p")
+					sed -i "s/$diff_old/$diff_new/" $c_old
+				fi
 			fi
 		done
 		IFS=$ifs
-		if [[ $conf == $script_conf ]]; then
-			printf "\n# Replacing $conf by new version.\n"
-			cp -f $c_new $nvdir/
-		fi
-#	fi
+	fi
 done
 if [ $first_start = 0 ]; then
 	sed -i "s/first_start=1/first_start=0/i" $nvdir/script.conf
@@ -54,7 +54,7 @@ shell_list=('zenvidia.sh' 'zen_notify.sh')
 for shell in "${shell_list[@]}"; do
 	d_orig=$(stat -c "%Y" $install_dir/bin/$shell)
 	d_update=$(stat -c "%Y" ./$shell)
-	if [ $d_update -gt $d_orig ]; then
+	if [ $d_update -ne $d_orig ]; then
 		cp -f ./$shell $install_dir/bin/
 	fi
 done
@@ -63,11 +63,9 @@ up_list=( 'distro' 'translations' )
 for up_dir in "${up_list[@]}"; do
 	ls_dir=$(ls -1 $up_dir )
 	for w_dif in $ls_dir; do
-#		w_orig=$(stat -c "%s" $nvdir/$up_dir/$w_dif)
-#		w_update=$(stat -c "%s" ./$up_dir/$w_dif)
 		w_orig=$(stat -c "%Y" $nvdir/$up_dir/$w_dif)
 		w_update=$(stat -c "%Y" ./$up_dir/$w_dif)
-		if [ $w_update -gt $w_orig ]||[ ! -f $nvdir/$up_dir/$w_dif ]; then
+		if [ $w_update -ne $w_orig ]||[ ! -f $nvdir/$up_dir/$w_dif ]; then
 			cp -f ./$up_dir/$w_dif $nvdir/$up_dir/
 		fi
 	done
