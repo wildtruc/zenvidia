@@ -31,11 +31,17 @@ for conf in "${conf_list[@]}"; do
 		IFS=$(echo -en "\n\b")
 		diff_list=$(cat /tmp/nv_diff.log|grep "<")
 		for c_list in $diff_list; do
-			if [ $(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">") -eq 0 ]; then
+			diff_count=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">")
+			if [ $diff_count -eq 0 ]; then
+				printf "\n# Diff of $diff_count in $c_new to be updated.\n\n"
 				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
 			fi
 		done
 		IFS=$ifs
+		if [[ $conf == $script_conf ]]; then
+			printf "# Replacing $conf by new version."
+			cp -f $conf $nvdir/
+		fi
 	fi
 done
 if [ $first_start = 0 ]; then
