@@ -748,6 +748,7 @@ zenvidia_update(){
 			make update; $esc_message; sleep $xt_delay
 		else
 			echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
+			$esc_message; sleep $xt_delay
 		fi"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
