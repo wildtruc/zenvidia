@@ -66,8 +66,8 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --text="Script's confi
 . $script_conf
 . $basic_conf
 . $color_conf
-. $devel/color.conf
 
+#. $devel/color.conf
 #locale=$devel/translations/
 
 ### FUNCTIONS
