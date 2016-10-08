@@ -505,13 +505,13 @@ installer_build(){
 	if [ $first_start = 0 ]; then
 		if [ -d $local_src/nvidia-installer ]; then
 			git fetch --dry-run &>$local_src/tmp.log
-			pull_it=$(cat $local_src/tmp.log|grep -c "master")
+			fetch=$(cat $local_src/tmp.log|grep -c "master")
 			cd $local_src/nvidia-installer
 			echo "# GIT : Controling nvidia-installer..." ; sleep 1
 			if [[ $operande = "Rebuild" ]]; then
 				proc="Re-building"
 				cmd_line="printf \"# Downloading GIT repo :\n\n\"
-				[ $pull_it = 0 ]|| git pull
+				[ $fetch = 0 ]|| git pull
 				printf \"# Installing to system :\n\n\"
 				make clean ; make ; make install ; $esc_message"
 				## check git pull first
@@ -520,7 +520,7 @@ installer_build(){
 #				make; make install
 			else
 				proc="Updating"
-				if [ $pull_it = 1 ]; then
+				if [ $fetch = 1 ]; then
 					cmd_line="printf \"# Checking GIT repo :\n\n\"
 					make clean ; git pull
 					printf \"# Installing new diffs :\n\n\"
@@ -740,12 +740,14 @@ zenvidia_update(){
 		cd $local_src/zenvidia
 		echo "# GIT : Updating Zenvidia..."
 		git fetch --dry-run &>$local_src/tmp.log
-		cmd_line="if [[ $(cat $local_src/tmp.log|grep -c \"master\") -eq 1 ]]; then
-		printf \"# Proceeding to script update:\n\n\"
-		git pull
-		make update; $esc_message; sleep $xt_delay
+		fetch=$(cat $local_src/tmp.log|grep -c "master")
+		cmd_line="
+		if [ $fetch -eq 1 ]; then
+			printf \"# Proceeding to script update:\n\n\"
+			git pull
+			make update; $esc_message; sleep $xt_delay
 		else
-		echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
+			echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
 		fi"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
