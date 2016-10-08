@@ -67,7 +67,7 @@ ansWN="What do you want to do ?"
 msg205="Network connection control" # 205
 
 ### FIRST START
-msg_00_01="     DRIVER STUFFER PRO" # 701*
+msg_00_01="\t DRIVER STUFFER PRO" # 701*
 msg_00_02="System :" # 706*
 msg_00_04="Card" # 708*
 msg_00_06="Repositories are met" # 710
@@ -247,9 +247,8 @@ m_01_46="Driver download" # 415c
 m_01_47="ended." # 415d
 m_01_48="failure" # 415e
 m_01_49="Binary$end $j\nvidia-installer$end$v missing.\n Install from GIT ?" # 416
-m_01_50="THe package" # 406
+m_01_50="The package" # 406
 m_01_51="doesn't exist" # 407
-
 # package_list
 m_01_52="Driver list"
 # last_pack
@@ -258,8 +257,25 @@ m_01_54="time left"
 m_01_55="Remote content control..." # 405
 m_01_56="Preparing"
 m_01_57="Searching for"
-
 # from_net
+# win_confirm
+# fix_broken_install
+m_01_80="This want to repair broken Nvidia install after a main system reinstall.\nOr over a fresh system install.\n\n(previous Zenvidia directories must already exist or being restored)"
+m_01_81="The following items has been repaired :$end\n\n$j%s$end$vB\n\nRestart now your hardware for changes to take effects."
+m_01_82="System is clean.\nNothing to be done."
+m_01_83="Yes, all is good. Let's go on."
+# backup_pcks
+m_01_70="is already backed up.\nNo reason to do it again"
+m_01_71=""
+m_01_72=""
+# restore_pcks
+m_01_75="Choose the driver you want to"
+m_01_76="Restoring $j%s$end will replace actual$end $j%s"
+m_01_77="Yes, restore and replace."
+m_01_78="Restoring $j%s$end backup. Hold on."
+m_01_7=""
+m_01_7=""
+
 # edit_script_conf
 m_01_58="Edit script config file"
 m_01_59="Confirm to overwrite"
@@ -286,6 +302,12 @@ w_03="ended"
 msg_driver="driver update is out"
 msg_git="a GIT update is out"
 
+# warnings and others big text.
+wrn_06c="The backup you are going to restore is the same as the one used by the system.
+LibGL crash the X server when loaded and used by the actual display if overwrote.\n
+To prevent data loss when copying and others ugly deasagrements,
+Zenvidia wont replace the actual install by overwriting $j%s$end over itself."
+lab_06c="Thanks for the advice!"
 
 
 

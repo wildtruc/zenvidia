@@ -10,16 +10,18 @@ nvdir=$install_dir/NVIDIA
 if [ -s $nvdir/script.conf ]; then
 	script_conf=$nvdir/script.conf
 	basic_conf=$nvdir/basic.conf
+	color_conf=$nvdir/color.conf
 else
 	script_conf=./script.conf
 	basic_conf=./basic.conf
+	color_conf=./color.conf
 fi
 [ -s $script_conf ]|| exit 0
 . $script_conf
 
 unset conf_list shell_list up_list
-# update basic and script conf 
-conf_list=("$script_conf" "$basic_conf")
+# update conf 
+conf_list=("$script_conf" "$basic_conf" "$color_conf")
 for conf in "${conf_list[@]}"; do
 	c_old=$conf
 	c_new=$(printf "$conf"|sed -n "s/^.*\///p")
