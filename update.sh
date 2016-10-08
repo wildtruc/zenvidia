@@ -34,14 +34,14 @@ for conf in "${conf_list[@]}"; do
 		diff_list=$(cat /tmp/nv_diff.log|grep "<")
 		for c_list in $diff_list; do
 			diff_count=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">")
-			if [ $diff_count -eq 0 ]; then
-				printf "\n# Diff in $c_new:\n> $c_list.\n\n"
-				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
+			if [ $diff_count -eq 1 ]; then
+				diff_old=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep ">"| sed -n "s/> //p")
+				diff_new=$(printf "$c_list"| grep "<"| sed -n "s/< //p")
+				sed -i "s/$diff_old/$diff_new/" $c_old
 			else
-				if [[ $conf == $script_conf ]]; then
-					diff_old=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep ">"| sed -n "s/> //p")
-					diff_new=$(printf "$c_list"| grep "<"| sed -n "s/< //p")
-					sed -i "s/$diff_old/$diff_new/" $c_old
+				if [[ $conf == $basic_conf ]]; then
+					printf "\n# Diff in $c_new:\n> $c_list.\n\n"
+					printf "$c_list\n"| sed -n "s/< //p" >> $c_old
 				fi
 			fi
 		done
