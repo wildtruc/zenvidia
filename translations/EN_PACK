@@ -43,13 +43,13 @@ _4d="About zenvidia " # G18
 ## add on
 _5a="Force dkms build/rebuild"
 ## menu manage_pcks
-_6a="Remove"
+_6a="Remove downloaded package"
 _6b="Backup"
 _6c="Restore"
 _6d="Driver remove"
 _6e="Driver backup"
 _6f="Remove the associated directory"
-_6g="Please confirm :"
+_6g="Please, confirm you action."
 _6h="Remove primary driver directory"
 
 ## menu test
@@ -308,6 +308,13 @@ LibGL crash the X server when loaded and used by the actual display if overwrote
 To prevent data loss when copying and others ugly deasagrements,
 Zenvidia wont replace the actual install by overwriting $j%s$end over itself."
 lab_06c="Thanks for the advice!"
+wrn_06f="The associated directory you're about to remove is the same as the actually running.
+This action will fataly break $j%s$end installation and you don't want to do this.\n
+Action skipped."
+lab_06f="Yes, I understand my mistake."
+wrn_06a="Package $j%s$end is same used by the system. If you need it again for any reason,
+you can download it with the$j Driver Upgrade$end tool from the$j Update$end menu."
+inf_06a="$j%s$end.run package removed."
 
 
 

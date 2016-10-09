@@ -2153,18 +2153,32 @@ remove_pcks(){
 	"${packs_list[@]}" )
 	if [ $? = 1 ]; then exit 0; fi
 	pack_repo=$(printf "$rm_packs"|sed -n "s/^.*-//g;p")
-	zenity --width=450 --title="Zenvidia ($_6a)" --question \
+	ver_pack=$(printf "$pack_repo"|sed -n "s/\.//p")
+	zenity --width=300 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --question \
 	--text="$v$_6d $rm_packs.\n$_6g$end" \
-	--ok-label="$CC" --cancel-label="$R"
+	--ok-label="$CC" --cancel-label="$PM"
 	if [ $? = 0 ]; then
 		if [ -d $croot/nvidia.$pack_repo ]; then
-			zenity --width=450 --title="Zenvidia ($_6a)" --question \
-			--text="$v$_6f $croot.\n$_6g$end"
-			if [ $? = 1 ]; then
-				rm -Rf $croot/nvidia.$pack_repo
+			zenity --width=300 --title="Zenvidia ($_6a)" --question \
+			--text="$v$_6f $croot ?\n$_6g$end"
+			if [ $? = 0 ]; then
+				if [[ $ver_pack = $ver_txt ]]; then
+					zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=xkill \
+					--error --no-wrap --text="$v$(printf "$wrn_06f" "$pack_repo")$end" \
+					--ok-label="$lab_06f"
+				else
+					rm -Rf $croot/nvidia.$pack_repo
+				fi
 			fi
+		
+		fi
+		if [[ $ver_pack = $ver_txt ]]; then
+			zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --info \
+			--text="$v$(printf "$wrn_06a" "$pack_repo")$end" --ok-label="$lab_06c" --no-wrap
 		fi
 		rm -f $nvdl/$rm_packs
+		zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --info \
+		--text="$v$(printf "$inf_06a" "$pack_repo")$end" --no-wrap
 		manage_pcks
 	else
 		manage_pcks
@@ -2192,24 +2206,25 @@ backup_restore(){
 }
 backup_pcks(){
 	b_mod='backup'
-	b_msg="$_6b\n$m_01_75 $b_mod.$end"
+	b_msg="$_6b\n$v$m_01_75 $b_mod.$end"
 	b_type=0
 	backup_restore
 	bak_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
 	if [[ -d $nvbackup/nvidia.$bak_version ]]; then
-		zenity --width=450 --title="Zenvidia ($_6b)" --info --icon-name=swiss_knife \
-		--text="$j$bak_version$end$v $m_01_70.$end"
-		if [ $? = 0 ]; then backup_pcks ; fi
+		zenity --width=250 --height=100 --title="Zenvidia ($_6b)" --info --icon-name=swiss_knife \
+		--no-wrap --text="$j$bak_version$end$v $m_01_70.$end"
+		if [ $? = 0 ]; then manage_pcks ; fi
 	else
-		zenity --width=450 --title="Zenvidia ($_6b)" --question \
-		--text="$v$_6e $drive_packs ?\n$_6g$end" \
+		zenity --width=250 --height=100 --title="Zenvidia ($_6b)" --question \
+		--text="$v$_6e $j$drive_packs$end ?\n$_6g$end" \
 		--ok-label="$CC" --cancel-label="$R"
 	fi
 	if [ $? = 0 ]; then
-		backup_old_version
+		( backup_old_version; sleep 2 )| zenity --width=400 --title="Zenvidia $b_mod" \
+		--progress --pulsate --auto-close --text="$v\Backing up $j$bak_version$end driver.$end"
 		ko_version=$mod_version
 		if [ $ko_version != $bak_version ]; then
-			zenity --width=450 --title="Zenvidia ($_6b)" --question \
+			zenity --width=300 --height=100 --title="Zenvidia ($_6b)" --question \
 			--text="$v$_6h ?\n$_6g$end"
 			if [ $? = 0 ]; then
 				rm -Rf $croot/$drive_packs
@@ -2220,13 +2235,13 @@ backup_pcks(){
 		manage_pcks
 	fi
 }
-## TODO ##
 restore_pcks(){
 	b_mod='restore'
 	b_msg="$_6c\n$v$m_01_75 $b_mod.$end"
 	b_type=1
 	backup_restore
 	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
+	ver_res=$(printf "$res_version"| sed -n "s/\.//p")
 #	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//;s/.bak$//p")
 	if [ ! -d $croot/$drive_packs ]; then
 		unset bk_list
@@ -2239,14 +2254,6 @@ restore_pcks(){
 			"var/,/var/,-Rf"			
 			"nvidia.$res_version,$croot/,-Rf"
 		)
-		# current version overwrite ALERT message
-		ver_res=$(printf "$res_version"| sed -n "s/\.//p")
-		if [[ $ver_res -eq $ver_mod ]]; then
-			warning_msg=$(printf "$vB$wrn_06c.$end" "$res_version")
-			zenity ---error --title="Zenvidia $b_mod" --icon-name=xkill \
-			--text="$warning_msg" --no-wrap --ok-label="$lab_06c"
-			manage_pcks
-		fi
 		confirm_msg=$(printf "$v$m_01_76$end." "$res_version" "$version")
 		val_title="Zenvidia $b_mod"
 		val_confirm="$m_01_77"
@@ -2266,6 +2273,14 @@ restore_pcks(){
 			ldconfig
 		)| zenity --width=400 --title="Zenvidia $b_mod" --progress --pulsate --auto-close \
 		--text="$(printf "$v$m_01_78$end" "$res_version")"
+	else
+		# current version overwrite ALERT message
+		if [[ $ver_res -eq $ver_mod ]]; then
+			warning_msg=$(printf "$vB$wrn_06c.$end" "$res_version")
+			zenity ---error --title="Zenvidia $b_mod" --icon-name=xkill \
+			--text="$warning_msg" --no-wrap --ok-label="$lab_06c"
+			manage_pcks
+		fi
 	fi
 	manage_pcks
 }
