@@ -716,7 +716,7 @@ prime_build(){
 #	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
 	if [ -f /etc/nvidia-prime/xorg.conf.nvidia.$version ]; then
-		if [ ! $(cat /etc/nvidia-prime/xorg.nvidia.conf| grep -o "$version") ]; then
+		if [ $(cat /etc/nvidia-prime/xorg.nvidia.conf| grep -c "$version") -eq 0 ]; then
 			cd /etc/nvidia-prime
 			cp -f ./xorg.conf.nvidia.$version ./xorg.nvidia.conf
 		fi
@@ -968,6 +968,7 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 			sec_option_op
 		elif [ $use_bumblebee = 0 ]; then
 			x_conf_dir=/etc/nvidia-prime
+			[ -d $x_conf_dir ]|| mkdir -p $x_conf_dir
 			if [ -f $x_conf_dir/xorg.nvidia.conf ]; then
 				mv -f $x_conf_dir/xorg.nvidia.conf $x_conf_dir/xorg.nvidia.conf.bak
 			fi
