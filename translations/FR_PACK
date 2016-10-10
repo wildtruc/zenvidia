@@ -248,8 +248,25 @@ m_01_54="temps restant"
 m_01_55="Contrôle du contenu distant..." # 405
 m_01_56="Préparation"
 m_01_57="Recherche de"
-
 # from_net
+# win_confirm
+# fix_broken_install
+m_01_80="Ceci va réparer une installation Nvidia cassée après une ré-installation du sytème.\Où après une installation fraîche.\n\n(le prépertoire précédent de Zenvidia doit obligatioirement être présent ou avoir été restoré)"
+m_01_81="Les objet suivant ont été réparés :$end\n\n$j%s$end$vB\n\nRedémarrez votre matériels pour que les changements prennent effet."
+m_01_82="Système propre.\nRien à faire."
+m_01_83="Oui, tout va bien, allons-y!"
+# backup_pcks
+m_01_70="est déjà sauvergardé.\nAucune raison de la faire à nouveau."
+m_01_71=""
+m_01_72=""
+# restore_pcks
+m_01_75="Choissez le pilote que vous désirez"
+m_01_76="La restauration de $j%s$end remplacera l'actuel$end $j%s"
+m_01_77="Oui, restaurer et remplacer."
+m_01_78="Restauration de la sauvergarde $j%s$end. Patientez."
+m_01_7=""
+m_01_7=""
+
 # edit_script_conf
 m_01_58="Éditer le fichier de conf du script"
 m_01_59="Confirmer la réécriture"
@@ -276,5 +293,16 @@ w_03="terminé"
 msg_driver="est sorti. VIIITE"
 msg_git="un mise à jour GIT est sortie"
  
-
+wrn_06c="La sauvergarde que vous êtes sur le point de restorer est la même qu'utilisé par le système.
+LibGL crashe le serveur X lorsque chargée et utilisé par l'affichage quand elle est écrasée.\n
+Pour prévenir de toute perte de données lors de la copie et autres affreux désagréments,
+Zenvidia ne remplace pas l'installation $j%s$end actuelle en l'écrasant sur elle-même."
+lab_06c="Merci pour le conseil!"
+wrn_06f="Le répertoire associé que vous êtes sur le point d'effacer est celui qui fonctionne actuellement.
+Cette action cassera fatalement l'installation $j%s$end et ce n'est probablement pas ce que vous voulez.\n
+Action sautée."
+lab_06f="Oui, je comprends mon erreur"
+wrn_06a="le paquet $j%s$end est le même qu'utilisé par le système. Si vous en avez à nouveau besoin, peut importe la raison,
+vous pouvez toujours le re-télécharger à partir de l'outil $j$_2e$end depuis le menu $j$_02$end."
+inf_06a="$j%s$end.run effacé."
 

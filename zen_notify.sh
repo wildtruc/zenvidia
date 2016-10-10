@@ -54,7 +54,7 @@ done
 source_ctrl(){
 [ -d $local_src ]|| exit 0
 for local_list in "${local_src_list[@]}"; do
-	local_git=$local_src/$local_list
+	local_git=/home/$def_user/tmp/$local_list
 	if [ -d $local_git ]; then	
 		cd $local_git
 		git fetch --dry-run &>$nvtmp/notif.log	

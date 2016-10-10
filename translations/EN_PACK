@@ -311,9 +311,9 @@ lab_06c="Thanks for the advice!"
 wrn_06f="The associated directory you're about to remove is the same as the actually running.
 This action will fataly break $j%s$end installation and you don't want to do this.\n
 Action skipped."
-lab_06f="Yes, I understand my mistake."
+lab_06f="Yes, I understand my mistake"
 wrn_06a="Package $j%s$end is same used by the system. If you need it again for any reason,
-you can download it with the$j Driver Upgrade$end tool from the$j Update$end menu."
+you can download it with the $j$_2e$end tool from the $j$_02$end menu."
 inf_06a="$j%s$end.run package removed."
 
 

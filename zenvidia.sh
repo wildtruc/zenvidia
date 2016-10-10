@@ -158,6 +158,15 @@ root_id(){
 			zenity --width=450 --error --text="$v SORRY, CAN'T IDENTIFY DISTRO.\nPROMPT DIRECTLY AS SU\nAND TYPE $J sudo $(basename $0)$end$v FOR DEBIAN LIKE,\nOR$j su -c $(basename $0)$end$v FOR OTHER DISTRO.$end"
 			exit 0
 		fi
+	else
+		[[ $USER == $def_user ]]|| {
+			if [ $(id -u -n) == $USER ]; then
+				user_name=$(zenity --entry --text="Enter default user name" --entry-text="your user name")
+				if [ $(cat /etc/passwd |grep -c $user_name) -eq 1 ]; then
+					sed -i "s/def_user=.*$/def_user=$user_name/" $basic_conf
+				fi
+			fi
+		}
 	fi
 }
 
@@ -319,7 +328,7 @@ local_src_ctrl(){
 	if [ -x $install_dir/bin/optirun ]; then
 		operande="$m_02_16"
 		(	c=33
-			opti_list=( 'bbswitch' 'Bumblebee' 'primus' )
+			opti_list=( 'bbswitch' 'Bumblebee' 'primus')
 			for git_src in "${opti_list[@]}"; do
 				cd $local_src/$git_src
 				build=$git_src
@@ -360,6 +369,7 @@ optimus_dependencies_ctrl(){ #
 	[ -e /usr/include/X11/X.h ]|| pkg_list+=("$p_libX11")
 #	[ -e /usr/sbin/dkms ]|| pkg_list+=("$p_dkms")
 	(	sleep 2
+		cmd_line="
 		if [[ ${pkg_list[@]} != '' ]]; then
 			echo "# $m_02_22..."
 			$PKG_INSTALLER $pkg_opts$pkg_cmd ${pkg_list[@]}
@@ -368,6 +378,8 @@ optimus_dependencies_ctrl(){ #
 			echo "# $m_02_23..."; sleep 2
 		fi
 		echo "# $m_02_24."; sleep 2
+		$esc_message; sleep $xt_delay"
+		xterm $xt_options -title Zenvidia -e "$cmd_line"
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$y\Optimus :$end$v $m_02_21.$end"
 }
@@ -402,7 +414,9 @@ build_all(){
 bbswitch_build(){
 	if [ -d $local_src/bbswitch ]; then
 		cd $local_src/bbswitch
-		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
+		[ -d /home/$def_user/tmp/bbswitch/.git ]|| mkdir -p /home/$def_user/tmp/bbswitch/.git/
+		cp -Rfu $local_src/bbswitch/.git /home/$def_user/tmp/bbswitch/
+		chown -R $def_user:$def_user /home/$def_user/tmp/bbswitch
 		( echo "# GIT : $operande bbswitch driver..."
 		cp -f Makefile Makefile.zen
 		cp -f Makefile.dkms Makefile.dkms.zen
@@ -419,7 +433,9 @@ bbswitch_build(){
 Bumblebee_build(){
 	if [ -d $local_src/Bumblebee ]; then
 		cd $local_src/Bumblebee
-		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
+		[ -d /home/$def_user/tmp/Bumblebee/.git ]|| mkdir -p /home/$def_user/tmp/Bumblebee/.git/
+		cp -Rfu $local_src/Bumblebee/.git/ /home/$def_user/tmp/Bumblebee/
+		chown -R $def_user:$def_user /home/$def_user/tmp/Bumblebee
 		( echo "# GIT : $operande bumblebee daemon..."
 		if [ ! -x $local_src/Bumblebee/configure ]; then
 			/usr/bin/autoreconf -fi
@@ -478,7 +494,9 @@ primus_build(){
 			( cd /usr/$master$ELF_32; ln -sf ./libX11.so.6 ./libX11.so )
 		fi
 		cd $local_src/primus
-		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
+		[ -d /home/$def_user/tmp/primus/.git ]|| mkdir -p /home/$def_user/tmp/primus/.git/
+		cp -Rfu $local_src/primus/.git/ /home/$def_user/tmp/primus/
+		chown -R $def_user:$def_user /home/$def_user/tmp/primus
 		rm -rf lib/ lib64/
 		( echo "# GIT : $operande primus libraries..."; sleep 1
 		# patch primus makefile
@@ -535,7 +553,6 @@ installer_build(){
 				else
 					echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
 				fi
-
 			fi
 		fi
 	else
@@ -550,11 +567,13 @@ installer_build(){
 #		mkdir -p $local_src/nvidia-installer
 		cd $local_src
 #		git clone $nv_git
-#		make ; make install
+#		make ; make install	
 		xterm $xt_options --title Compiling -e "$cmd_line" 
-		echo "# GIT : $proc nvidia-installer done."; sleep 2
-
+		echo "# GIT : $proc nvidia-installer done."; sleep 2	
 	fi
+	[ -d /home/$def_user/tmp/nvidia-installer/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-installer/.git/
+	cp -Rfu $local_src/nvidia-installer/.git /home/$def_user/tmp/nvidia-installer/
+	chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-installer
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
 }
@@ -712,6 +731,9 @@ prime_build(){
 		/usr/bin/make install
 		sleep 1
 	fi
+	[ -d /home/$def_user/tmp/nvidia-prime-select/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-prime-select/.git/
+	cp -Rfu $local_src/nvidia-prime-select/.git /home/$def_user/tmp/nvidia-prime-select/
+	chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-prime-select
 #	x_opt="$xt_options -title Zenvidia_Prime_$operande"
 #	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
@@ -762,6 +784,9 @@ zenvidia_update(){
 		sleep $xt_delay"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	fi
+	[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
+	cp -Rfu $local_src/zenvidia/.git /home/$def_user/tmp/zenvidia/
+	chown -R $def_user:$def_user /home/$def_user/tmp/zenvidia
 	) | zenity --width=450 --title="Zenvidia" --text="Zenvidia Update check..." --progress --pulsate --auto-close
 }
 ## CONFIGURATION
