@@ -352,7 +352,7 @@ local_src_ctrl(){
 				echo "$c"; c=$[ $c+33 ]; sleep 1
 			done
 			echo "100"; sleep 1
-		) | zenity --width=450 --title="Zenvidia (updating)" --progress --percentage=0 \
+		) | zenity --width=450 --title="Zenvidia GIT source(updating)" --progress --percentage=0 \
 		--auto-close --text="$y\GIT$end $v: $m_02_17.$end"
 	else
 		build_all
@@ -385,7 +385,7 @@ optimus_dependencies_ctrl(){ #
 }
 build_all(){
 	# compile/recompile all missing/present optimus elements
-	if [ ! -x $install_dir/bin/optirun ]; then
+	if [ $use_bumblebee = 1 ]; then
 	mkdir -p $local_src
 	cd $local_src
 	(	operande="Building"
@@ -569,11 +569,12 @@ installer_build(){
 #		git clone $nv_git
 #		make ; make install	
 		xterm $xt_options --title Compiling -e "$cmd_line" 
-		echo "# GIT : $proc nvidia-installer done."; sleep 2	
+		echo "# GIT : $proc nvidia-installer done."; sleep 2
+		[ -d /home/$def_user/tmp/nvidia-installer/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-installer/.git/
+		cp -Rfu $local_src/nvidia-installer/.git /home/$def_user/tmp/nvidia-installer/
+		chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-installer	
 	fi
-	[ -d /home/$def_user/tmp/nvidia-installer/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-installer/.git/
-	cp -Rfu $local_src/nvidia-installer/.git /home/$def_user/tmp/nvidia-installer/
-	chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-installer
+	
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
 }
@@ -699,7 +700,7 @@ prime_src_ctrl(){
 prime_build(){
 	( 
 	if [ -d $local_src/nvidia-prime-select ]; then
-		operande=Updating
+		operande=Update
 		cd $local_src/nvidia-prime-select
 		echo "# GIT : $operande Prime..."
 		git fetch --dry-run &>$local_src/tmp.log
@@ -730,10 +731,11 @@ prime_build(){
 		chmod a+w .git/object/pack
 		/usr/bin/make install
 		sleep 1
+		[ -d /home/$def_user/tmp/nvidia-prime-select/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-prime-select/.git/
+		cp -Rfu $local_src/nvidia-prime-select/.git /home/$def_user/tmp/nvidia-prime-select/
+		chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-prime-select
 	fi
-	[ -d /home/$def_user/tmp/nvidia-prime-select/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-prime-select/.git/
-	cp -Rfu $local_src/nvidia-prime-select/.git /home/$def_user/tmp/nvidia-prime-select/
-	chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-prime-select
+	
 #	x_opt="$xt_options -title Zenvidia_Prime_$operande"
 #	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
@@ -783,10 +785,11 @@ zenvidia_update(){
 		make update; $esc_message
 		sleep $xt_delay"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
+		[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
+		cp -Rfu $local_src/zenvidia/.git /home/$def_user/tmp/zenvidia/
+		chown -R $def_user:$def_user /home/$def_user/tmp/zenvidia
 	fi
-	[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
-	cp -Rfu $local_src/zenvidia/.git /home/$def_user/tmp/zenvidia/
-	chown -R $def_user:$def_user /home/$def_user/tmp/zenvidia
+	
 	) | zenity --width=450 --title="Zenvidia" --text="Zenvidia Update check..." --progress --pulsate --auto-close
 }
 ## CONFIGURATION
