@@ -225,7 +225,7 @@ dep_control(){
 		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
 		if [ $? = 0 ]; then
 			( 
-			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; 				echo -e \"$esc_message\"; sleep $xt_delay"
+			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; 				printf \"$esc_message\"; sleep $xt_delay"
 			) | zenity --progress --pulsate --auto-close --text="Installing missing dependencies..."
 		else
 			exit 0
@@ -262,10 +262,10 @@ compil_vars(){
 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
 	[ $xt_hold = 0 ]|| x_hold=' -hold'
 	if [ $xt_hold = 1 ]; then
-		esc_message="printf \"\n# Close xterm window to escape.\n\""
+		esc_message="$xB\n# Close xterm window to escape.\n$xN"
 		x_hold=' -hold'
 	else
-		esc_message="printf \"\n# Terminal will auto-close in $xt_delay seconds.\n\""
+		esc_message="$xB\n# Terminal will auto-close in $xt_delay seconds.\n$xN"
 	fi
 	xt_options=$xt_colors''$x_hold' -fn 8x13 -geometry 80x24+'$[ (($term_x_dsp-660)/2)$dock ]'+0'
 }
@@ -320,47 +320,52 @@ authorityKeyIdentifier=keyid"
 	fi
 }
 
-## VIRTUALIZER BUILDING PART
+## VIRTUALIZER AND TOOLS BUILDING PART
+notif_update(){
+	[ -d /home/$def_user/tmp/$base_src/.git ]|| mkdir -p /home/$def_user/tmp/$base_src/.git/
+	cp -Rfu $local_src/$base_src/.git /home/$def_user/tmp/$base_src/
+	chown -R $def_user:$def_user /home/$def_user/tmp/$base_src
+}
 local_src_ctrl(){
 #	() | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	# Full optimus control. Update or installing it if necessary
 	optimus_dependencies_ctrl 
-	if [ -x $install_dir/bin/optirun ]; then
-		operande="$m_02_16"
-		(	c=33
-			opti_list=( 'bbswitch' 'Bumblebee' 'primus')
-			for git_src in "${opti_list[@]}"; do
-				cd $local_src/$git_src
-				build=$git_src
-#				[[ $git_src == Bumblebee ]]&& build=bumble
-#				[[ $git_src == bbswitch ]]&& build=bb
-				echo "# GIT : $m_02_18 $git_src..." ; sleep 1
-#				if [[ $(git pull | grep -o "up-to-date") != '' ]]; then
-				git_build=$build\_build
-				git fetch --dry-run &>$local_src/tmp.log
-				if [[ $(cat $local_src/tmp.log|grep -c "master") -eq 1 ]]; then
-					echo "# GIT : $m_02_20 $git_src..."
-					make clean
-					git pull ; ${git_build}
-#					echo "$[ 100/$c ]"
-#					c=$[ $c-1 ]
-					sleep 1
-				else
-					echo "# GIT : $git_src $m_02_19"; sleep 1
-				fi
-				
-				echo "$c"; c=$[ $c+33 ]; sleep 1
-			done
-			echo "100"; sleep 1
-		) | zenity --width=450 --title="Zenvidia GIT source(updating)" --progress --percentage=0 \
-		--auto-close --text="$y\GIT$end $v: $m_02_17.$end"
+	if [ $install_type = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			operande="$m_02_16"
+			(	opti_list=( 'bbswitch' 'Bumblebee' 'primus')
+				cmd_line="for git_src in \"${opti_list[@]}\"; do
+					cd $local_src/$git_src
+					build=$git_src
+					echo \"$xB# GIT : $m_02_18 $git_src...$xN\" ; sleep 1
+					git_build=$build\_build
+					git fetch --dry-run &>$local_src/tmp.log
+					if [[ $(cat $local_src/tmp.log|grep -c \"master\") -eq 1 ]]; then
+						echo \"$xB# GIT : $m_02_20 $git_src...$xN\"
+						make clean
+						git pull ; ${git_build}
+						sleep 1
+						base_src=$build; notif_update
+					else
+						echo \"$xB# GIT : $git_src $m_02_19$xN\"; sleep 1
+					fi	
+				done
+				printf \"$esc_message\"; sleep $xt_delay"
+				xterm $xt_options -title Zenvidia_$operande -e "$cmd_line"
+			) | zenity --width=450 --title="Zenvidia GIT source(updating)" --progress \
+			--pulsate --auto-close --text="$y\GIT$end $v: $m_02_17.$end"
+		else
+			build_all
+		fi
 	else
-		build_all
+		zenity --height=100 --info --icone-name=swiss_knife --no-wrap \
+		--text="There's no element '"
 	fi
 }
 optimus_dependencies_ctrl(){ #
 	# optimus compiling dependecies check/install.
 	unset pkg_list
+#	xt_list(){
 	[ -x /usr/bin/git ]|| pkg_list+=("$p_git")
 	[ -e /usr/bin/autoconf ]|| pkg_list+=("$p_autoconf")
 	[ -e /usr/include/glib-2*/glib.h ]|| pkg_list+=("$p_glib2")
@@ -368,55 +373,99 @@ optimus_dependencies_ctrl(){ #
 	[ -e /usr/include/bsd/bsd.h ]|| pkg_list+=("$p_libbsd")
 	[ -e /usr/include/X11/X.h ]|| pkg_list+=("$p_libX11")
 #	[ -e /usr/sbin/dkms ]|| pkg_list+=("$p_dkms")
+#	}
+#	xt_sub(){
+#		xt_list
+#		if [[ ${pkg_list[@]} != '' ]]; then
+#			echo "$xB# $m_02_22 :$xN"
+#			$PKG_INSTALLER $pkg_opts$pkg_cmd ${pkg_list[@]}
+#			echo "$xB# $m_02_23.$xN"
+#		else
+#			echo "$xB# $m_02_23...$xN"
+#		fi
+#		printf "$esc_message"; sleep $xt_delay
+#	}
 	(	sleep 2
 		cmd_line="
 		if [[ ${pkg_list[@]} != '' ]]; then
-			echo "# $m_02_22..."
+			echo \"$xB# $m_02_22 :$xN\"
 			$PKG_INSTALLER $pkg_opts$pkg_cmd ${pkg_list[@]}
-			echo "# $m_02_23."; sleep 2
+			echo \"$xB# $m_02_23.$xN\"
 		else
-			echo "# $m_02_23..."; sleep 2
+			echo \"$xB# $m_02_23.$xN\"
 		fi
-		echo "# $m_02_24."; sleep 2
-		$esc_message; sleep $xt_delay"
+		printf \"$esc_message\"; sleep $xt_delay"
 		xterm $xt_options -title Zenvidia -e "$cmd_line"
+#		export -f xt_list
+#		export -p xB xN m_02_22 m_02_23 PKG_INSTALLER pkg_opts pkg_cmd esc_message xt_delay
+#		xterm $xt_options -title "Zenvidia dependencies" -e xt_sub
+		echo "# $m_02_24."; sleep 2
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$y\Optimus :$end$v $m_02_21.$end"
 }
 build_all(){
 	# compile/recompile all missing/present optimus elements
-	if [ $use_bumblebee = 1 ]; then
-	mkdir -p $local_src
-	cd $local_src
-	(	operande="Building"
-		echo "# GIT : $m_02_29..."; sleep 1
-		/usr/bin/git clone $bbswitch_git
-		bbswitch_build
-		echo "$[ 100/3 ]"; sleep 1
-		/usr/bin/git clone $Bumblebee_git
-		Bumblebee_build
-		echo "$[ 100/2 ]"; sleep 1
-		/usr/bin/git clone $primus_git
-		primus_build
-		echo "100"
-		echo "# GIT : $m_02_30."; sleep 1
-		) | zenity --width=450 --title="Zenvidia ($operande)" --progress --precentage=0 \
-		--auto-close --text="$y\GIT :$end$v $m_02_25...$end"
-	else
-		zenity --width=450 --title="Zenvidia ($operande)" --question --title="Zenvidia" \
-		--text="$vm_02_26$end \n>> $j$m_02_27.$end" \
-		--ok-label="$m_02_28" --cancel-label="$MM"
-		if [ $? = 0 ]; then local_src_ctrl
-		else base_menu
+	if [ $install_type = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			mkdir -p $local_src
+			cd $local_src
+			unset rebuild_list
+			xt_sub(){
+				xt_list
+				for r_build in ${rebuild_list[@]}; do
+					_name=$(printf "$r_build"|cut -d, -f1)
+					_build=$(printf "$r_build"|cut -d, -f2)
+					_git=$(printf "$r_build"|cut -d, -f3)
+					printf "$xB\n# Cloning $_name from GIT :$xN\n\n"
+					/usr/bin/git clone $_git
+					printf "$xB\n# Building $_name :$xN\n\n"
+					${_build}
+					sleep 2
+				done
+				printf "$esc_message"
+				sleep $xt_delay
+			}
+			xt_list(){
+				rebuild_list+=("bbswitch,bbswitch_build,$bbswitch_git")
+				rebuild_list+=("Bumblebee,Bumblebee_build,$Bumblebee_git")
+				rebuild_list+=("primus,primus_build,$primus_git")
+			}
+			( operande="Building"
+			export -p bbswitch_git Bumblebee_git primus_git
+			export -p xt_delay esc_message xB xN
+			export -f xt_list bbswitch_build Bumblebee_build primus_build xt_sub
+			echo "# GIT : $m_02_29..."; sleep 1
+			xterm $xt_options -title "Zenvidia ($operande)" -e xt_sub	
+	#		/usr/bin/git clone $bbswitch_git
+	#		export -f bbswitch_build
+	#		xterm $xt_options -title "Zenvidia ($operande)" -e bbswitch_build
+	#		echo "$[ 100/3 ]"; sleep 1
+	#		/usr/bin/git clone $Bumblebee_git
+	#		Bumblebee_build
+	#		echo "$[ 100/2 ]"; sleep 1
+	#		/usr/bin/git clone $primus_git
+	#		primus_build
+	#		echo "100"
+			echo "# GIT : $m_02_30."; sleep 1
+			) | zenity --width=450 --title="Zenvidia ($operande)" --progress --pulsate \
+			--auto-close --text="$y\GIT :$end$v $m_02_25...$end"
+		else
+			zenity --width=450 --title="Zenvidia ($operande)" --question --title="Zenvidia" \
+			--text="$vm_02_26$end \n>> $j$m_02_27.$end" \
+			--ok-label="$m_02_28" --cancel-label="$MM"
+			if [ $? = 0 ]; then local_src_ctrl
+			else base_menu; fi
 		fi
+	else
+		zenity --height=100 --info --no-wrap --icon-name=swiss_knife --label-ok="Got it !" \
+		--text="$v$wrn_02_25$end"
+		if [ $? = 0 ]; then base_menu; fi
 	fi
+	
 }
 bbswitch_build(){
 	if [ -d $local_src/bbswitch ]; then
 		cd $local_src/bbswitch
-		[ -d /home/$def_user/tmp/bbswitch/.git ]|| mkdir -p /home/$def_user/tmp/bbswitch/.git/
-		cp -Rfu $local_src/bbswitch/.git /home/$def_user/tmp/bbswitch/
-		chown -R $def_user:$def_user /home/$def_user/tmp/bbswitch
 		( echo "# GIT : $operande bbswitch driver..."
 		cp -f Makefile Makefile.zen
 		cp -f Makefile.dkms Makefile.dkms.zen
@@ -433,9 +482,6 @@ bbswitch_build(){
 Bumblebee_build(){
 	if [ -d $local_src/Bumblebee ]; then
 		cd $local_src/Bumblebee
-		[ -d /home/$def_user/tmp/Bumblebee/.git ]|| mkdir -p /home/$def_user/tmp/Bumblebee/.git/
-		cp -Rfu $local_src/Bumblebee/.git/ /home/$def_user/tmp/Bumblebee/
-		chown -R $def_user:$def_user /home/$def_user/tmp/Bumblebee
 		( echo "# GIT : $operande bumblebee daemon..."
 		if [ ! -x $local_src/Bumblebee/configure ]; then
 			/usr/bin/autoreconf -fi
@@ -494,9 +540,6 @@ primus_build(){
 			( cd /usr/$master$ELF_32; ln -sf ./libX11.so.6 ./libX11.so )
 		fi
 		cd $local_src/primus
-		[ -d /home/$def_user/tmp/primus/.git ]|| mkdir -p /home/$def_user/tmp/primus/.git/
-		cp -Rfu $local_src/primus/.git/ /home/$def_user/tmp/primus/
-		chown -R $def_user:$def_user /home/$def_user/tmp/primus
 		rm -rf lib/ lib64/
 		( echo "# GIT : $operande primus libraries..."; sleep 1
 		# patch primus makefile
@@ -528,32 +571,33 @@ installer_build(){
 			echo "# GIT : Controling nvidia-installer..." ; sleep 1
 			if [[ $operande = "Rebuild" ]]; then
 				proc="Re-building"
-				cmd_line="printf \"# Downloading GIT repo :\n\n\"
-				[ $fetch = 0 ]|| git pull
-				printf \"# Installing to system :\n\n\"
-				make clean ; make ; make install ; $esc_message"
+#				cmd_line="printf \"# Downloading GIT repo :\n\n\"
+#				[ $fetch = 0 ]|| git pull
+#				printf \"# Installing to system :\n\n\"
+#				make clean ; make ; make install ; $esc_message"
 				## check git pull first
-#				[ $pull_it = 0 ]|| git pull
-#				make clean
-#				make; make install
+				[ $fetch = 0 ]|| git pull
+				make clean
+				make; make install
 			else
 				proc="Updating"
 				if [ $fetch = 1 ]; then
-					cmd_line="printf \"# Checking GIT repo :\n\n\"
-					make clean ; git pull
-					printf \"# Installing new diffs :\n\n\"
-					make ; make install; $esc_message; sleep $xt_delay"
+#					cmd_line="printf \"# Checking GIT repo :\n\n\"
+#					make clean ; git pull
+#					printf \"# Installing new diffs :\n\n\"
+#					make ; make install; $esc_message; sleep $xt_delay"
 					echo "# GIT : Updating nvidia-installer..."
 #					make clean
-#					git pull
-#					make ; make install
-					xterm $xt_options --title Compiling -e "$cmd_line" 
+					git pull
+					make ; make install
+#					xterm $xt_options --title Compiling -e "$cmd_line" 
 					sleep 2
 					echo "# GIT : $proc nvidia-installer done."; sleep 1
 				else
 					echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
 				fi
 			fi
+			base_src='nvidia-installer'; notif_update			
 		fi
 	else
 		proc="Installing"
@@ -562,7 +606,7 @@ installer_build(){
 		cd $local_src/nvidia-installer
 		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
 		printf \"# Installing to system :\n\n\"
-		make ; make install ; $esc_message; sleep $xt_delay"
+		make ; make install ; printf \"$esc_message\"; sleep $xt_delay"
 		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
 #		mkdir -p $local_src/nvidia-installer
 		cd $local_src
@@ -570,17 +614,15 @@ installer_build(){
 #		make ; make install	
 		xterm $xt_options --title Compiling -e "$cmd_line" 
 		echo "# GIT : $proc nvidia-installer done."; sleep 2
-		[ -d /home/$def_user/tmp/nvidia-installer/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-installer/.git/
-		cp -Rfu $local_src/nvidia-installer/.git /home/$def_user/tmp/nvidia-installer/
-		chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-installer	
+		base_src='nvidia-installer'
+		notif_update	
 	fi
-	
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v\TOOLS :$end$j nvidia-installer$end$v build/rebuild$end"
 }
 optimus_source_rebuild(){
 #	if [ -x $install_dir/bin/optirun ]; then
-		unset build_list
+		unset rebuild_list build_list
 		rebuild_list=("bbswitch" "Bumblebee" "Primus" "Prime" "Nvidia-Installer" "$_5a")
 		operande="Rebuild"; b=1
 		for build in "${rebuild_list[@]}"; do
@@ -595,36 +637,49 @@ optimus_source_rebuild(){
 			"${build_list[@]}" false $b "$PM")
 		if [ $? = 1 ]; then exit 0; fi
 		case $menu_build in
-			"1") git_src="bbswitch"; re_build ;;
-			"2") git_src="Bumblebee"; re_build ;;
-			"3") git_src="primus"; re_build ;;
+			"1") git_src="bbswitch"; re_build_menu ;;
+			"2") git_src="Bumblebee"; re_build_menu ;;
+			"3") git_src="primus"; re_build_menu ;;
 			"4") git_src="nvidia-prime-select"; prime_build ;;
-			"5") git_src="nvidia-installer"; re_build ;;
+			"5") git_src="nvidia-installer"; re_build_menu ;;
 			"6") dkms_rebuild; base_menu ;;
 			"$b") menu_modif ;;
 		esac
 #	fi	
 }
-re_build(){
+re_build_menu(){
 	menu_msg="$v\You're going to compile$end $j$git_src$end."
 	menu_re_build=$(zenity --width=450 --height=200 --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$menu_msg\n$v$ansWN$end" --column "1" --column "2" --column "3" --separator=";" \
-	--hide-column 2 false 1 "$ansCF" false 2 "$MM")
+	--hide-column 2 false 1 "$ansCF" false 2 "$PM")
 	if [ $? = 1 ]; then base_menu; fi
 	case $menu_re_build in
-		"1") cd $local_src/$git_src
-			b_text=" GIT : Rebuilding $git_src..."
-			if [[ "$git_src" == "bbswitch" ]]; then git_build=bbswitch_build
-			elif [[ "$git_src" == "Bumblebee" ]]; then git_build=Bumblebee_build
-			elif [[ "$git_src" == "primus" ]]; then git_build=primus_build
-			elif [[ "$git_src" == "nvidia-installer" ]]; then git_build=installer_build
-			fi
-			make clean
-			${git_build}
-			;;
+		"1") re_build ;;
 		"2") optimus_source_rebuild ;;
 	esac
-	
+}
+re_build(){
+	b_text="$xB GIT : Rebuilding $git_src...$xN"
+	unset rebuild_list
+	rebuild_list=( 'bbswitch' 'Bumblebee' 'primus' 'nvidia_installer,installer')
+	for rebuild in "${rebuild_list[@]}"; do
+		if [ -d $local_src/$git_src ]; then
+				cd $local_src/$git_src
+			if [[ $(printf "$rebuild"|cut -d, -f2) ]]; then
+				rebuild_nm=$(printf "$rebuild"|cut -d, -f2)
+			else
+				rebuild_nm=$rebuild
+			fi
+			if [[ "$git_src" == "$rebuild" ]]; then git_build=$rebuild_nm\_build; fi
+			cmd_line="printf \"$b_text\n\n\"; make clean; ${git_build}
+			printf \"$esc_message\"; sleep $xt_delay"
+			xterm $xt_options -title "$git_src re-build" -e "$cmd_line"
+		else
+			zenity --height=100 --info --icon-name=swiss_knife --no-wrap \
+			--text="$(printf "$v$wrn_03e$end" "$git_src")" --label-ok="$lab_03e"
+			if [ $? = 1 ]; then base_menu; fi
+		fi
+	done
 }
 primus_script(){
 	printf "#!/bin/bash
@@ -708,7 +763,7 @@ prime_build(){
 #		cmd_line="# $operande Prime from GIT source:\n
 #		git pull
 #		/usr/bin/make install
-#		$esc_message
+#		printf \"$esc_message\"
 #		sleep $xt_delay"
 		git pull
 		/usr/bin/make install
@@ -724,7 +779,7 @@ prime_build(){
 #		git clone $prime_git
 #		cd $local_src/nvidia-prime-select
 #		/usr/bin/make install
-#		$esc_message
+#		printf \"$esc_message\"
 #		sleep $xt_delay"
 		git clone $prime_git
 		cd $local_src/nvidia-prime-select
@@ -769,10 +824,10 @@ zenvidia_update(){
 		if [ $fetch -eq 1 ]; then
 			printf \"# Proceeding to script update:\n\n\"
 			git pull
-			make update; $esc_message; sleep $xt_delay
+			make update; printf \"$esc_message\"; sleep $xt_delay
 		else
 			echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
-			$esc_message; sleep $xt_delay
+			printf \"$esc_message\"; sleep $xt_delay
 		fi"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
@@ -782,7 +837,7 @@ zenvidia_update(){
 		git clone $zenvidia_git; cd zenvidia
 		chmod a+w .git/object/pack
 		printf \"\n# Proceeding to script update:\n\n\" 
-		make update; $esc_message
+		make update; printf \"$esc_message\"
 		sleep $xt_delay"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 		[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
@@ -1187,7 +1242,7 @@ $install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
 --kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
 $SIGN_S $SElinux $temp --log-file-name=$driver_logfile
 depmod -a
-$esc_message
+printf \"$esc_message\"
 sleep $xt_delay"
 }
 nv_cmd_install_driver(){
@@ -1276,7 +1331,7 @@ nv_build_dkms(){
 	xterm $xt_options -title Zenvidia_dkms_build -e "
 	$add_message ; $add_dkms ; $remove_dkms
 	/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
-	$esc_message
+	printf \"$esc_message\"
 	sleep $xt_delay"
 	sleep 1
 	if [[ ! $($d_modinfo -F version nvidia |grep -o "$version") ]];then
@@ -1297,7 +1352,7 @@ nv_cmd_make_src(){
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 #		make clean; make
-		make clean; xterm $xt_options -title Compiling -e "make; $esc_message ; sleep $xt_delay"
+		make clean; xterm $xt_options -title Compiling -e "make; printf \"$esc_message\" ; sleep $xt_delay"
 		if [ $driver_level -lt 355 ]; then
 			cd uvm/; make clean; xterm $x_opt -e "make" ; cd ../
 		fi
@@ -1388,7 +1443,7 @@ nv_cmd_install_libs(){
 	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules --opengl-prefix=$croot_all \
 	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
-	$esc_message ; sleep $xt_delay"
+	printf \"$esc_message\" ; sleep $xt_delay"
 }
 backup_old_version(){
 	[ -d $nvbackup ]|| mkdir -p $nvbackup
@@ -2485,7 +2540,7 @@ menu_install(){
 		"1") menu_msg="$vB$msg_1_01$end"; from_directory ;;
 		"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; check_update ;;
 #		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
-		"3") menu_msg="$vB$msg_1_03$end"; menu_optimus; base_menu	;;
+		"3") menu_msg="$vB$msg_1_03$end"; menu_optimus; base_menu ;; # from_install=0
 		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
 		"5") base_menu ;;
 	esac
