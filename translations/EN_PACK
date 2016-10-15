@@ -174,7 +174,7 @@ m_01_25="Install type choice" # 216
 m_01_26="Predefine default repository is"
 m_01_27a="Multi GPU version install" # 219a
 m_01_27b="exist"
-m_01_28="is not detected, Install from GIT sources ?'.
+m_01_28="is not detected. Will you install from GIT sources ?'.
 (type ENTER to confirm )" # 219
 m_01_29="Use Bumblebee"
 m_01_30="Use Prime"
@@ -189,14 +189,14 @@ m_02_19="is up to date. Next"
 m_02_20="Updating"
 # optimus_dependencies_ctrl
 m_02_21="Sources and dependencies control"
-m_02_22="Some missing dependencies. Install"
+m_02_22="There's some missing dependencies. Install"
 m_02_23="Dependencies installed"
 m_02_24="Optimus checking"
 # build_all
 m_02_25="Sources directory is missing. Building"
 m_02_26="Optimus and Nvidia GIT sources already installed."
 m_02_27="Check for updates instead ?"
-m_02_28="Control"
+m_02_28="Yes, check !"
 m_02_29="Sources download and install"
 m_02_30="Sources compilation and install done"
 
@@ -315,6 +315,8 @@ lab_06f="Yes, I understand my mistake"
 wrn_06a="Package $j%s$end is same used by the system. If you need it again for any reason,
 you can download it with the $j$_2e$end tool from the $j$_02$end menu."
 inf_06a="$j%s$end.run package removed."
-
-
+wrn_03e="$j%s$end is not actually present on your system.
+Go to $j$_1c$end if you need to do so."
+lab_03e="I get it."
+wrn_02_25="$j\Bumblebee$end did not appear to be installed on your system.\n"
 
