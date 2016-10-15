@@ -386,16 +386,16 @@ optimus_dependencies_ctrl(){ #
 #		printf "$esc_message"; sleep $xt_delay
 #	}
 	(	sleep 2
-		cmd_line="
 		if [[ ${pkg_list[@]} != '' ]]; then
+			cmd_line="
 			echo \"$xB# $m_02_22 :$xN\"
 			$PKG_INSTALLER $pkg_opts$pkg_cmd ${pkg_list[@]}
 			echo \"$xB# $m_02_23.$xN\"
+			printf \"$esc_message\"; sleep $xt_delay"
+			xterm $xt_options -title Zenvidia -e "$cmd_line"
 		else
 			echo \"$xB# $m_02_23.$xN\"
-		fi
-		printf \"$esc_message\"; sleep $xt_delay"
-		xterm $xt_options -title Zenvidia -e "$cmd_line"
+		fi	
 #		export -f xt_list
 #		export -p xB xN m_02_22 m_02_23 PKG_INSTALLER pkg_opts pkg_cmd esc_message xt_delay
 #		xterm $xt_options -title "Zenvidia dependencies" -e xt_sub

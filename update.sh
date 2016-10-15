@@ -41,7 +41,7 @@ for conf in "${conf_list[@]}"; do
 				if [[ $conf != $basic_conf ]]; then
 					diff_old=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep ">"| sed -n "s/> //p")
 					diff_new=$(printf "$c_list"| grep "<"| sed -n "s/< //p")
-					sed -i "s/$diff_old/$diff_new/" $c_old
+					sed -i "s|$diff_old|$diff_new|" $c_old
 				fi
 			fi
 		done
