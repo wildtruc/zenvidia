@@ -829,6 +829,7 @@ zenvidia_update(){
 			echo \"$xB# GIT : Zenvidia already up-to-date. Skipping...$xN\"
 			printf \"$esc_message\"; sleep $xt_delay
 		fi"
+		export xN xB
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
 		cd $local_src
