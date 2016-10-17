@@ -555,9 +555,9 @@ primus_build(){
 		cp -Rf ./$master$ELF_32 $croot/primus
 		cp -Rf ./$master$ELF_64 $croot/primus
 		) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close $b_text
-		echo "# GIT : Creating primusrun script in $tool_dir..."; sleep 1
+		printf "# GIT : Creating primusrun script in $tool_dir...\n"; sleep 1
 		primus_script
-		echo "$xB# GIT : $operande primus done.$xN"; sleep 1
+		printf "$xB# GIT : $operande primus done.$xN\n"; sleep 1
 	fi
 	cd $nvdir
 }
@@ -586,7 +586,7 @@ installer_build(){
 #					make clean ; git pull
 #					printf \"# Installing new diffs :\n\n\"
 #					make ; make install; $esc_message; sleep $xt_delay"
-					echo "$xB# GIT : Updating nvidia-installer...$xN"
+					printf "$xB# GIT : Updating nvidia-installer...$xN\n"
 #					make clean
 					git pull
 					make ; make install
@@ -607,13 +607,13 @@ installer_build(){
 		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
 		printf \"$xB# Installing to system :$xN\n\n\"
 		make ; make install ; printf \"$esc_message\"; sleep $xt_delay"
-		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
+		printf "# GIT : Donwloading nvidia-installer..." ; sleep 1
 #		mkdir -p $local_src/nvidia-installer
 		cd $local_src
 #		git clone $nv_git
 #		make ; make install	
 		xterm $xt_options --title Compiling -e "$cmd_line" 
-		echo "# GIT : $proc nvidia-installer done."; sleep 2
+		printf "# GIT : $proc nvidia-installer done."; sleep 2
 		base_src='nvidia-installer'
 		notif_update	
 	fi
@@ -743,9 +743,7 @@ prime_src_ctrl(){
 			else
 				echo "# GIT : $git_src $m_02_19"; sleep 1
 			fi
-			
-			echo $[ $c+50 ]; sleep 1
-			echo "100"; sleep 1
+			sleep 1
 		) | zenity --width=450 --title="Zenvidia ($operande)" --progress --pulsate \
 		--auto-close --text="$y\GIT$end $v: $m_02_17.$end"
 	else
@@ -786,11 +784,10 @@ prime_build(){
 		chmod a+w .git/object/pack
 		/usr/bin/make install
 		sleep 1
-		[ -d /home/$def_user/tmp/nvidia-prime-select/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-prime-select/.git/
-		cp -Rfu $local_src/nvidia-prime-select/.git /home/$def_user/tmp/nvidia-prime-select/
-		chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-prime-select
 	fi
-	
+	[ -d /home/$def_user/tmp/nvidia-prime-select/.git ]|| mkdir -p /home/$def_user/tmp/nvidia-prime-select/.git/
+	cp -Rfu $local_src/nvidia-prime-select/.git /home/$def_user/tmp/nvidia-prime-select/
+	chown -R $def_user:$def_user /home/$def_user/tmp/nvidia-prime-select
 #	x_opt="$xt_options -title Zenvidia_Prime_$operande"
 #	xterm $x_opt -e "$cmd_line"
 	if [ $new_version ]; then version=$new_version; fi
@@ -819,6 +816,7 @@ zenvidia_update(){
 		cd $local_src/zenvidia
 		echo "# GIT : Updating Zenvidia..."
 		git fetch --dry-run &>$local_src/tmp.log
+		
 		fetch=$(cat $local_src/tmp.log|grep -c "master")
 		cmd_line="
 		if [ $fetch -eq 1 ]; then
@@ -826,10 +824,9 @@ zenvidia_update(){
 			git pull
 			make update; printf \"$esc_message\"; sleep $xt_delay
 		else
-			echo \"$xB# GIT : Zenvidia already up-to-date. Skipping...$xN\"
+			printf \"$xB# GIT : Zenvidia already up-to-date. Skipping...$xN\n\n\"
 			printf \"$esc_message\"; sleep $xt_delay
 		fi"
-		export xN xB
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
 		cd $local_src
@@ -840,13 +837,11 @@ zenvidia_update(){
 		printf \"\n$xB# Proceeding to script update:$xN\n\n\" 
 		make update; printf \"$esc_message\"
 		sleep $xt_delay"
-		export xN xB
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
-		[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
+	fi
+	[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
 		cp -Rfu $local_src/zenvidia/.git /home/$def_user/tmp/zenvidia/
 		chown -R $def_user:$def_user /home/$def_user/tmp/zenvidia
-	fi
-	
 	) | zenity --width=450 --title="Zenvidia" --text="Zenvidia Update check..." --progress --pulsate --auto-close
 }
 ## CONFIGURATION
