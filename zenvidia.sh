@@ -557,7 +557,7 @@ primus_build(){
 		) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close $b_text
 		echo "# GIT : Creating primusrun script in $tool_dir..."; sleep 1
 		primus_script
-		echo "# GIT : $operande primus done."; sleep 1
+		echo "$xB# GIT : $operande primus done.$xN"; sleep 1
 	fi
 	cd $nvdir
 }
@@ -568,7 +568,7 @@ installer_build(){
 			git fetch --dry-run &>$local_src/tmp.log
 			fetch=$(cat $local_src/tmp.log|grep -c "master")
 			cd $local_src/nvidia-installer
-			echo "# GIT : Controling nvidia-installer..." ; sleep 1
+			echo "$xB# GIT : Controling nvidia-installer...$xN" ; sleep 1
 			if [[ $operande = "Rebuild" ]]; then
 				proc="Re-building"
 #				cmd_line="printf \"# Downloading GIT repo :\n\n\"
@@ -586,26 +586,26 @@ installer_build(){
 #					make clean ; git pull
 #					printf \"# Installing new diffs :\n\n\"
 #					make ; make install; $esc_message; sleep $xt_delay"
-					echo "# GIT : Updating nvidia-installer..."
+					echo "$xB# GIT : Updating nvidia-installer...$xN"
 #					make clean
 					git pull
 					make ; make install
 #					xterm $xt_options --title Compiling -e "$cmd_line" 
 					sleep 2
-					echo "# GIT : $proc nvidia-installer done."; sleep 1
+					echo "$xB# GIT : $proc nvidia-installer done.$xN"; sleep 1
 				else
-					echo "# GIT : Nvidia_installer is already up-to-date. Pass"; sleep 1
+					echo "$xB# GIT : Nvidia_installer is already up-to-date. Pass$xN"; sleep 1
 				fi
 			fi
 			base_src='nvidia-installer'; notif_update			
 		fi
 	else
 		proc="Installing"
-		cmd_line="printf \"# Downloading GIT repo :\n\n\"
+		cmd_line="printf \"$xB# Downloading GIT repo :$xN\n\n\"
 		git clone $nv_git
 		cd $local_src/nvidia-installer
 		[[ $(stat -c %a .git/objects/pack) == 777 ]]|| chmod a+w .git/objects/pack
-		printf \"# Installing to system :\n\n\"
+		printf \"$xB# Installing to system :$xN\n\n\"
 		make ; make install ; printf \"$esc_message\"; sleep $xt_delay"
 		echo "# GIT : Donwloading nvidia-installer..." ; sleep 1
 #		mkdir -p $local_src/nvidia-installer
@@ -822,23 +822,24 @@ zenvidia_update(){
 		fetch=$(cat $local_src/tmp.log|grep -c "master")
 		cmd_line="
 		if [ $fetch -eq 1 ]; then
-			printf \"# Proceeding to script update:\n\n\"
+			printf \"$xB# Proceeding to script update:$xN\n\n\"
 			git pull
 			make update; printf \"$esc_message\"; sleep $xt_delay
 		else
-			echo \"# GIT : Zenvidia already up-to-date. Skipping...\"
+			echo \"$xB# GIT : Zenvidia already up-to-date. Skipping...$xN\"
 			printf \"$esc_message\"; sleep $xt_delay
 		fi"
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 	else
 		cd $local_src
 		echo "# GIT : Cloning Zenvidia..."; sleep 3
-		cmd_line="printf \"# Cloning Zenvidia GIT repo:\n\n\"
+		cmd_line="printf \"$xB# Cloning Zenvidia GIT repo:$xN\n\n\"
 		git clone $zenvidia_git; cd zenvidia
 		chmod a+w .git/object/pack
-		printf \"\n# Proceeding to script update:\n\n\" 
+		printf \"\n$xB# Proceeding to script update:$xN\n\n\" 
 		make update; printf \"$esc_message\"
 		sleep $xt_delay"
+		export xN xB
 		xterm $xt_options -title Zenvidia_update -e "$cmd_line"
 		[ -d /home/$def_user/tmp/zenvidia/.git ]|| mkdir -p /home/$def_user/tmp/zenvidia/.git/
 		cp -Rfu $local_src/zenvidia/.git /home/$def_user/tmp/zenvidia/
