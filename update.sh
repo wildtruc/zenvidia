@@ -4,6 +4,8 @@
 
 install_dir=/usr/local
 nvdir=$install_dir/NVIDIA
+color_conf=$nvdir/color.conf
+
 [ -d $nvdir ]|| exit 0
 
 # update script config
@@ -18,6 +20,7 @@ else
 fi
 [ -s $script_conf ]|| exit 0
 . $script_conf
+. $color_conf
 
 unset conf_list shell_list up_list
 # update conf 
@@ -28,26 +31,28 @@ for conf in "${conf_list[@]}"; do
 	c_orig=$(stat -c "%Y" $c_old)
 	c_update=$(stat -c "%Y" ./$c_new)
 	if [ $c_update -ne $c_orig ]; then
-		diff $c_new $c_old | grep "<\|>" &>/tmp/nv_diff.log
-		ifs=$IFS
-		IFS=$(echo -en "\n\b")
-		diff_list=$(cat /tmp/nv_diff.log|grep "<")
-		for c_list in $diff_list; do
-			diff_count=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep -c ">")
-			if [ $diff_count -eq 0 ]; then
-				printf "\n# Diff in $c_new:\n> $c_list.\n\n"
-				printf "$c_list\n"| sed -n "s/< //p" >> $c_old
-			else
-				if [[ $conf != $basic_conf ]]; then
-					diff_old=$(cat /tmp/nv_diff.log| grep -A 1 "$c_list"| grep ">"| sed -n "s/> //p")
-					diff_new=$(printf "$c_list"| grep "<"| sed -n "s/< //p")
-					sed -i "s|$diff_old|$diff_new|" $c_old
-				fi
+		diff -u $c_old $c_new &>/tmp/nv_patch.diff
+		if [[ $conf != $basic_conf ]]; then
+			if [ $(cat /tmp/nv_patch.diff | grep -c "+") -gt 0 ]; then
+				printf "\n$xB# Diff in $c_old:\n>>$xN Applying $c_new diff patch.\n\n"
+				patch -stp0 -i /tmp/nv_patch.diff $c_old
 			fi
-		done
-		IFS=$ifs
+		else
+			cat /tmp/nv_patch.diff|grep "^[+\|-]\w\{1\}" &>/tmp/nv_diff.tmp
+			diff_list=$(cat /tmp/nv_diff.tmp|grep "^[+]\w\{1\}")
+			for c_list in $diff_list; do
+				diff_new=$(printf "$c_list"| grep "+"| sed -n "s/+//p")
+				diff_count=$(cat /tmp/nv_diff.tmp| grep -B 1 "$c_list"| grep -c "-")			
+				diff_old=$(cat /tmp/nv_diff.tmp| grep -B 1 "$c_list"| grep "-"| sed -n "s/-//p")
+				if [ $diff_count -eq 0 ]; then
+					printf "\n$xB# Diff in $c_old:\n>>$xN $c_list.\n\n"
+					printf "$c_new\n" >> $c_old
+				fi
+			done
+		fi
 	fi
 done
+
 if [ $first_start = 0 ]; then
 	sed -i "s/first_start=1/first_start=0/i" $nvdir/script.conf
 fi
