@@ -50,7 +50,6 @@ help_pages="$install_dir/share/doc/NVIDIA_GLX-1.0"
 docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
 #kernel_src="--kernel-source-path"
-dl_delay=2
 xt_hold=0
 xt_delay=4
 
@@ -62,7 +61,7 @@ xt_delay=4
 
 ## configuration file
 # zenity --width=250 --error --text=""
-if [ ! -s $script_conf ]; then zenity --width=250 --error --text="Script's config file missing."; exit 0; fi
+if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --text="Script's config file missing."; exit 0; fi
 . $script_conf
 . $basic_conf
 . $color_conf
@@ -359,7 +358,8 @@ local_src_ctrl(){
 		fi
 	else
 		zenity --height=100 --info --icone-name=swiss_knife --no-wrap \
-		--text="There's no element '"
+		--text="$v\There's no element to be controled. If you wish to install$j Bumblebee/Prime$end go to $vB\Install$end menu.$end" --ok-label="$lab_06c"
+		if [ $? = 0 ]; then base_menu; fi
 	fi
 }
 optimus_dependencies_ctrl(){ #
@@ -2064,30 +2064,17 @@ package_list(){
 	if [ $? = 1 ]; then exit 0; fi
 }
 last_pack(){
-	download_cmd(){
-		wget -c -o $nvtmp/dl.log ftp://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $nvupdate/ &
-		dl_pid=$(pgrep wget)
-		sleep $dl_delay
-	}
 	track(){
-		for percent in $(tail -n20 $nvtmp/dl.log); do
-			percent=$(tac $nvtmp/dl.log | grep "\%" | sed -n "s/^.*\. //;s/\%.*$//;s/^.*\ //g;p"|sed -n 2p)
-			weight=$(tac $nvtmp/dl.log | grep "\%" | awk '{print $1}'| sed -n 1p)
-			speed=$(tac $nvtmp/dl.log | awk '{print $8}'| sed -n 2p)
-			left=$(tac $nvtmp/dl.log | awk '{print $9}'| sed -n 2p)
-			echo "# ($percent %) $weight $m_01_53 $speed/s, $m_01_54 : $left"; sleep 1
-			echo "$percent" ; sleep 1
-			local_0=$(stat -c "%s" $nvupdate/$run_pack)
-			if [ $percent = 99 ]; then
-				if [ $local_0 = $remote ]; then
-					echo "# $w_02 $w_03 (100 %)."; sleep 3
-					echo "100"
-				fi
-			fi
-		done
+    # picked up & inspired by winetricks download progress commande:
+    # Parse a percentage, a size, and a time into $1, $2 and $3
+    # then use them to create the output line.
+   	perl -p -e "$| = 1; s|^.* +([0-9]+%) +([0-9,.]+[GMKB]) +([0-9hms,.]+).*$|\1\n# $run_pack\t(\1): $m_01_54 \3\t\t\2\/s|"
+	}
+	download_cmd(){
+		wget -c ftp://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $nvupdate/ 2>&1
 	}
 	( lftp -c "anon; cd ftp://download.nvidia.com/XFree86/Linux-$ARCH/$LAST_PACK/ ; ls > $nvtmp/bug_list ; quit" ; sleep 2
-	) | zenity --width=450 --progress --pulsate --auto-close --text="$v$m_01_55$end"
+	) | zenity --width=500 --progress --pulsate --auto-close --text="$v$m_01_55$end"
 	if [ "$(cat $nvtmp/bug_list | grep -w "$LAST_PCK")" != '' ] ; then
 		RUN_PACK=$(cat $nvtmp/bug_list | sed -n "s/^.*\ //p"|grep -w "$LAST_PACK"|sed -n "/.run$/p")
 	fi
@@ -2103,19 +2090,23 @@ last_pack(){
 	--text="$v$m_01_40$end" --radiolist --hide-header \
 	--column "1" --column "2" "${drv_list[@]}" --separator=";")
 	if [ $? = 1 ]; then exit 0; fi
-	remote=$(cat $nvtmp/bug_list | grep -w "$run_pack"|sed -n "/.run$/p"|awk '{print $5}')
-	(
-	sleep 1
-	echo "$m_01_56..."; sleep 1
-	download_cmd
-	echo "# $w_02 $run_pack"
-#	progress=`tail -n 20 $nvtmp/dl.log | grep "\%" | sed -n "s/^.*\. //p"`
-	sleep 1
-	track
-	[ $remote = $local_0 ]|| (kill -s 15 $dl_pid; download_cmd; track)
-	) | zenity --width=450 --progress --percentage=0 --auto-close \
-	--text="$v Recherche de $run_pack...$end" --title="$m_01_44 $LAST_PACK"
-	rm -f $nvtmp/dl.log
+	( download_cmd | track
+	) | zenity --width=450 --progress --auto-close --title="$m_01_44 $LAST_PACK"
+	err=$?
+    if test $err -gt 128; then
+        if pid=`ps augxw | grep ."wget" | grep -v grep | awk '{print $2}'`; then
+            echo User aborted download, killing wget
+            kill $pid
+        fi
+    fi
+    return $err
+    _local=$(stat -c "%s" $nvupdate/$run_pack)
+    _remote=$(cat $nvtmp/bug_list | grep -w "$run_pack"|sed -n "/.run$/p"|awk '{print $5}')
+    [ $_remote = $_local ]|| { 
+    zenity --height=100 --error --icon-name=xkill --no-wrap \
+    --text="$v\Download unexpected termination.\nPlease restart driver download from $vB\Update$end menu$end" --ok-label="Oh! Fuck!"
+    if [ $? = 0 ]; then base_menu; fi
+    }
 }
 from_net(){
 # download functions
