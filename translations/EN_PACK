@@ -194,7 +194,7 @@ m_02_23="Dependencies installed"
 m_02_24="Optimus checking"
 # build_all
 m_02_25="Sources directory is missing. Building"
-m_02_26="Optimus and Nvidia GIT sources already installed."
+m_02_26="Optimus and Nvidia GIT sources are already installed."
 m_02_27="Check for updates instead ?"
 m_02_28="Yes, check !"
 m_02_29="Sources download and install"
@@ -221,7 +221,9 @@ m_03_61="Driver backup copy" # 303
 m_03_62="success" # 305
 m_03_63="Je peux procéder à l'archivage." # 304
 m_03_64="mistake." # 306
-m_03_65="Congrats! Driver is successfuly installed." # 302
+m_03_65="Congratulations! Your driver is now succefully installed
+You may now restart your computer and enjoy its benefits."
+#"Congrats! Driver is successfuly installed." # 302
 #msg309="Enfoncer un touche pour continuer." # 328
 m_03_66="Ouch!$v No proper Nvidia package found in rep \n Go to NVIDIA site," # 310
 m_03_67="here :" # 311
@@ -318,5 +320,6 @@ inf_06a="$j%s$end.run package removed."
 wrn_03e="$j%s$end is not actually present on your system.
 Go to $j$_1c$end if you need to do so."
 lab_03e="I get it."
-wrn_02_25="$j\Bumblebee$end did not appear to be installed on your system.\n"
+wrn_02_25="Your hardware is not set or not compatible with Optimus,
+$j\Bumblebee$end can't be installed on your system."
 
