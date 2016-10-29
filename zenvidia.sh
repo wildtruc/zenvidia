@@ -360,7 +360,7 @@ local_src_ctrl(){
 				build_all
 			fi
 			## Bumblebee report
-			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S\t\t> $m_04_05c $m_04_05b\n")
+			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S$end\t\t> $m_04_05c $m_04_05b\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Bumblebee" "Prime" "1")"
@@ -783,7 +783,7 @@ prime_src_ctrl(){
 				prime_build
 			fi
 			## Prime report
-			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S\t\t> $m_04_05c $m_04_05a\n")
+			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S$end\t\t> $m_04_05c $m_04_05a\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Prime" "Bumblebee" "use_bumblebee")"
