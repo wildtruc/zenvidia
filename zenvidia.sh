@@ -1389,7 +1389,7 @@ nv_build_dkms(){
 	if [ ! -d /var/lib/dkms/nvidia/$version ]; then
 		echo "# Add DKMS modules to DKMS directory..."; sleep 1
 #		/usr/sbin/dkms add -m nvidia/$version -k $KERNEL -c /usr/src/nvidia-$version/dkms.conf
-		add_message="printf \"# \nAdd DKMS modules to DKMS directory.\n\""
+		add_message="printf \"$xB# Add DKMS modules to DKMS directory.\n$xN\""
 		add_dkms="/usr/sbin/dkms add -m nvidia/$version -k $KERNEL"
 	fi	
 	echo "# Build & install DKMS modules..."; sleep 1
@@ -2617,10 +2617,10 @@ menu_install(){
 	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$_1d" false 5 "$MM" )
 	if [ $? = 1 ]; then exit 0; fi
 	case $menu_inst in
-		"1") menu_msg="$vB$msg_1_01$end"; from_directory ;;
-		"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; check_update ;;
+		"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
+		"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
 #		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
-		"3") menu_msg="$vB$msg_1_03$end"; menu_optimus; base_menu ;; # from_menu_install=0
+		"3") menu_msg="$vB$msg_1_03$end"; force=0; menu_optimus; base_menu ;;
 		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
 		"5") base_menu ;;
 	esac
@@ -2663,7 +2663,7 @@ menu_update(){
 		if [ $use_dkms = 1 ]; then
 			case $menu_upd in
 				"1") menu_msg="$v$msg_2_06$end"
-					 ui_mod=1; check_update  ;;
+					 ui_mod=1; check_update ;;
 				"2") menu_msg="$v$msg_2_01 (dkms)$end"
 					 upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
 				"3") menu_msg="$v$msg_2_01 (force)$end" 
