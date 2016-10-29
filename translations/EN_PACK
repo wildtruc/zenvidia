@@ -90,7 +90,7 @@ msg_0_04="NVIDIA binary version :" # 202c
 msg_0_05="Working directories control" # 709*
 
 ## MENU INSTALL
-msg_1_01="NVIDIA package update fron local dir. " # 603
+msg_1_01="NVIDIA package update from local dir. " # 603
 msg_1_02="Retrieve driver info from NVIDIA server." # 604
 msg_1_03="Optimus install from GIT sources" # 617
 msg_1_04="Uninstall driver" # 606
@@ -221,8 +221,7 @@ m_03_61="Driver backup copy" # 303
 m_03_62="success" # 305
 m_03_63="Je peux procéder à l'archivage." # 304
 m_03_64="mistake." # 306
-m_03_65="Congratulations! Your driver is now succefully installed
-You may now restart your computer and enjoy its benefits."
+m_03_65=""
 #"Congrats! Driver is successfuly installed." # 302
 #msg309="Enfoncer un touche pour continuer." # 328
 m_03_66="Ouch!$v No proper Nvidia package found in rep \n Go to NVIDIA site," # 310
@@ -322,4 +321,41 @@ Go to $j$_1c$end if you need to do so."
 lab_03e="I get it."
 wrn_02_25="Your hardware is not set or not compatible with Optimus,
 $j\Bumblebee$end can't be installed on your system."
+wrn_opti_01="%s do not appear to be installed or install is set to %s.
+If you wish to install it, set$vB use_bumblebee$end to$vB %s$end in config and go to $vB\Install$end menu."
+wrn_opti_02="There's no %s source or install element to be controled.
+If you think your hardware is$vB Optimus$end compatible, go to $vB\Install$end menu."
+wrn_opti_0=""
+wrn_opti_0=""
+wrn_opti_0=""
+## reports
+val_04_P="passed"
+val_04_S="success"
+val_04_A="aborted"
+val_04_N="no effect"
+m_04_01="Previous version"
+m_04_01a="previously backed up"
+m_04_01b="normal backup process"
+m_04_01c="nothing to do"
+m_04_02="Nvidia-installer"
+m_04_02a="WARNING on missing /usr/lib(32/64)/LibGL.so link"
+m_04_02b="ERROR couldn't unload nvidia-drm"
+m_04_03="Libraries install"
+m_04_03a="normal install process"
+m_04_04="Modules install"
+m_04_04a="work-arround process"
+m_04_05="Optimus"
+m_04_05a="Prime"
+m_04_05b="Bumblebee"
+m_04_05c="is set to"
+m_04_0=""
+tit_03_65="Install Report"
+rep_03_65="Congratulations!$j %s$end driver is now succefully installed.\n
+You may now configure your$j xorg.conf$end file to fit with your default display before 
+restarting your computer with newly installed drivers.
+You may also do it later, if you like, but it's not really recommanded.\n"
+lab_03_65a="edit now"
+lab_03_65b="edit later"
+
+
 
