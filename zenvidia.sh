@@ -1806,7 +1806,8 @@ extract_build(){
 }
 # OPTIMUS PRESENCE CONTROL
 if_optimus(){
-	[ $if_update = 1 ]&& new_version=$version
+#	[ $if_update = 1 ]&& new_version=$version
+	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
 	predifine=3
 	predifined_dir=nvidia.$new_version
 	croot_all=$croot/$predifined_dir
@@ -1820,7 +1821,8 @@ if_optimus(){
 }
 # PROPRIATARY DRIVER CUSTOM INSTALL
 if_private(){
-	[ $if_update = 1 ]&& new_version=$version
+#	[ $if_update = 1 ]&& new_version=$version
+	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
 	predifine=1
 	predifined_dir=nvidia.$new_version
 	croot_all=$croot/$predifined_dir
@@ -2185,7 +2187,7 @@ last_pack(){
 	--column "1" --column "2" "${drv_list[@]}" --separator=";")
 	if [ $? = 1 ]; then exit 0; fi
 	( download_cmd | track
-	) | zenity --width=450 --progress --auto-close --title="$m_01_44 $LAST_PACK"
+	) | zenity --width=500 --progress --auto-close --title="$m_01_44 $LAST_PACK"
 	err=$?
     if test $err -gt 128; then
         if pid=`ps augxw | grep ."wget" | grep -v grep | awk '{print $2}'`; then
