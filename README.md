@@ -17,7 +17,7 @@ See **Wiki** for **Issues**, **Todo list** and **demands**.
 ------------
 ##News
 
-Pretty **STABLE** now (hopefully) and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like).
+**STABLE** and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like, Ubuntu maybe).
 
 But still stay tuned on **WIKI** and use regulary the Zenvidida update tool.
 
@@ -25,7 +25,7 @@ Been test over Bumblebee, Prime and standalone.
 
 Hoping it'll do the same it does for me.
 
-Still need plugins updates for Ubuntu, Arch, Gentoo, etc.
+Still need plugins updates for  Arch, Gentoo, etc.
 
 ------------
 
@@ -90,6 +90,8 @@ It comes with 3 options:
 
 Default desktop entry file is set to ```-a```, to have an other behavior you have to edit the autostart file with your desktop session autostart manager. 
 
+You can manage options through Zenvidia > Tools.
+
 To install it just do in a terminal with normal user priviledge :
 ```sh
   zen_notify.sh -a
@@ -97,6 +99,8 @@ To install it just do in a terminal with normal user priviledge :
 It will check updates and install itself automatically.
 
 ###Zen Notify Standalone
+(need to be rewrite)
+
 Same as Zen Notify but working without Zenvidia and Zenvidia conf.
 
 You need to download 'swiss_knife.png' image and the autostart desktop file from the ```/desktop_files``` repo in the same directory as ```zen_notify_standalone.sh```. Then edit ```zen_notify_standalone.sh``` with a text editor and replace the tempory text in ```local_src=``` with the name of directory where you download script, image and desktop file. 
@@ -115,15 +119,20 @@ Most part of the basic.conf file vars will be updated during the script executio
 
 You just have to adjust manually :
  - language setting (FR, EN, DE, IT, ES, etc.).
- - default user name, maybe, depends of your distro behaviour.
+ - default user name: you can leave it at default, but you may change it to your defautl user if you find some issue with user name in your distro behaviour.
  - CUDA setting
  - DKMS setting
+ - set Help Tips to 1 or 0, as you like.
+ - xterm delay is the time terminal window will stay open.
 
 ```
 # default desktop user id
 def_user=$USER
 # locale language for ui
 LG=EN
+# right/left cairo_dock reserved space, if any (ex: dock='-28')
+# this is for centering xterm window correctly.
+dock=''
 
 ## Basic config vars
 # use CUDA module by default (1) or not (0)
@@ -138,6 +147,12 @@ use_glvnd=0
 install_type=0
 # optimus install type: prime (0), bumblebee (1) 
 use_bumblebee=0
+# to hold xterm instead of delay: delay (0), hold (1)
+xt_hold=0
+# extend the delay of xterm (in seconds): default '4'
+xt_delay=4
+# use help tip: yes (1), no (0)
+hlp_txt=1
 ```
 
 ---------
