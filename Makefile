@@ -15,10 +15,12 @@ install:
 	cp -Rf ./translations $(INSTALL_DIR)/
 	cp -Rf ./distro $(INSTALL_DIR)/
 	cp -f ./*.conf $(INSTALL_DIR)/
+	cp -f ./README.md $(INSTALL_DIR)/
 	cp -f ./zenvidia.sh $(BIN_DIR)/
 	cp -f ./zen_notify.sh $(BIN_DIR)/
 	cp -f ./desktop_files/zenvidia.desktop $(L_DIR)/share/applications/
 	cp -f ./swiss_knife.png $(L_DIR)/share/pixmaps/
+	cp -f ./xkill.png $(L_DIR)/share/pixmaps/
 
 uninstall:
 	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
