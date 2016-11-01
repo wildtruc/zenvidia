@@ -2207,6 +2207,12 @@ from_net(){
 		cd $nvupdate
 		download_menu
 		driverun=$nvdl/nv-update-$LAST_PACK
+		if [ -f $nvupdate/$run_pack ]; then
+			zenity --info --title="Zenvidia" --no-wrap --icon-name=swiss_knife \
+			--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_47.$end"
+			mv -f $nvupdate/$run_pack $nvdl/nv-update-$LAST_PACK
+			chmod 755 $nvdl/nv-update-$LAST_PACK
+		fi
 		install_type_sel
 		#rm -f $nvtmp/drvlist $nvtmp/last_up
 }
