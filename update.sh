@@ -38,8 +38,10 @@ for conf in "${conf_list[@]}"; do
 				patch -stp0 -i /tmp/nv_patch.diff $c_old
 			fi
 		else
-			cat /tmp/nv_patch.diff|grep "^[+\|-]\w\{1\}" &>/tmp/nv_diff.tmp
-			diff_list=$(cat /tmp/nv_diff.tmp|grep "^[+]\w\{1\}")
+			cat /tmp/nv_patch.diff|grep "^[+\|-]\(\w\{1\}\|#\)" &>/tmp/nv_diff.tmp
+			diff_list=$(cat /tmp/nv_diff.tmp|grep "^[+]\(\w\{1\}\|#\)")
+			ifs=$IFS
+			IFS=$(echo -en "\n\b")
 			for c_list in $diff_list; do
 				diff_new=$(printf "$c_list"| grep "+"| sed -n "s/+//p")
 				diff_count=$(cat /tmp/nv_diff.tmp| grep -B 1 "$c_list"| grep -c "-")			
@@ -49,6 +51,7 @@ for conf in "${conf_list[@]}"; do
 					printf "$diff_new\n" >> $c_old
 				fi
 			done
+			IFS=$ifs
 		fi
 	fi
 done
