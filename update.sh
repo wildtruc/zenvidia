@@ -46,7 +46,7 @@ for conf in "${conf_list[@]}"; do
 				diff_old=$(cat /tmp/nv_diff.tmp| grep -B 1 "$c_list"| grep "-"| sed -n "s/-//p")
 				if [ $diff_count -eq 0 ]; then
 					printf "\n$xB# Diff in $c_old:\n>>$xN $c_list.\n\n"
-					printf "$c_new\n" >> $c_old
+					printf "$diff_new\n" >> $c_old
 				fi
 			done
 		fi
