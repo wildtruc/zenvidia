@@ -55,9 +55,9 @@ xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Devel/NVIDIA/zenvidia
+#devel=/home/mike/Devel/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
-basic_conf=$devel/basic.conf.devel
+#basic_conf=$devel/basic.conf.devel
 ################################################
 
 ## configuration file
@@ -68,7 +68,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $color_conf
 
 #. $devel/color.conf
-locale=$devel/translations/
+#locale=$devel/translations/
 
 ### FUNCTIONS
 ID(){
