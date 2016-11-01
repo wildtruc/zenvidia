@@ -35,7 +35,8 @@ _3c="Nvidia Settings" # G8
 _3d="Manage drivers packages" # G9
 _3e="Build/Rebuild" # G10
 _3f="Broken install repair"
-## menu manage
+_3g="Notifications config"
+# menu manage
 _4a="GLX test" # G15
 _4b="Manual" # G16
 _4c="Change log" # G17
@@ -111,9 +112,9 @@ msg_3_03="$vB\Two solutions:$end$v\n\t- Virtualized intergrated display with Bum
 ## MESSAGE INSTALL
 # from directory
 m_01_01="Local NVIDIA drivers list :" # 320
-m_01_02="Choose one of them or from a local directory:" # 321
-m_01_03="Present version" # 322
-m_01_04="Local directory" # 323
+m_01_02="Use one of the listed above or one from a user directory." # 321
+m_01_03="Listed version" # 322
+m_01_04="Use a local directory" # 323
 m_01_05="Driver list in" # 324
 m_01_06="Select a driver from a local directory" # 325
 
@@ -303,6 +304,15 @@ w_03="ended"
 msg_driver="driver update is out"
 msg_git="a GIT update is out"
 
+# zen_notif_setup
+menu_notif_01="Check driver update only"
+menu_notif_02="Check zenvidia and driver update"
+menu_notif_03="Check all (driver, zenvidia, git repos)"
+m_notif_01="driver check only"
+m_notif_02="driver and zenvidia check"
+m_notif_03="all (driver, zenvidia, all git sources)"
+wrn_notif_01="Autostart launcher set to \"%s\".\nNotification setting for %s."
+
 # warnings and others big text.
 wrn_06c="The backup you are going to restore is the same as the one used by the system.
 LibGL crash the X server when loaded and used by the actual display if overwrote.\n
@@ -326,8 +336,7 @@ If you wish to install it, set$vB use_bumblebee$end to$vB %s$end in config and g
 wrn_opti_02="There's no %s source or install element to be controled.
 If you think your hardware is$vB Optimus$end compatible, go to $vB\Install$end menu."
 wrn_opti_0=""
-wrn_opti_0=""
-wrn_opti_0=""
+
 ## reports
 val_04_P="passed"
 val_04_S="success"
@@ -340,6 +349,7 @@ m_04_01c="nothing to do"
 m_04_02="Nvidia-installer"
 m_04_02a="WARNING on missing /usr/lib(32/64)/LibGL.so link"
 m_04_02b="ERROR couldn't unload nvidia-drm"
+#m_04_02c="copied to $install_dir/bin"
 m_04_03="Libraries install"
 m_04_03a="normal install process"
 m_04_04="Modules install"
@@ -357,5 +367,58 @@ You may also do it later, if you like, but it's not really recommanded.\n"
 lab_03_65a="edit now"
 lab_03_65b="edit later"
 
+## comment & help texts
+hlp_tip_txt="Help tips text is currently set to \"1\". You can unset it at any
+moment in$j Tools$end menu >$j Edit script config$end.\n\n"
+hlp_01="$vB\Select here the install type$end:
+- $vB$_1a$end:\n\tInstall a new driver from a user directory local package 
+\tor a listed already downloaded with zenvidia.
+- $vB$_1b$end:\n\tInstall a driver downloaded directly from the nvidia ftp server.
+- $vB$_1c$end:\n\tDownload and install the Optimus GIT source
+\tif your hardware is a discret graphic card."
+#- $v$_1d$end:\n\tRemove and purge the default nvidia drivers.
+#\tIt will erase completly the current Zenvidia driver install
+#\tand reset all to default (nouveau basic drivers)."
 
+hlp_02="$vB\Select here the element to update$end:
+- $vB$_2e$end:\n\tDriver update check download and install.
+\tyou could choose here if you want to download update only
+\tor install it directly after download end."
+hlp_02a="- $vB$_2a (dkms)$end:\n\tOptional command to install nvidia dkms modules
+\tfor a new running kernel.
+- $vB$_2a (force)$end:\n\tOptional command to force install from driver sources
+\tfor a new running kernel in case of DKMS failure.
+- $vB$_2b (dkms)$end:\n\tOptional command to install nvidia dkms modules
+\tfor an other existing kernel."
+hlp_02b="- $vB$_2a$end:\n\tOptional command to install nvidia modules
+\tfor a new running kernel.
+- $vB$_2b$end:\n\tOptional command to install nvidia modules
+\tfor an other existing kernel."
+hlp_02c="- $vB$_2c$end:\n\tCheck and install new version of Bumblebee from GIT repos.
+- $vB$_2d$end:\n\tCheck and install new version of Prime from GIT repos.
+- $vB$_2f$end:\n\tCheck and install new version of Zenvidia from GIT repos."
+
+hlp_03="$vB\Select here the element to modify or edit$end:
+- $vB$_3a$end:\n\tEdit the current xorg configuration file in /etc/X11.
+- $vB$_3b$end:\n\tEdit Zenvidia basic user script to set or unset mostly everything.
+- $vB$_3c$end:\n\tStart Nvidia-setting tools, especially for Bumblebee,
+\tbut working also for default single GPU or Prime.
+- $vB$_3d$end:\n\tThis tool is to backup, restore and remove old or current driver install.
+\tIt also manage dowloaded nvidia's .run pack.
+\tNote that if old installation is found during driver update,
+\tit's automatically backup prior to new version installation.
+- $vB$_3e$end:\n\tThis tool build or rebuild separately all installed GIT source.
+\tIt helps in case of a fresh distro install or upgrade,
+\tor in a unexpected lost of already installed and compilled GIT source.
+- $vB$_3f$end:\n\tThis tool repair new or upgraded distro by rebuilding links and config
+\tfataly lost during upgrade or fresh install process.
+- $vB$_3g$end:\n\tConfiguration tool for Zen_notify update checker."
+
+hlp_04="$vB\Check GLX test and README file from Nvidia or Zenvidia$end:
+- $vB$_4a$end:\n\tTest your driver installation with glxgears or glxspheres tools.
+- $vB$_4b$end:\n\tRead the current Nvidia help file.
+- $vB$_4c$end:\n\tRead the current Nvidia changelog file.
+- $vB$_4d$end:\n\tRead current Zenvidia README file."
+#"- $vB$end:\n\t
+#- $vB$end:\n\t"
 

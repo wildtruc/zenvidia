@@ -55,8 +55,9 @@ xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Devel/NVIDIA/zenvidia
+devel=/home/mike/Devel/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
+basic_conf=$devel/basic.conf.devel
 ################################################
 
 ## configuration file
@@ -67,7 +68,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $color_conf
 
 #. $devel/color.conf
-#locale=$devel/translations/
+locale=$devel/translations/
 
 ### FUNCTIONS
 ID(){
@@ -1504,7 +1505,7 @@ nv_cmd_install_libs(){
 #	$nocheck --no-kernel-module --no-opengl-files --skip-module-unload \
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect \
 	xterm $xt_options -title Zenvidia_install_libs -e "
-	$install_bin -s -z -N --no-x-check --no-distro-scripts --install-libglvnd \
+	$install_bin -s -z -N --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion --opengl-headers \
 	$add_glvnd $force_glvnd --install-compat32-libs --compat32-prefix=$croot_all \
 	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules \
@@ -1644,6 +1645,7 @@ install_drv(){
 			echo "# Backup new Nvidia-Installer to $nvdir"; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 			cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer $nvdir
+#			report_log+=("$vB$m_04_02:$end\t$gB $val_04_S$end\t\t> $m_04_04c\n")
 			sleep 1
 		else
 			zenity --width=450 --title="Zenvidia" --error --no-wrap \
@@ -1884,9 +1886,9 @@ from_directory(){
 		done
 		drv_pick=$(zenity --width=450 --height=400 --title="Zenvidia" $zen_opts \
 		--text="$v$m_01_05 $nvdl :$end"\
-		$table_opts ${list_drv[@]} false "$R")
+		$table_opts ${list_drv[@]} false "$PM")
 		if [ $? = 1 ]; then base_menu; fi
-		if [[ "$drv_pick" == "$R" ]]; then from_directory; fi
+		if [[ "$drv_pick" == "$PM" ]]; then from_directory; fi
 		driverun=$nvdl/$drv_pick
 		new_version=$(printf "$driverun"| sed -n "s/^.*-//g;p")
 	}
@@ -1904,7 +1906,7 @@ from_directory(){
 	table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
 	n=1
 	from_cmd=$(zenity --width=450 --height=400 --title="Zenvidia" $zen_opts \
-	--text="$v $m_01_01$end\n$j$(printf "$(ls $nvdl|sed -n 's/^/\t - /p')")$end\n$v$m_01_02$end" \
+	--text="$v $m_01_01$end\n$j$(printf "$(ls $nvdl|sed -n 's/^/\t - /p')")$end\n$vB$m_01_02$end" \
 	$table_opts false 1 "$A" false 2 "$B" false 3 "$PM" )
 	if [ $? = 1 ]; then base_menu; fi
 	case $from_cmd in
@@ -2507,8 +2509,44 @@ nv_config(){
 	fi
 	menu_modif
 }
+zen_notif_setup(){
+	setup_validation(){
+		( sed -i "s/Exec=zen_notify.sh -[a-z]$/Exec=zen_notify.sh $_set/" \
+		/home/$USER/.config/autostart/zen_notify.desktop
+		) |zenity --height=100 --title="Zenvidia notification" --question --no-wrap \
+		--icon-name=swiss_knife --text="$vB$(printf "$wrn_notif_01" "$_set" "$_notif")$end" \
+		--cancel-label="$PM"
+		if [ $? = 1 ]; then menu_modif; fi
+		base_menu
+	}
+	unset setup_list
+	unset setup_option
+	setup_option=(
+	"$menu_notif_01"
+	"$menu_notif_02"
+	"$menu_notif_03"
+	)
+	st=1
+	for n_set in "${setup_option[@]}"; do
+		setup_list+=("false")
+		setup_list+=("$st")
+		setup_list+=("$n_set")
+		st=$[ $st+1 ]
+	done
+	menu_notif=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
+	--title="Zenvidia notification" --text "$rBB$_3g$end" \
+	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	"${setup_list[@]}" false $st "$PM")
+	if [ $? = 1 ]; then menu_modif; fi
+	case $menu_notif in
+		"1") _set='-n'; _notif="$m_notif_01" ;;
+		"2") _set='-z'; _notif="$m_notif_02" ;;
+		"3") _set='-a'; _notif="$m_notif_03" ;;
+	esac
+	setup_validation
+}
 
-## START SESSION
+## Define language at script init
 lang_define(){
 	## language pack
 	if [[ $LG != '' ]];then
@@ -2522,6 +2560,8 @@ lang_define(){
 }
 ### TERTIARY MENU
 glx_test(){
+	unset test_list
+	unset test_cmd
 	if [ $use_bumblebee = 1 ]; then
 		test_v='optirun -b virtualgl'
 		test_p='optirun -b primus'
@@ -2530,8 +2570,6 @@ glx_test(){
 		test_x=''
 		test_cmd=( "$_7a" "$_7b" )
 	fi
-	unset test_list
-	unset xtest
 	nt=1
 	for xtest in "${test_cmd[@]}"; do
 		test_list+=("false")
@@ -2571,7 +2609,6 @@ glx_test(){
 	fi
 #"1") xterm $x_opt -e "printf \"$g$m_01_64.\n\n\"; glxgears"; glx_test ;;
 }
-
 menu_optimus(){
 #	opti_msg="\n$vB\Two solutions:$end$v
 #\t- Application intergrated with Bumblebee.
@@ -2607,30 +2644,47 @@ menu_optimus(){
 		esac
 	fi
 }
-
 ### SUB MENU
 menu_install(){
-	menu_inst=$(zenity --width=400 --height=300 --list \
+	if [ $hlp_txt = 1 ]; then
+		hlp_tip="\n$hlp_01"
+		w_height='--height=450'
+	else
+		hlp_tip=''
+		w_height='--height=300'
+	fi
+	menu_inst=$(zenity --width=400 $w_height --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "$rBB$_01$end" \
+	--text "$rBB$_01$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
-	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$_1d" false 5 "$MM" )
-	if [ $? = 1 ]; then exit 0; fi
+	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$MM" )
+#	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$_1d" false 5 "$MM" )
+	if [ $? = 1 ]; then base_menu; fi
 	case $menu_inst in
 		"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
 		"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
 #		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
 		"3") menu_msg="$vB$msg_1_03$end"; force=0; menu_optimus; base_menu ;;
-		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
-		"5") base_menu ;;
+#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
+		"4") base_menu ;;
 	esac
 }
 menu_update(){
+	if [ $hlp_txt = 1 ]; then
+		w_height='--height=650'
+	else
+		hlp_tip=''
+		w_height='--height=300'
+	fi
 	nu=1
 #	if [ $use_dkms = 1 ]; then up_cmd_list="$_2a (dkms)","$_2a (force)","$_2b (dkms)",$_2c,$_2d,$_2e
 #	else up_cmd_list=$_2a,$_2b,$_2c,$_2e
-	if [ $use_dkms = 1 ]; then up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2c" "$_2d" "$_2f")
-	else up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2c" "$_2d" "$_2f")
+	if [ $use_dkms = 1 ]; then
+		up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2c" "$_2d" "$_2f")
+		[ $hlp_txt = 0 ]|| hlp_tip="\n$hlp_02\n$hlp_02e$hlp_02a\n$hlp_02c"
+	else
+		up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2c" "$_2d" "$_2f")
+		[ $hlp_txt = 0 ]|| hlp_tip="\n$hlp_02\n$hlp_02e$hlp_02b\n$hlp_02c"
 	fi
 	unset up_list
 #	for up_cmd in "$_2a" "$_2b" "$_2a (dkms)" "$_2b (dkms)" "$_2c" "$_2d"; do
@@ -2644,9 +2698,9 @@ menu_update(){
 		nu=$[ $nu+1 ]
 	done 
 #	IFS=$ifs
-	menu_upd=$(zenity --width=400 --height=300 --list \
+	menu_upd=$(zenity --width=400 $w_height --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "$rBB$_02$end" \
+	--text "$rBB$_02$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${up_list[@]}" false $nu "$MM" )
 	if [ $? = 1 ]; then exit 0; fi
@@ -2698,8 +2752,15 @@ menu_update(){
 #	esac
 }
 menu_modif(){
+	if [ $hlp_txt = 1 ]; then
+		hlp_tip="\n$hlp_03"
+		w_height='--height=750'
+	else
+		hlp_tip=''
+		w_height='--height=300'
+	fi
 	nd=1
-	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f")
+	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g")
 	unset mod_list
 	for mod_cmd in "${mod_menu_list[@]}" ; do
 		mod_list+=("false")
@@ -2707,9 +2768,9 @@ menu_modif(){
 		mod_list+=("$mod_cmd")
 		nd=$[ $nd+1 ]
 	done
-	menu_mod=$(zenity --width=400 --height=300 --list \
+	menu_mod=$(zenity --width=400 $w_height --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "$rBB$_03$end" \
+	--text "$rBB$_03$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mod_list[@]}" false $nd "$MM")
 	if [ $? = 1 ]; then exit 0; fi
@@ -2720,10 +2781,18 @@ menu_modif(){
 		"4") manage_pcks ;;
 		"5") optimus_source_rebuild ;;
 		"6") fix_broken_install ;;
+		"7") zen_notif_setup ;;
 		"$nd") base_menu ;;
 	esac
 }
 menu_manage(){
+	if [ $hlp_txt = 1 ]; then
+		hlp_tip="\n$hlp_04"
+		w_height='--height=500'
+	else
+		hlp_tip=''
+		w_height='--height=300'
+	fi
 	nm=1
 	unset mng_list
 	for mng_cmd in "$_4a" "$_4b ($version)" "$_4c ($version)" "$_4d"; do
@@ -2732,9 +2801,9 @@ menu_manage(){
 		mng_list+=("$mng_cmd")
 		nm=$[ $nm+1 ]
 	done
-	menu_mng=$(zenity --width=400 --height=300 --list \
+	menu_mng=$(zenity --width=400 $w_height --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "$rBB$_04$end" \
+	--text "$rBB$_04$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mng_list[@]}" false $nm "$MM")
 	if [ $? = 1 ]; then exit 0; fi
@@ -2752,8 +2821,10 @@ base_menu(){
 	for e in $pci_dev_nb; do
 		echo -e "$v$msg_00_04 $[${dev_n[$e]}+1] :$end\t\t $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end"
 	done
-	)	
-	menu_cmd=$(zenity --height=550 --title="Zenvidia" --list --radiolist --hide-header \
+	)
+	w_height=550
+	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
+	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$rBB$msg_00_01$end\n
 $v\n$msg_00_02$end\t\t $j$DISTRO$end
 $v$msg_0_00$end\t\t $j$ARCH$end
@@ -2764,7 +2835,7 @@ $v$msg_0_03$end\t\t $j$GCC$end
 $v$msg_0_04$end\t $j$NV_bin_ver$end\n
 $v$msg_0_05 : $end$dir_msg
 $v$msg_00_06 : $end $j$cnx_msg$end
-\n$v$ansWN$end" \
+\n$v$hlp_tip_txt$ansWN$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	false 1 "$_01" false 2 "$_02" false 3 "$_03" false 4 "$_04" )
 	if [ $? = 1 ]; then exit 0; fi
