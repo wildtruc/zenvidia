@@ -88,11 +88,9 @@ It comes with 3 options:
  - -z > check zenvidia script and nvidia drivers.
  - -n > check nvidia drivers only.
 
-Default desktop entry file is set to ```-a```, to have an other behavior you have to edit the autostart file with your desktop session autostart manager. 
+Default desktop entry file is set to ```-a```, you can manage options through Zenvidia > Tools.
 
-You can manage options through Zenvidia > Tools.
-
-To install it just do in a terminal with normal user priviledge :
+The script is installed with launching ```make install``` command. to install separately just do in a terminal with normal user priviledge with the option choice :
 ```sh
   zen_notify.sh -a
 ```

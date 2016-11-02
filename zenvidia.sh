@@ -55,7 +55,7 @@ xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Devel/NVIDIA/zenvidia
+devel=/home/mike/Devel/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
 #basic_conf=$devel/basic.conf.devel
 ################################################
@@ -68,7 +68,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $color_conf
 
 #. $devel/color.conf
-#locale=$devel/translations/
+locale=$devel/translations/
 
 ### FUNCTIONS
 ID(){
@@ -970,8 +970,8 @@ EndSection
 	}
 	sec_module(){
 		printf "Section \"Module\"
-  Disable	\"glamoregl\"
-  Load		\"modesetting\"
+	Disable	\"glamoregl\"
+	Load	\"modesetting\"
 EndSection
 " >> xorg.conf.nvidia.$new_version
 	}
@@ -1188,8 +1188,42 @@ post_install(){
 				else 
 					$sys_c restart nvidia-prime$sys_c_ext
 				fi
-				usr/sbin/nvidia-prime-select nvidia
-				usr/sbin/nvidia-prime-select nvidiaonly
+				/usr/sbin/nvidia-prime-select nvidia
+				sleep 1
+				/usr/sbin/nvidia-prime-select nvidiaonly
+				if [ ! -f /etc/nvidia-prime/library.conf ]; then
+					touch /etc/nvidia-prime/library.conf
+				fi
+				pr_conf_ct=$(cat /etc/nvidia-prime/library.conf| grep -c ".*")
+				unset elf_lib_list
+				elf_lib_list=("$ELF_32,32" "$ELF_64,64")
+				for nv_lib in "${elf_lib_list[@]}"; do
+					_elf=$(printf "$nv_lib"|cut -d, -f2)
+					_lib=$(printf "$nv_lib"|cut -d, -f1)
+					if [ -d $croot_all/$master$_lib ]; then
+						if [ $pr_conf_ct -eq 0 ]; then
+							printf "nv_drv_$_elf=\'$croot_all/$master$_lib\'" \
+							>> /etc/nvidia-prime/library.conf
+						else
+							perl -ni -pe "s|nv_drv_$_elf=.*$|nv_drv_$_elf='$croot_all/$master$_lib'|i" /etc/nvidia-prime/library.conf
+						fi
+					else
+						zenity --width=450 --title="Zenvidia" --error --icon-name=xkill \
+						--text="$vB Could not find$j $croot_all/$master$_lib$end.\nAbort.$end."
+						if [ $? = 1 ]; then base_menu; else exit 0; fi
+					fi
+				done
+				if [ $pr_conf_ct -eq 0 ]; then
+					printf "nv_xorg_path=\'$croot_all/nvidia/xorg\'\nrc_dir=\'/etc/rc.d\'" \
+					>> /etc/nvidia-prime/library.conf
+				else
+					perl -ni -pe "s|nv_xorg_path=.*$|nv_xorg_path='$croot_all/xorg'|i" \
+					/etc/nvidia-prime/library.conf
+					perl -ni -pe "s|rc_dir=.*$|rc_dir='/etc/rc.d'|i" \
+					/etc/nvidia-prime/library.conf
+				fi
+				prime_msg="$prime_msg_01\n$prime_msg_03"
+				prime_setup
 			fi		
 		else # [ $optimus = 0 ]
 			xorg_conf
@@ -1334,7 +1368,7 @@ nv_cmd_install_driver(){
 			fi
 		fi
 		if [ ! -f $kernel_path/nvidia.ko ]&&[[ ! $($d_modinfo -F version nvidia) ]]; then
-			zenity --width=450 --title="Zenvidia" --error \
+			zenity --width=450 --title="Zenvidia" --error --icon-name=xkill \
 			--text="$j INSTALL ABORT ABNORMALY, check $logfile$end."
 			exit 0
 		fi
@@ -1343,7 +1377,8 @@ nv_cmd_install_driver(){
 		# then, restore them at the end.
 	#		if [ ]
 		echo "# DRIVER ALREADY INSTALL, SKIPING THIS STEP."; sleep 2
-	fi	
+	fi
+	export -p REPORT
 #	if [ $driver_level -ge 355 ]; then
 #		$nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-modprobe -u -m
 #	else
@@ -1399,6 +1434,7 @@ printf \"$xB# Installing DKMS modules:\n\n$xN\"
 $remove_dkms
 $add_message
 $add_dkms
+printf \"$xB# Build $version DKMS modules:\n\n$xN\"
 /usr/sbin/dkms --force install -m nvidia/$version -k $KERNEL
 printf \"$esc_message\"
 sleep $xt_delay"
@@ -1597,6 +1633,8 @@ install_drv(){
 		if [ $(cat $lib_logfile| grep -c "WARNING") -gt 0 ]; then
 			if [ $(cat $lib_logfile| grep "WARNING"| grep -c "libGL.so") -gt 0 ]; then
 				report_log+=("$vB$m_04_02:$end\t$jB $val_04_N$end\t> $m_04_02a\n")
+			elif [ $(cat $lib_logfile| grep "WARNING"| grep -c "libglvnd") -gt 0 ]; then
+				report_log+=("$vB$m_04_02:$end\t$jB $val_04_N$end\t> $m_04_02c\n")
 			fi
 		fi
 		## control if libraries are properly installed
@@ -1722,7 +1760,7 @@ upgrade_new_kernel(){
 }
 upgrade_kernel(){
 	[ $install_type = 1 ]&& if_optimus
-	[ $install_type = 0 ]&& if_private
+	[ $install_type = 0 ]&& if_single
 #	[ $install_type = 2 ]&& if_legacy
 #	if [[ $(echo $NEW_KERNEL) != '' ]];then
 	if [[ $NEW_KERNEL ]];then
@@ -1820,7 +1858,7 @@ if_optimus(){
 	drv_install_msg="$v$m_02_13.$end"
 }
 # PROPRIATARY DRIVER CUSTOM INSTALL
-if_private(){
+if_single(){
 #	[ $if_update = 1 ]&& new_version=$version
 	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
 	predifine=1
@@ -1846,7 +1884,7 @@ install_type_sel(){
 #	false 1 " $A1" false 2 " $A2" false 3 " $A3" false 4 "$MM")
 	if [ $? = 1 ]; then exit 0; fi
 	case $dir_cmd in
-		"1") if_private ;;
+		"1") if_single ;;
 #		"2") if_legacy; optimus=0 ;;
 		"2") from_menu_install=1
 			menu_optimus
@@ -1887,7 +1925,7 @@ from_directory(){
 #			n=$[ $n+1 ]
 		done
 		drv_pick=$(zenity --width=450 --height=400 --title="Zenvidia" $zen_opts \
-		--text="$v$m_01_05 $nvdl :$end"\
+		--text="$vB$m_01_05 $nvdl :$end"\
 		$table_opts ${list_drv[@]} false "$PM")
 		if [ $? = 1 ]; then base_menu; fi
 		if [[ "$drv_pick" == "$PM" ]]; then from_directory; fi
@@ -1897,7 +1935,7 @@ from_directory(){
 	home_dir(){
 		cd /home
 		driverun=$(zenity --width=450 --height=400 --title="Zenvidia" --file-selection \
-		--filename="/home/$user/$w_01" --file-filter=".run" --text="$v$m_01_06$j $homerep$end")
+		--filename="/home/$user/$w_01" --file-filter=".run" --text="$vB$m_01_06$j $homerep$end")
 		if [ $? = 1 ]; then base_menu; fi
 		chmod a+x $driverun
 		new_version=$(printf "$driverun"| sed -n "s/^.*-//g;p")
@@ -1908,7 +1946,7 @@ from_directory(){
 	table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
 	n=1
 	from_cmd=$(zenity --width=450 --height=400 --title="Zenvidia" $zen_opts \
-	--text="$v $m_01_01$end\n$j$(printf "$(ls $nvdl|sed -n 's/^/\t - /p')")$end\n$vB$m_01_02$end" \
+	--text="$vB $m_01_01$end\n$j$(printf "$(ls $nvdl|sed -n 's/^/\t - /p')")$end\n$vB$m_01_02$end" \
 	$table_opts false 1 "$A" false 2 "$B" false 3 "$PM" )
 	if [ $? = 1 ]; then base_menu; fi
 	case $from_cmd in
@@ -2190,7 +2228,7 @@ last_pack(){
 	) | zenity --width=500 --progress --auto-close --title="$m_01_44 $LAST_PACK"
 	err=$?
     if test $err -gt 128; then
-        if pid=`ps augxw | grep ."wget" | grep -v grep | awk '{print $2}'`; then
+        if pid=`ps -A | grep ."wget" | awk '{print $1}'`; then
             echo User aborted download, killing wget
             kill $pid
         fi
@@ -2315,44 +2353,43 @@ manage_pcks(){
 }
 remove_pcks(){
 	# list package in release directory
-	unset packs_list
+	unset rm_packs packs_list
 	for pack in $(ls -1 $nvdl); do
 		packs_list+=("false")
 		packs_list+=("$pack")
 	done
-	rm_packs=$(zenity --width=400 --height=300 --list \
-	--radiolist --hide-header --title="Zenvidia (remove)" \
+	rm_packs=$(zenity --width=400 --height=300 --list --multiple \
+	--checklist --hide-header --title="Zenvidia (remove)" \
 	--text "$rBB$_6a$end" \
-	--column "1" --column "2" --separator=";" \
+	--column "1" --column "2" --separator=" " \
 	"${packs_list[@]}" )
-	if [ $? = 1 ]; then exit 0; fi
-	pack_repo=$(printf "$rm_packs"|sed -n "s/^.*-//g;p")
-	ver_pack=$(printf "$pack_repo"|sed -n "s/\.//p")
+	if [ $? = 1 ]; then base_menu; fi
+	sel_cnt=$(printf "$rm_packs"| grep -c " ")
 	zenity --width=300 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --question \
-	--text="$v$_6d $rm_packs.\n$_6g$end" \
-	--ok-label="$CC" --cancel-label="$PM"
+	--text="$vB$(printf "$_6d\n\n$_6g" "$rm_packs")$end" --ok-label="$CC" --cancel-label="$PM"
 	if [ $? = 0 ]; then
-		if [ -d $croot/nvidia.$pack_repo ]; then
-			zenity --width=300 --title="Zenvidia ($_6a)" --question \
-			--text="$v$_6f $croot ?\n$_6g$end"
-			if [ $? = 0 ]; then
-				if [[ $ver_pack = $ver_txt ]]; then
-					zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=xkill \
-					--error --no-wrap --text="$v$(printf "$wrn_06f" "$pack_repo")$end" \
-					--ok-label="$lab_06f"
-				else
-					rm -Rf $croot/nvidia.$pack_repo
+		for vers in ${rm_packs[@]}; do
+			pack_vers=$(printf "$vers"|sed -n "s/^.*-//g;p")
+			vers_ref=$(printf "$pack_vers"|sed -n "s/\.//p")
+			if [ -d $croot/nvidia.$pack_vers ]; then
+				zenity --width=300 --title="Zenvidia ($_6a)" --question \
+				--text="$v$_6f $croot ?\n$_6g$end"
+				if [ $? = 0 ]; then
+					if [[ $ver_pack = $ver_txt ]]; then
+						zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=xkill \
+						--error --no-wrap --text="$v$(printf "$wrn_06f" "$pack_vers")$end" \
+						--ok-label="$lab_06f"
+					else
+						rm -Rf $croot/nvidia.$pack_vers
+						rm -f $nvdl/nv-update-$pack_vers
+					fi
 				fi
+			else
+				rm -f $nvdl/nv-update-$pack_vers
 			fi
-		
-		fi
-		if [[ $ver_pack = $ver_txt ]]; then
-			zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --info \
-			--text="$v$(printf "$wrn_06a" "$pack_repo")$end" --ok-label="$lab_06c" --no-wrap
-		fi
-		rm -f $nvdl/$rm_packs
+		done
 		zenity --height=100 --title="Zenvidia ($_6a)" --icon-name=swiss_knife --info \
-		--text="$v$(printf "$inf_06a" "$pack_repo")$end" --no-wrap
+		--text="$vB$(printf "$inf_06a" "$rm_packs")$end" --no-wrap
 		manage_pcks
 	else
 		manage_pcks
@@ -2553,7 +2590,51 @@ zen_notif_setup(){
 	esac
 	setup_validation
 }
-
+prime_setup(){
+	setup_prime(){
+		if [ $from_menu_install = 0 ]; then
+		b_cancel="--cancel-label=$PM"
+		w_type='--question'
+		else
+			b_cancel='--ok-label=OK'
+			w_type='--info'
+		fi
+		(	for pset in "${_pset[@]}"; do
+				/usr/sbin/nvidia-prime-select $pset
+			done
+		) |zenity --height=100 --title="Zenvidia prime setup" $w_type --no-wrap \
+		--icon-name=swiss_knife --text="$vB$(printf "$wrn_prime_01" "$_prime")$end" \
+		"$b_cancel"
+		if [ $from_menu_install = 0 ]; then
+			if [ $? = 1 ]; then menu_modif; fi
+			base_menu
+		fi
+	}
+	unset setup_list setup_option _pset
+	setup_option=(
+	"$menu_prime_01"
+	"$menu_prime_02"
+	"$menu_prime_03"
+	)
+	pt=1
+	for p_set in "${setup_option[@]}"; do
+		setup_list+=("false")
+		setup_list+=("$pt")
+		setup_list+=("$p_set")
+		pt=$[ $pt+1 ]
+	done
+	menu_prime=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
+	--title="Zenvidia prime setup" --text "$rBB$_3h$end$v$prime_msg$end" \
+	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	"${setup_list[@]}" false $pt "$PM")
+	if [ $? = 1 ]; then menu_modif; fi
+	case $menu_prime in
+		"1") _pset=( "intel"); _prime="$m_prime_01" ;;
+		"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
+		"3") _pset=( "nvidia" "nvidiaonly" ); _prime="$m_prime_03" ;;
+	esac
+	setup_prime
+}
 ## Define language at script init
 lang_define(){
 	## language pack
@@ -2768,7 +2849,8 @@ menu_modif(){
 		w_height='--height=300'
 	fi
 	nd=1
-	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g")
+#	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
+	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
 	unset mod_list
 	for mod_cmd in "${mod_menu_list[@]}" ; do
 		mod_list+=("false")
@@ -2790,6 +2872,7 @@ menu_modif(){
 		"5") optimus_source_rebuild ;;
 		"6") fix_broken_install ;;
 		"7") zen_notif_setup ;;
+		"8") prime_msg="$prime_msg_01\n$prime_msg_02"; from_menu_install=0; prime_setup ;;
 		"$nd") base_menu ;;
 	esac
 }

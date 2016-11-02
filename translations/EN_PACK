@@ -36,6 +36,7 @@ _3d="Manage drivers packages" # G9
 _3e="Build/Rebuild" # G10
 _3f="Broken install repair"
 _3g="Notifications config"
+_3h="Prime config"
 # menu manage
 _4a="GLX test" # G15
 _4b="Manual" # G16
@@ -47,7 +48,7 @@ _5a="Force dkms build/rebuild"
 _6a="Remove downloaded package"
 _6b="Backup"
 _6c="Restore"
-_6d="Driver remove"
+_6d="Selected to be removed:\n$j%s$end driver(s)."
 _6e="Driver backup"
 _6f="Remove the associated directory"
 _6g="Please, confirm you action."
@@ -313,6 +314,21 @@ m_notif_02="driver and zenvidia check"
 m_notif_03="all (driver, zenvidia, all git sources)"
 wrn_notif_01="Autostart launcher set to \"%s\".\nNotification setting for %s."
 
+# prime_setup
+prime_msg_01="\n$vB\Select the Prime setup you would like to use$end:"
+prime_msg_02="Default is set to Intel."
+prime_msg_03="\tDefault has been set to Nvidia device only.
+\tYou can leave it as it is, change it now, or
+\tdo it later in$j Tools$end menu > $j$_3h$end"
+menu_prime_01="Set Prime to Intel device"
+menu_prime_02="Set Prime to Nvidia device"
+menu_prime_03="Set permanently Prime to Nvidia device"
+m_prime_01="intel"
+m_prime_02="nvidia"
+m_prime_03="only nvidia"
+wrn_prime_01="Prime will be set to %s device."
+wrn_prime_02=""
+
 # warnings and others big text.
 wrn_06c="The backup you are going to restore is the same as the one used by the system.
 LibGL crash the X server when loaded and used by the actual display if overwrote.\n
@@ -325,7 +341,7 @@ Action skipped."
 lab_06f="Yes, I understand my mistake"
 wrn_06a="Package $j%s$end is same used by the system. If you need it again for any reason,
 you can download it with the $j$_2e$end tool from the $j$_02$end menu."
-inf_06a="$j%s$end.run package removed."
+inf_06a="Driver(s):\n$j%s$end\npackage(s) removed."
 wrn_03e="$j%s$end is not actually present on your system.
 Go to $j$_1c$end if you need to do so."
 lab_03e="I get it."
@@ -349,6 +365,7 @@ m_04_01c="nothing to do"
 m_04_02="Nvidia-installer"
 m_04_02a="WARNING on missing /usr/lib(32/64)/LibGL.so link"
 m_04_02b="ERROR couldn't unload nvidia-drm"
+m_04_02c="WARNING missing libglvnd developpement files."
 #m_04_02c="copied to $install_dir/bin"
 m_04_03="Libraries install"
 m_04_03a="normal install process"
