@@ -67,7 +67,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $basic_conf
 . $color_conf
 
-#. $devel/color.conf
+. $devel/color.conf
 locale=$devel/translations/
 
 ### FUNCTIONS
@@ -551,6 +551,7 @@ Bumblebee_build(){
 }
 primus_build(){
 	if [ -d $local_src/primus ]; then
+		# fix missing libX11.so link in lib32 if not present
 		if [ $dist_type = 2 ]; then
 			[ -h /usr/$master$ELF_32/libX11.so ]|| \
 			( cd /usr/$master$ELF_32; ln -sf ./libX11.so.6 ./libX11.so )
@@ -1145,7 +1146,8 @@ if_blacklist(){
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
 
-# TODO TODO < sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
+# TODO ABI23 compatibility for Optimus VSYNC in modprobe.d
+# sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
 }
 
 ## AFTER INSTALL
@@ -1169,6 +1171,8 @@ post_install(){
 				echo "$n"; n=$[ $n+4 ]
 				local_src_ctrl; echo "$n"; n=$[ $n+4 ]
 				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
+				# update primus libgl to new driver libbgl
+				# TODO
 				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
 				if [ $sys_old = 1 ]; then
@@ -2737,28 +2741,49 @@ menu_optimus(){
 }
 ### SUB MENU
 menu_install(){
+	unset install_list ins_cmd ins_list
 	if [ $hlp_txt = 1 ]; then
-		hlp_tip="\n$hlp_01"
+		if [ $install_type = 0 ]; then hlp_tip="\n$hlp_01b"
+		else hlp_tip="\n$hlp_01b\n$hlp_01c"; fi
 		w_height='--height=450'
 	else
-		hlp_tip=''
+		hlp_tip="\n$hlp_01a"
 		w_height='--height=300'
 	fi
+	if [ $install_type = 0 ]; then
+		install_list=("$_1a" "$_1b")
+	else install_list=("$_1a" "$_1b" "$_1c"); fi
+	n=1
+	for ins_cmd in "${install_list[@]}"; do
+		ins_list+=("false")
+		ins_list+=("$n")
+		ins_list+=("$ins_cmd")
+		n=$[ $n+1 ]
+	done 
 	menu_inst=$(zenity --width=400 $w_height --list \
 	--radiolist --hide-header --title="Zenvidia" \
 	--text "$rBB$_01$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
-	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$MM" )
+	"${ins_list[@]}" false $n "$MM" )
 #	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$_1d" false 5 "$MM" )
-	if [ $? = 1 ]; then base_menu; fi
-	case $menu_inst in
-		"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
-		"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
-#		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
-		"3") menu_msg="$vB$msg_1_03$end"; force=0; menu_optimus; base_menu ;;
-#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
-		"4") base_menu ;;
-	esac
+	if [ $? = 1 ]; then exit 0; fi
+	if [ $install_type = 0 ]; then
+		case $menu_inst in
+			"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
+			"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
+	#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
+			"$n") base_menu ;;
+		esac
+	else
+		case $menu_inst in
+			"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
+			"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
+	#		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
+			"3") menu_msg="$vB$msg_1_03$end"; force=0; menu_optimus; base_menu ;;
+	#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
+			"$n") base_menu ;;
+		esac
+	fi
 }
 menu_update(){
 	if [ $hlp_txt = 1 ]; then
@@ -2770,13 +2795,42 @@ menu_update(){
 	nu=1
 #	if [ $use_dkms = 1 ]; then up_cmd_list="$_2a (dkms)","$_2a (force)","$_2b (dkms)",$_2c,$_2d,$_2e
 #	else up_cmd_list=$_2a,$_2b,$_2c,$_2e
-	if [ $use_dkms = 1 ]; then
-		up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2c" "$_2d" "$_2f")
-		[ $hlp_txt = 0 ]|| hlp_tip="\n$hlp_02\n$hlp_02e$hlp_02a\n$hlp_02c"
+#	if [ $use_dkms = 1 ]; then
+#		if [ $install_type = 0 ]; then
+#			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f")
+#		else
+#			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f" "$_2c" "$_2d")
+#		fi
+#		if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02a"
+#		else hlp_tip="\n$hlp_02b\n$hlp_02e$hlp_02a\n$hlp_02c"; fi
+#	else
+#		if [ $install_type = 0 ]; then
+#			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f")
+#		else
+#			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f" "$_2c" "$_2d")
+#		fi
+#		if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02a"
+#		else hlp_tip="\n$hlp_02b\n$hlp_02e$hlp_02b\n$hlp_02c"; fi
+#	fi
+	if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02A"; fi
+	if [ $install_type = 0 ]; then
+		if [ $use_dkms = 1 ]; then
+			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f")	
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02a\n$hlp_02c"; fi
+		else
+			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02b\n$hlp_02c"; fi
+		fi
 	else
-		up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2c" "$_2d" "$_2f")
-		[ $hlp_txt = 0 ]|| hlp_tip="\n$hlp_02\n$hlp_02e$hlp_02b\n$hlp_02c"
+		if [ $use_dkms = 1 ]; then
+			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f" "$_2c" "$_2d")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02a\n$hlp_02c\n$hlp_02d"; fi
+		else
+			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f" "$_2c" "$_2d")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02b\n$hlp_02c\n$hlp_02d"; fi
+		fi
 	fi
+	
 	unset up_list
 #	for up_cmd in "$_2a" "$_2b" "$_2a (dkms)" "$_2b (dkms)" "$_2c" "$_2d"; do
 #	ifs=$IFS
@@ -2806,53 +2860,87 @@ menu_update(){
 #		"6") menu_msg="$v$msg_2_04$end"; ui_mod=1; check_update  ;;
 #		"7") base_menu ;;
 		if [ $use_dkms = 1 ]; then
-			case $menu_upd in
-				"1") menu_msg="$v$msg_2_06$end"
-					 ui_mod=1; check_update ;;
-				"2") menu_msg="$v$msg_2_01 (dkms)$end"
-					 upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
-				"3") menu_msg="$v$msg_2_01 (force)$end" 
-					 upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
-				"4") menu_msg="$v$msg_2_02 (dkms)$end"
-					 upgrade_other=1; use_dkms=1; upgrade_new_kernel; base_menu ;;
-				"5") menu_msg="$v$msg_2_03$end"
-					 local_src_ctrl; base_menu ;;
-				"6") menu_msg="$v$msg_2_04$end"
-					 prime_src_ctrl; base_menu ;;
-				"7") menu_msg="$v$msg_2_05$end"
-					 zenvidia_update; base_menu ;;
-				"$nu") base_menu ;;
-			esac
+			if [ $install_type = 0 ]; then
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"
+						 ui_mod=1; check_update ;;
+					"2") menu_msg="$v$msg_2_01 (dkms)$end"
+						 upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_01 (force)$end" 
+						 upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_02 (dkms)$end"
+						 upgrade_other=1; use_dkms=1; upgrade_new_kernel; base_menu ;;
+					"5") menu_msg="$v$msg_2_05$end"
+						 zenvidia_update; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			else
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"
+						 ui_mod=1; check_update ;;
+					"2") menu_msg="$v$msg_2_01 (dkms)$end"
+						 upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_01 (force)$end" 
+						 upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_02 (dkms)$end"
+						 upgrade_other=1; use_dkms=1; upgrade_new_kernel; base_menu ;;
+					"5") menu_msg="$v$msg_2_05$end"
+						 zenvidia_update; base_menu ;;
+					"6") menu_msg="$v$msg_2_03$end"
+						 local_src_ctrl; base_menu ;;
+					"7") menu_msg="$v$msg_2_04$end"
+						 prime_src_ctrl; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			fi
 		else # use_dkms = 0
-			case $menu_upd in
-				"1") menu_msg="$v$msg_2_06$end"
-					 ui_mod=1; check_update  ;;
-				"2") menu_msg="$v$msg_2_01$end"
-					 upgrade_other=0; upgrade_kernel; base_menu ;;
-				"3") menu_msg="$v$msg_2_02$end"
-					 upgrade_other=1; upgrade_new_kernel; base_menu ;;
-				"4") menu_msg="$v$msg_2_03$end"
-					 local_src_ctrl; base_menu ;;
-				"5") menu_msg="$v$msg_2_04$end"
-					 prime_src_ctrl; base_menu ;;
-				"6") menu_msg="$v$msg_2_05$end"
-					 zenvidia_update; base_menu ;;
-				"$nu") base_menu ;;
-			esac
+			if [ $install_type = 0 ];then
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"
+						 ui_mod=1; check_update  ;;
+					"2") menu_msg="$v$msg_2_01$end"
+						 upgrade_other=0; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_02$end"
+						 upgrade_other=1; upgrade_new_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_05$end"
+						 zenvidia_update; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			else
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"
+						 ui_mod=1; check_update  ;;
+					"2") menu_msg="$v$msg_2_01$end"
+						 upgrade_other=0; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_02$end"
+						 upgrade_other=1; upgrade_new_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_05$end"
+						 zenvidia_update; base_menu ;;
+					"5") menu_msg="$v$msg_2_03$end"
+						 local_src_ctrl; base_menu ;;
+					"6") menu_msg="$v$msg_2_04$end"
+						 prime_src_ctrl; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			fi
 		fi
 #	esac
 }
 menu_modif(){
 	if [ $hlp_txt = 1 ]; then
-		hlp_tip="\n$hlp_03"
+		if [ $install_type = 0 ]; then hlp_tip="\n$hlp_03b"
+		else hlp_tip="\n$hlp_03b\n$hlp_03c"; fi
 		w_height='--height=750'
 	else
-		hlp_tip=''
+		hlp_tip="\n$hlp_03a"
 		w_height='--height=300'
 	fi
 	nd=1
-#	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
-	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
+	if [ $install_type = 0 ] ;then
+		mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g")
+	else
+		mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
+	fi
 	unset mod_list
 	for mod_cmd in "${mod_menu_list[@]}" ; do
 		mod_list+=("false")
@@ -2866,24 +2954,38 @@ menu_modif(){
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mod_list[@]}" false $nd "$MM")
 	if [ $? = 1 ]; then exit 0; fi
-	case $menu_mod in
-		"1") edit_xorg_conf ;;
-		"2") edit_script_conf ;;
-		"3") nv_config ;;
-		"4") manage_pcks ;;
-		"5") optimus_source_rebuild ;;
-		"6") fix_broken_install ;;
-		"7") zen_notif_setup ;;
-		"8") prime_msg="$prime_msg_01\n$prime_msg_02"; from_menu_install=0; prime_setup ;;
-		"$nd") base_menu ;;
-	esac
+	if [ $install_type = 0 ]; then
+		case $menu_mod in
+			"1") edit_xorg_conf ;;
+			"2") edit_script_conf ;;
+			"3") nv_config ;;
+			"4") manage_pcks ;;
+			"5") optimus_source_rebuild ;;
+			"6") fix_broken_install ;;
+			"7") zen_notif_setup ;;
+			"$nd") base_menu ;;
+		esac
+	else
+		case $menu_mod in
+			"1") edit_xorg_conf ;;
+			"2") edit_script_conf ;;
+			"3") nv_config ;;
+			"4") manage_pcks ;;
+			"5") optimus_source_rebuild ;;
+			"6") fix_broken_install ;;
+			"7") zen_notif_setup ;;
+			"8") prime_msg="$prime_msg_01\n$prime_msg_02"
+			from_menu_install=0; prime_setup ;;
+			"$nd") base_menu ;;
+		esac
+	fi
 }
 menu_manage(){
 	if [ $hlp_txt = 1 ]; then
-		hlp_tip="\n$hlp_04"
+		hlp_tip="\n$hlp_04b"
 		w_height='--height=500'
 	else
-		hlp_tip=''
+		hlp_tip="\n$hlp_04a"
 		w_height='--height=300'
 	fi
 	nm=1
@@ -2918,7 +3020,7 @@ base_menu(){
 	w_height=550
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
-	--text "$rBB$msg_00_01$end\n
+	--text "$rBB$msg_00_01$end
 $v\n$msg_00_02$end\t\t $j$DISTRO$end
 $v$msg_0_00$end\t\t $j$ARCH$end
 $devices 

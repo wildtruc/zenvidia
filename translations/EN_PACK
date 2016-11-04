@@ -69,7 +69,7 @@ ansWN="What do you want to do ?"
 msg205="Network connection control" # 205
 
 ### FIRST START
-msg_00_01="\t DRIVER STUFFER PRO" # 701*
+msg_00_01="\t\t   ZENVIDIA\n$nf\t\t Nvidia® drivers manager$end" # 701*
 msg_00_02="System :" # 706*
 msg_00_04="Card" # 708*
 msg_00_06="Repositories are met" # 710
@@ -387,17 +387,19 @@ lab_03_65b="edit later"
 ## comment & help texts
 hlp_tip_txt="Help tips text is currently set to \"1\". You can unset it at any
 moment in$j Tools$end menu >$j Edit script config$end.\n\n"
-hlp_01="$vB\Select here the install type$end:
+hlp_01a="$vB\Select here the install type$end"
+hlp_01b="$hlp_01a:
 - $vB$_1a$end:\n\tInstall a new driver from a user directory local package 
 \tor a listed already downloaded with zenvidia.
-- $vB$_1b$end:\n\tInstall a driver downloaded directly from the nvidia ftp server.
-- $vB$_1c$end:\n\tDownload and install the Optimus GIT source
+- $vB$_1b$end:\n\tInstall a driver downloaded directly from the nvidia ftp server."
+hlp_01c="- $vB$_1c$end:\n\tDownload and install the Optimus GIT source
 \tif your hardware is a discret graphic card."
 #- $v$_1d$end:\n\tRemove and purge the default nvidia drivers.
 #\tIt will erase completly the current Zenvidia driver install
 #\tand reset all to default (nouveau basic drivers)."
 
-hlp_02="$vB\Select here the element to update$end:
+hlp_02A="$vB\Select here the element to update$end"
+hlp_02B="$hlp_02A:
 - $vB$_2e$end:\n\tDriver update check download and install.
 \tyou could choose here if you want to download update only
 \tor install it directly after download end."
@@ -411,11 +413,12 @@ hlp_02b="- $vB$_2a$end:\n\tOptional command to install nvidia modules
 \tfor a new running kernel.
 - $vB$_2b$end:\n\tOptional command to install nvidia modules
 \tfor an other existing kernel."
-hlp_02c="- $vB$_2c$end:\n\tCheck and install new version of Bumblebee from GIT repos.
-- $vB$_2d$end:\n\tCheck and install new version of Prime from GIT repos.
-- $vB$_2f$end:\n\tCheck and install new version of Zenvidia from GIT repos."
+hlp_02c="- $vB$_2f$end:\n\tCheck and install new version of Zenvidia from GIT repos."
+hlp_02d="- $vB$_2c$end:\n\tCheck and install new version of Bumblebee from GIT repos.
+- $vB$_2d$end:\n\tCheck and install new version of Prime from GIT repos."
 
-hlp_03="$vB\Select here the element to modify or edit$end:
+hlp_03a="$vB\Select here the element to modify or edit$end"
+hlp_03b="$hlp_03a:
 - $vB$_3a$end:\n\tEdit the current xorg configuration file in /etc/X11.
 - $vB$_3b$end:\n\tEdit Zenvidia basic user script to set or unset mostly everything.
 - $vB$_3c$end:\n\tStart Nvidia-setting tools, especially for Bumblebee,
@@ -430,8 +433,10 @@ hlp_03="$vB\Select here the element to modify or edit$end:
 - $vB$_3f$end:\n\tThis tool repair new or upgraded distro by rebuilding links and config
 \tfataly lost during upgrade or fresh install process.
 - $vB$_3g$end:\n\tConfiguration tool for Zen_notify update checker."
+hlp_03c="- $vB$_3h$end:\n\tConfiguration tool for Prime display selector."
 
-hlp_04="$vB\Check GLX test and README file from Nvidia or Zenvidia$end:
+hlp_04a="$vB\Check GLX test and README file from Nvidia or Zenvidia$end"
+hlp_04b="$hlp_04a:
 - $vB$_4a$end:\n\tTest your driver installation with glxgears or glxspheres tools.
 - $vB$_4b$end:\n\tRead the current Nvidia help file.
 - $vB$_4c$end:\n\tRead the current Nvidia changelog file.
