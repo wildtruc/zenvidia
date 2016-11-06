@@ -306,17 +306,18 @@ msg_driver="driver update is out"
 msg_git="a GIT update is out"
 
 # zen_notif_setup
+notif_msg="Notification is currently set to:\n> $j%s$end"
 menu_notif_01="Check driver update only"
 menu_notif_02="Check zenvidia and driver update"
 menu_notif_03="Check all (driver, zenvidia, git repos)"
 m_notif_01="driver check only"
 m_notif_02="driver and zenvidia check"
 m_notif_03="all (driver, zenvidia, all git sources)"
-wrn_notif_01="Autostart launcher set to \"%s\".\nNotification setting for %s."
+wrn_notif_01="Autostart launcher set to $j%s$end."
 
 # prime_setup
 prime_msg_01="\n$vB\Select the Prime setup you would like to use$end:"
-prime_msg_02="Default is set to Intel."
+prime_msg_02="Default is currently set to $j%s$end."
 prime_msg_03="\tDefault has been set to Nvidia device only.
 \tYou can leave it as it is, change it now, or
 \tdo it later in$j Tools$end menu > $j$_3h$end"
@@ -325,8 +326,8 @@ menu_prime_02="Set Prime to Nvidia device"
 menu_prime_03="Set permanently Prime to Nvidia device"
 m_prime_01="intel"
 m_prime_02="nvidia"
-m_prime_03="only nvidia"
-wrn_prime_01="Prime will be set to %s device."
+m_prime_03="permanent nvidia"
+wrn_prime_01="Prime will be set to $j%s$end."
 wrn_prime_02=""
 
 # warnings and others big text.
@@ -443,4 +444,4 @@ hlp_04b="$hlp_04a:
 - $vB$_4d$end:\n\tRead current Zenvidia README file."
 #"- $vB$end:\n\t
 #- $vB$end:\n\t"
-
+hlp_notif="You can leave it as it is or choose between one of\nthe sets below."

@@ -67,7 +67,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $basic_conf
 . $color_conf
 
-. $devel/color.conf
+#. $devel/color.conf
 locale=$devel/translations/
 
 ### FUNCTIONS
@@ -577,6 +577,23 @@ primus_build(){
 		printf "$xB# GIT : $operande primus done.$xN\n"; sleep 1
 	fi
 	cd $nvdir
+}
+primus_update(){
+	if [ -d $local_src/primus ]; then
+		if [ $(cat $local_src/primus/version.txt| grep -c "$new_version") -eq 0 ]; then
+			echo "# GIT : Updating Bumblebee Primus to $new_version."; sleep 1
+			cd $local_src/primus
+			rm -rf lib/ lib64/	
+			LIBDIR=$master$ELF_64 /usr/bin/make -f Makefile.zen
+			CXX=g++\ -m32 LIBDIR=$master$ELF_32 /usr/bin/make -f Makefile.zen
+			[ -d $croot/primus ]&& cp -Rf $croot/primus $croot/primus.bak
+			cp -Rf ./$master$ELF_32 $croot/primus
+			cp -Rf ./$master$ELF_64 $croot/primus
+			echo "$n"; n=$[ $n+2 ]
+			[ -f $local_src/primus/update.txt ]|| touch $local_src/primus/update.txt
+			printf "$new_version" > $local_src/primus/update.txt
+		fi
+	fi	
 }
 installer_build(){
 	( # Install or upgrade from source
@@ -1149,7 +1166,29 @@ if_blacklist(){
 # TODO ABI23 compatibility for Optimus VSYNC in modprobe.d
 # sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
 }
-
+service_check(){
+	if [ $sys_old = 1 ]; then
+		if [ $dis_service ]; then
+			v_pid=$($sys_c $dis_service status| grep "PID"| \
+			perl -p -e "s|^.*: +([0-9]+).*$|\1|")
+			if [ $v_pid ]; then
+				$sys_c $dis_service stop
+				$sys_c $dis_service disable
+			fi
+		fi
+		$sys_c $sys_service restart
+	else
+		if [ $dis_service ]; then
+			v_pid=$($sys_c status $dis_service.$sys_c_ext| grep "PID"| \
+			perl -p -e "s|^.*: +([0-9]+).*$|\1|")
+			if [ $v_pid ]; then
+				$sys_c stop $dis_service$sys_c_ext
+				$sys_c disable $dis_service$sys_c_ext
+			fi
+		fi
+		$sys_c restart $sys_service$sys_c_ext
+	fi
+}
 ## AFTER INSTALL
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
@@ -1171,15 +1210,13 @@ post_install(){
 				echo "$n"; n=$[ $n+4 ]
 				local_src_ctrl; echo "$n"; n=$[ $n+4 ]
 				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
-				# update primus libgl to new driver libbgl
-				# TODO
+				# update primus libGL to new driver libGL
+				primus_update
 				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				if [ $sys_old = 1 ]; then
-					$sys_c bumblebeed restart
-				else 
-					$sys_c restart bumblebeed$sys_c_ext
-				fi
+				sys_service='bumblebeed'
+				dis_service='nvidia-prime'
+				service_check
 			# prime
 			else
 				echo "# Optimus : Configure and load/reload Prime..."; sleep 1
@@ -1187,11 +1224,9 @@ post_install(){
 				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
 				echo "# Optimus : Start or Restart Prime service..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
-				if [ $sys_old = 1 ]; then
-					$sys_c nvidia-prime restart
-				else 
-					$sys_c restart nvidia-prime$sys_c_ext
-				fi
+				sys_service='nvidia-prime'
+				dis_service='bumblebeed'
+				service_check
 				/usr/sbin/nvidia-prime-select nvidia
 				sleep 1
 				/usr/sbin/nvidia-prime-select nvidiaonly
@@ -1802,11 +1837,14 @@ upgrade_kernel(){
 	if ( $install_type = 1 ); then
 		if [ $use_bumblebee = 1 ]; then
 			echo "# $m_02_03."; sleep 1
-			if [ $sys_old = 1 ]; then
-				$sys_c bumblebeed restart
-			else 
-				$sys_c restart bumblebeed$sys_c_ext
-			fi
+			sys_service='bumblebeed'
+			dis_service=''
+			service_check
+#			if [ $sys_old = 1 ]; then
+#				$sys_c bumblebeed restart
+#			else 
+#				$sys_c restart bumblebeed$sys_c_ext
+#			fi
 		fi
 		echo "# $m_02_06" ; sleep 1
 	fi
@@ -2560,31 +2598,43 @@ nv_config(){
 }
 zen_notif_setup(){
 	setup_validation(){
-		( sed -i "s/Exec=zen_notify.sh -[a-z]$/Exec=zen_notify.sh $_set/" \
-		/home/$USER/.config/autostart/zen_notify.desktop
-		) |zenity --height=100 --title="Zenvidia notification" --question --no-wrap \
-		--icon-name=swiss_knife --text="$vB$(printf "$wrn_notif_01" "$_set" "$_notif")$end" \
+		zenity --height=100 --title="Zenvidia notification" --question --no-wrap \
+		--icon-name=swiss_knife --text="$vB$(printf "$wrn_notif_01" "$_notif")$end" \
 		--cancel-label="$PM"
 		if [ $? = 1 ]; then menu_modif; fi
+		sed -i "s/Exec=zen_notify.sh -[a-z]$/Exec=zen_notify.sh $_set/" $desk_file
 		base_menu
 	}
-	unset setup_list
-	unset setup_option
+	desk_file=/home/$USER/.config/autostart/zen_notify.desktop
+	unset setup_list setup_option c_set_list
 	setup_option=(
-	"$menu_notif_01"
-	"$menu_notif_02"
-	"$menu_notif_03"
+	"$menu_notif_01;$m_notif_01;n"
+	"$menu_notif_02;$m_notif_02;z"
+	"$menu_notif_03;$m_notif_03;a"
 	)
+	if [ $hlp_txt = 1 ]; then
+		hlp_tip="\n$hlp_notif"
+		w_height='--height=350'
+	else
+		hlp_tip=''
+		w_height='--height=300'
+	fi
 	st=1
+	c_set_opt=$(cat $desk_file |grep "Exec"| perl -p -e "s|^.*-+([a-z])|\1|")
 	for n_set in "${setup_option[@]}"; do
+		m_set=$(printf "$n_set"|cut -d';' -f1)
+		c_set=$(printf "$n_set"|cut -d';' -f2)
+		o_set=$(printf "$n_set"|cut -d';' -f3)
 		setup_list+=("false")
 		setup_list+=("$st")
-		setup_list+=("$n_set")
+		setup_list+=("$m_set")
+		if [[ $o_set == $c_set_opt ]]; then c_set_cnf=$c_set; fi
 		st=$[ $st+1 ]
 	done
-	menu_notif=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
-	--title="Zenvidia notification" --text "$rBB$_3g$end" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	menu_notif=$(zenity --width=400 $w_height --list --radiolist --hide-header \
+	--title="Zenvidia notification" \
+	--text "$rBB$_3g$end$vB\n$(printf "$notif_msg" "$c_set_cnf")$hlp_tip$end" \
+	--column "1" --column "2" --column "3" --hide-column=2 \
 	"${setup_list[@]}" false $st "$PM")
 	if [ $? = 1 ]; then base_menu; fi
 	case $menu_notif in
@@ -2601,33 +2651,43 @@ prime_setup(){
 		b_cancel="--cancel-label=$PM"
 		w_type='--question'
 		else
-			b_cancel='--ok-label=OK'
+			b_cancel='--ok-label=Setup'
 			w_type='--info'
 		fi
-		(	for pset in "${_pset[@]}"; do
-				/usr/sbin/nvidia-prime-select $pset
-			done
-		) |zenity --height=100 --title="Zenvidia prime setup" $w_type --no-wrap \
+		zenity --height=100 --title="Zenvidia prime setup" $w_type --no-wrap \
 		--icon-name=swiss_knife --text="$vB$(printf "$wrn_prime_01" "$_prime")$end" \
 		"$b_cancel"
 		if [ $from_menu_install = 0 ]; then
 			if [ $? = 1 ]; then menu_modif; fi
-			base_menu
 		fi
+		for pset in "${_pset[@]}"; do
+			/usr/sbin/nvidia-prime-select $pset
+		done
+		base_menu
 	}
 	unset setup_list setup_option _pset
 	setup_option=(
-	"$menu_prime_01"
-	"$menu_prime_02"
-	"$menu_prime_03"
+	"$menu_prime_01;$m_prime_01;intel;/etc/X11/xinit/xinitrc.d/intel"
+	"$menu_prime_02;$m_prime_02;nvidia;/etc/X11/xinit/xinitrc.d/nvidia"
+	"$menu_prime_03;$m_prime_03;nvidia;/etc/rc.d/rc.nvidia"
 	)
 	pt=1
 	for p_set in "${setup_option[@]}"; do
+		pp_set=$(printf "$p_set"|cut -d';' -f1)
+		pc_set=$(printf "$p_set"|cut -d';' -f3)
+		pc_msg=$(printf "$p_set"|cut -d';' -f2)
+		pc_file=$(printf "$p_set"|cut -d';' -f4)
 		setup_list+=("false")
 		setup_list+=("$pt")
-		setup_list+=("$p_set")
+		setup_list+=("$pp_set")
+		if [ $(ls -1 $pc_file| grep -c "$pc_set" ) -eq 1 ]; then
+			current_set=$pc_msg
+		fi
 		pt=$[ $pt+1 ]
 	done
+	if [ $from_menu_install = 0 ]; then
+		prime_msg="$prime_msg_01\n$(printf "$prime_msg_02" "$current_set")"
+	fi
 	menu_prime=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
 	--title="Zenvidia prime setup" --text "$rBB$_3h$end$v$prime_msg$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
@@ -2974,8 +3034,7 @@ menu_modif(){
 			"5") optimus_source_rebuild ;;
 			"6") fix_broken_install ;;
 			"7") zen_notif_setup ;;
-			"8") prime_msg="$prime_msg_01\n$prime_msg_02"
-			from_menu_install=0; prime_setup ;;
+			"8") from_menu_install=0; prime_setup ;;
 			"$nd") base_menu ;;
 		esac
 	fi
