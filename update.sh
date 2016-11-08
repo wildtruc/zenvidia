@@ -65,17 +65,19 @@ for shell in "${shell_list[@]}"; do
 	d_orig=$(stat -c "%Y" $install_dir/bin/$shell)
 	d_update=$(stat -c "%Y" ./$shell)
 	if [ $d_update -ne $d_orig ]; then
+		printf "\n$xB# New script version >>$xN Updating $shell.\n\n"
 		cp -f ./$shell $install_dir/bin/
 	fi
 done
 #update distro plugins and translations
-up_list=( 'distro' 'translations' )
+up_list=( 'distro' 'translations' 'desktop_files' )
 for up_dir in "${up_list[@]}"; do
 	ls_dir=$(ls -1 $up_dir )
 	for w_dif in $ls_dir; do
 		w_orig=$(stat -c "%Y" $nvdir/$up_dir/$w_dif)
 		w_update=$(stat -c "%Y" ./$up_dir/$w_dif)
 		if [ $w_update -ne $w_orig ]||[ ! -f $nvdir/$up_dir/$w_dif ]; then
+			printf "\n$xB# New $up_dir version >>$xN Updating $w_dif.\n\n"
 			cp -f ./$up_dir/$w_dif $nvdir/$up_dir/
 		fi
 	done

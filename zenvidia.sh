@@ -980,7 +980,10 @@ xorg_conf(){
 		else
 			ELF=''
 		fi
-		printf "Section \"Files\"
+		printf "## xorg conf originaly created by $new_version nvidia installer.
+## Edited automaticaly by Zenvidia > $(date +%D-%T)
+
+Section \"Files\"
 	ModulePath \"$croot/nvidia/xorg/modules\"
 	ModulePath \"/usr/$master$ELF/xorg/modules\"
 EndSection
