@@ -2657,7 +2657,7 @@ prime_setup(){
 			w_type='--info'
 		fi
 		zenity --height=100 --title="Zenvidia prime setup" $w_type --no-wrap \
-		--icon-name=swiss_knife --text="$vB$(printf "$wrn_prime_01" "$_prime")$end" \
+		--icon-name=swiss_knife --text="$vB$(printf "$wrn_prime_01$wrn_prime_02" "$_prime")$end" \
 		"$b_cancel"
 		if [ $from_menu_install = 0 ]; then
 			if [ $? = 1 ]; then menu_modif; fi

@@ -328,7 +328,7 @@ m_prime_01="intel"
 m_prime_02="nvidia"
 m_prime_03="permanent nvidia"
 wrn_prime_01="Prime will be set to $j%s$end."
-wrn_prime_02=""
+wrn_prime_02="\nYou may now restart the user session to take effect."
 
 # warnings and others big text.
 wrn_06c="The backup you are going to restore is the same as the one used by the system.
