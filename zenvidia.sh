@@ -1138,18 +1138,17 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 			cp -f ./xorg.conf.nvidia.$new_version ./xorg.nvidia.conf
 		fi
 	else
-		## TODO > implement xorg diff patch
-		
-		if [ $(diff -q /etc/X11/xorg.conf.nvidia.$new_version /etc/X11/xorg.conf  | grep -c ".*") -eq 0 ]; then
-#			if [ /etc/X11/xorg.conf.nvidia.$old_version ]; then
-#				mv -f /etc/X11/xorg.conf.nvidia.$old_version /etc/X11/xorg.conf.nvidia
-#			fi
-#				
-#			diff -u /etc/X11/xorg.conf.nvidia.$new_version /etc/X11/xorg.conf.nvidia &>/tmp/nv_xorg.diff
-#			patch -stp0 -i tmp/nv_xorg.diff /etc/X11/xorg.conf.nvidia
+		if [ $(diff -q ./xorg.conf.nvidia.$new_version ./xorg.conf  | grep -c ".*") -gt 0 ]; then
+			if [ ! -e ./xorg.conf.nvidia ]; then
+				if [ ./xorg.conf.nvidia.$old_version ]; then
+					mv -f ./xorg.conf.nvidia.$old_version ./xorg.conf.nvidia
+				fi
+			fi
+			diff -u ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia &>/tmp/nv_patch.diff
+			patch -p0 -i /tmp/nv_patch.diff ./xorg.conf.nvidia.$new_version
+			cp -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
 			ln -sf ./xorg.conf.nvidia ./xorg.conf
 		fi
-#		ln -sf ./xorg.conf.nvidia ./xorg.conf
 	fi
 }
 
@@ -2808,10 +2807,10 @@ menu_install(){
 	if [ $hlp_txt = 1 ]; then
 		if [ $install_type = 0 ]; then hlp_tip="\n$hlp_01b"
 		else hlp_tip="\n$hlp_01b\n$hlp_01c"; fi
-		w_height='--height=450'
+		w_height='--height=300'
 	else
 		hlp_tip="\n$hlp_01a"
-		w_height='--height=300'
+		w_height='--height=450'
 	fi
 	if [ $install_type = 0 ]; then
 		install_list=("$_1a" "$_1b")
