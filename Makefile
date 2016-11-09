@@ -37,5 +37,11 @@ safeuninstall:
 	rm -f $(L_DIR)/share/applications/zenvidia.desktop
 	
 update:
+	cp -Rf ./translations $(INSTALL_DIR)/
+	cp -Rf ./distro $(INSTALL_DIR)/
+	cp -f ./README.md $(INSTALL_DIR)/
+	cp -f ./desktop_files/zenvidia.desktop $(L_DIR)/share/applications/
+	cp -f ./swiss_knife.png $(L_DIR)/share/pixmaps/
+	cp -f ./xkill.png $(L_DIR)/share/pixmaps/
 	./update.sh
 
