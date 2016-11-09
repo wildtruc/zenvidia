@@ -70,7 +70,7 @@ for shell in "${shell_list[@]}"; do
 	fi
 done
 #update distro plugins and translations
-up_list=( 'distro' 'translations' 'desktop_files' )
+up_list=( 'distro' 'translations' )
 for up_dir in "${up_list[@]}"; do
 	ls_dir=$(ls -1 $up_dir )
 	for w_dif in $ls_dir; do
