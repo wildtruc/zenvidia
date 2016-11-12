@@ -380,7 +380,8 @@ lab_03_65a="Éditer maintenant"
 lab_03_65b="Éditer plus tard"
 
 ## comment & help texts
-hlp_tip_txt="Les messages d'aides sont actuellement actifs sur \"1\". Vous pouvez les désactiver à tout moment dans le menu$j Outils$end > $j$_3b$end.\n\n"
+hlp_tip_txt="Les messages d'aides sont actuellement actifs sur \"1\".
+Vous pouvez les désactiver à tout moment dans le menu\n$j Outils$end > $j$_3b$end.\n\n"
 hlp_01a="$vB\Sélectionnez ici le type d'installation$end"
 hlp_01b="$hlp_01a:
 - $vB$_1a$end:\n\tInstaller un nouveau pilote depuis un répertoire personnel
@@ -394,56 +395,41 @@ hlp_01c="- $vB$_1c$end:\n\tTélécharger et installer les sources Git d'Optimus
 
 hlp_02A="$vB\Sélectionnez ici les éléments à mettre à jour$end"
 hlp_02B="$hlp_02A:
-- $vB$_2e$end:\n
-\tVérification des mise à jour pilote, téléchargement et installation.
+- $vB$_2e$end:\n\tVérification des mise à jour pilote, téléchargement et installation.
 \tVous pouvez choisir ici si vous voulez télécharger uniquement ou
 \tinstaller directement après le téléchargement."
-hlp_02a="- $vB$_2a (dkms)$end:\n
-\tCommande optionnelle pour installer les modules DKMS
+hlp_02a="- $vB$_2a (dkms)$end:\n\tCommande optionnelle pour installer les modules DKMS
 \tpour un nouveau noyau déjà actif.
-- $vB$_2a (force)$end:\n
-\tCommande optionnelle pour forcer l'installation du pilote depuis les
+- $vB$_2a (force)$end:\n\tCommande optionnelle pour forcer l'installation du pilote depuis les
 \tsources pour un nouveau noyau déjà actif en cas d'échec de DKMS.
-- $vB$_2b (dkms)$end:\n
-\tCommande optionnelle pour installer les modules DKMS Nvidia
+- $vB$_2b (dkms)$end:\n\tCommande optionnelle pour installer les modules DKMS Nvidia
 \tpour un autre noyau existant."
-hlp_02b="- $vB$_2a$end:\n
-\tCommande optionnelle pour installer les modules Nvidia
+hlp_02b="- $vB$_2a$end:\n\tCommande optionnelle pour installer les modules Nvidia
 \tpour une nouveau noyau déjà actif.
 - $vB$_2b$end:\n\tCommande optionnelle pour installer les modules Nvidia
 \tpour un autre noyau déjà existant."
-hlp_02c="- $vB$_2f$end:\n
-\tVérifier les mises à jour de Zenvidia depuis le repos GIT."
-hlp_02d="- $vB$_2c$end:\n
-\tVérifier les mises à jour de Bumblebee depuis le repos GIT.
+hlp_02c="- $vB$_2f$end:\n\tVérifier les mises à jour de Zenvidia depuis le repos GIT."
+hlp_02d="- $vB$_2c$end:\n\tVérifier les mises à jour de Bumblebee depuis le repos GIT.
 - $vB$_2d$end:\n
 \tVérifier les mises à jour de Prime depuis le repos GIT."
 
 hlp_03a="$vB\Sélectionnez ici les éléments à modifier ou éditer$end"
 hlp_03b="$hlp_03a:
-- $vB$_3a$end:\n
-\tÉditer la configuration courante du fichier xorg dans /etc/X11.
-- $vB$_3b$end:\n
-\tÉditer le fichier de conf basique utilisateur de Zenvidia.
-- $vB$_3c$end:\n
-\tDémarrer l'outil Nvidia-setting, particulièrement pour Bumblebee,
+- $vB$_3a$end:\n\tÉditer la configuration courante du fichier xorg dans /etc/X11.
+- $vB$_3b$end:\n\tÉditer le fichier de conf basique utilisateur de Zenvidia.
+- $vB$_3c$end:\n\tDémarrer l'outil Nvidia-setting, particulièrement pour Bumblebee,
 \tfonctionne aussi pour Prime et GPU unique.
-- $vB$_3d$end:\n
-\tCet outil permet de sauvegarder, restaurer ou effacer les installations
+- $vB$_3d$end:\n\tCet outil permet de sauvegarder, restaurer ou effacer les installations
 \tanciennes ou courantes des pilotes. Il gère aussi les paquets .run téléchargés.
 \tNotez que si une ancienne installation est détectée durant une mise à jour
 \telle sera automatiquement sauvegardée avant la procédure d'installation.
-- $vB$_3e$end:\n
-\tCet outil construit ou reconstruit séparément les source GIT installées.
+- $vB$_3e$end:\n\tCet outil construit ou reconstruit séparément les source GIT installées.
 \tCela aide dans le cas d'une fresh install ou une mise à niveau, ou dans
 \tle cas d'une perte inattendue des sources déja installées et compilées.
-- $vB$_3f$end:\n
-\tCet outil répare une distro nouvelle ou mise à niveau en recontruisant
+- $vB$_3f$end:\n\tCet outil répare une distro nouvelle ou mise à niveau en recontruisant
 \tles liens et les configurations fatalement perdues durant le processus.
-- $vB$_3g$end:\n
-\tOutil de configuration de script de contrôle de mise à jour Zen_notify."
-hlp_03c="- $vB$_3h$end:\n
-\tOutil de configuration pour le sélecteur d'affichage de Prime."
+- $vB$_3g$end:\n\tOutil de configuration de script de contrôle de mise à jour Zen_notify."
+hlp_03c="- $vB$_3h$end:\n\tOutil de configuration pour le sélecteur d'affichage de Prime."
 
 hlp_04a="$vB\Check GLX test and README file from Nvidia or Zenvidia$end"
 hlp_04b="$hlp_04a:
