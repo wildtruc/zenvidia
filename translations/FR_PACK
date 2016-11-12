@@ -34,7 +34,9 @@ _3b="Éditer le fichier de configuration" # G6
 _3c="Nvidia Settings" # G8
 _3d="Gérer les paquets" # G9
 _3e="Compiler/Recompiler" # G10
-#G7="Gérer" # G7
+_3f="Réparation d'installation cassée"
+_3g="Configuration des notifications"
+_3h="Configuration de Prime"
 ## menu manage
 _4a="Test GLX" # G15
 _4b="Manuel" # G16
@@ -63,6 +65,9 @@ ansNA="AUCUNE"
 ansCF="Confirmer l'action."
 ansWN="Que voulez-vous faire ?" # *
 
+### NETWORK CONTROL
+msg205="Contrôle de la connexion réseau" # 205
+
 ### FIRST START
 msg_00_01="DRIVER BIDOUILLEUR PRO" # 701*
 msg_00_02="Système :" # 706*
@@ -70,6 +75,7 @@ msg_00_04="Carte" # 708*
 msg_00_06="Les répertoires sont présents." # 710
 msg_00_07="Le répertoire NVIDIA n'existe pas" # 711*
 msg_00_08="Choisissez en emplacement (préférer /usr/local/)" # 712*
+
 # connection_control
 msg_00_10="Contrôle de la connexion" # 205
 msg_00_11="Aucune connexion internet détectée.\nUne connexion valide est nécessaire\npour tout téléchargement." # 106
@@ -292,7 +298,33 @@ w_03="terminé"
 ## update notification
 msg_driver="est sorti. VIIITE"
 msg_git="un mise à jour GIT est sortie"
- 
+
+# zen_notif_setup
+notif_msg="La notification est actuellement active sur:\n> $j%s$end"
+menu_notif_01="Vérifier les mise à jours pilote uniquement"
+menu_notif_02="Vérifier les mises à jours zenvidia et pilote"
+menu_notif_03="Tout vérifier (driver, zenvidia, git repos)"
+m_notif_01="contôle du pilote uniquement"
+m_notif_02="contrôle pilote et zenvidia"
+m_notif_03="tout (pilote, zenvidia, toutes les sources git)"
+wrn_notif_01="Le lanceur Autostart est activé sur $j%s$end."
+
+# prime_setup
+prime_msg_01="\n$vB\Sélectionnez la fonction Prime que vous désirez employer$end:"
+prime_msg_02="La fonction par défaut est actuellement active sur $j%s$end."
+prime_msg_03="\tLa fonction par défaut est désormais active pour Nvidia uniquement.
+\tVous pouvez laisser tel quel, la changer, ou le faire plus tard
+\tavec le menu$j Outils$end > $j$_3h$end"
+menu_prime_01="Prime avtivé pour Intel seulement"
+menu_prime_02="Prime activé pour Nvidia seulement"
+menu_prime_03="Prime activé pour Nvidia uniquement"
+m_prime_01="intel"
+m_prime_02="nvidia"
+m_prime_03="nvidia uniquement"
+wrn_prime_01="Prime va ête activé pour $j%s$end."
+wrn_prime_02="\nVous devriez redémarrer votre session utilisateur\npour que les changement prennent effet."
+
+# warnings and others big text.
 wrn_06c="La sauvergarde que vous êtes sur le point de restorer est la même qu'utilisé par le système.
 LibGL crashe le serveur X lorsque chargée et utilisé par l'affichage quand elle est écrasée.\n
 Pour prévenir de toute perte de données lors de la copie et autres affreux désagréments,
@@ -305,4 +337,120 @@ lab_06f="Oui, je comprends mon erreur"
 wrn_06a="le paquet $j%s$end est le même qu'utilisé par le système. Si vous en avez à nouveau besoin, peut importe la raison,
 vous pouvez toujours le re-télécharger à partir de l'outil $j$_2e$end depuis le menu $j$_02$end."
 inf_06a="$j%s$end.run effacé."
+wrn_03e="$j%s$end n'est pas actuellement présent sur votre système.
+Aller à $j$_1c$end pour ce faire."
+lab_03e="Noté !"
+wrn_02_25="Votre matériel n'est pas activé ou comptatible avec Optimus,
+$j\Bumblebee$end ne peut pas être installé pour le moment."
+wrn_opti_01="%s ne semble être installé ou est activé pour %s.
+Si vous souhaitez l'isntaller, activez$vB use_bumblebee$end à$vB %s$end dans la la config et retourner au menu $vB\Installer$end."
+wrn_opti_02="Il n'y pas de source ou d'élément succeptible d'être contrôlé.
+Si vous pensez que votre matériel est comptatible aevc$vB Optimus$end, allez au menu $vB\Installer$end."
+wrn_opti_0=""
 
+## reports
+val_04_P="passé"
+val_04_S="succès"
+val_04_A="abandonné"
+val_04_N="sans effet"
+m_04_01="Version précédente"
+m_04_01a="précédemment sauvergardé"
+m_04_01b="procédure de sauvergarde normale"
+m_04_01c="rien à faire"
+m_04_02="Nvidia-installer"
+m_04_02a="AVERTISSEMENT sur lien manquant /usr/lib(32/64)/LibGL.so"
+m_04_02b="ERREUR n'a pas pu décharger nvidia-drm"
+m_04_02c="AVERTISSEMENT fichiers de développement libglvnd manquant."
+#m_04_02c="copied to $install_dir/bin"
+m_04_03="Installation des librairies"
+m_04_03a="procédure d'installation normale"
+m_04_04="Installation des modules"
+m_04_04a="procédure de contournement"
+m_04_05="Optimus"
+m_04_05a="Prime"
+m_04_05b="Bumblebee"
+m_04_05c="est activé sur"
+m_04_0=""
+tit_03_65="Rapport d'installation"
+rep_03_65="Félicitation!Le pilote $j %s$end est maintenant installé avec succès.\n
+Vous devriez maintenant configurer le fichier$j xorg.conf$end pour aller avec votre
+affichage actuel avant de redémarrer votre ordinateur avec ses nouveaux pilotes.
+Vous pouvez aussi le faire plus tard, mais ce n'est pas vraiment recommandé.\n"
+lab_03_65a="Éditer maintenant"
+lab_03_65b="Éditer plus tard"
+
+## comment & help texts
+hlp_tip_txt="Les messages d'aides sont actuellement actifs sur \"1\". Vous pouvez les désactiver à tout moment dans le menu$j Outils$end > $j$_3b$end.\n\n"
+hlp_01a="$vB\Sélectionnez ici le type d'installation$end"
+hlp_01b="$hlp_01a:
+- $vB$_1a$end:\n\tInstaller un nouveau pilote depuis un répertoire personnel
+\tou déjà téléchargé avec zenvidia depuis une liste 
+- $vB$_1b$end:\n\tInstaller un pilote directement téléchargé depuis le serveur ftp de Nvidia."
+hlp_01c="- $vB$_1c$end:\n\tTélécharger et installer les sources Git d'Optimus
+\tsi votre matériel est une carte graphique dédiée Optimus."
+#- $v$_1d$end:\n\tRemove and purge the default nvidia drivers.
+#\tIt will erase completly the current Zenvidia driver install
+#\tand reset all to default (nouveau basic drivers)."
+
+hlp_02A="$vB\Sélectionnez ici les éléments à mettre à jour$end"
+hlp_02B="$hlp_02A:
+- $vB$_2e$end:\n
+\tVérification des mise à jour pilote, téléchargement et installation.
+\tVous pouvez choisir ici si vous voulez télécharger uniquement ou
+\tinstaller directement après le téléchargement."
+hlp_02a="- $vB$_2a (dkms)$end:\n
+\tCommande optionnelle pour installer les modules DKMS
+\tpour un nouveau noyau déjà actif.
+- $vB$_2a (force)$end:\n
+\tCommande optionnelle pour forcer l'installation du pilote depuis les
+\tsources pour un nouveau noyau déjà actif en cas d'échec de DKMS.
+- $vB$_2b (dkms)$end:\n
+\tCommande optionnelle pour installer les modules DKMS Nvidia
+\tpour un autre noyau existant."
+hlp_02b="- $vB$_2a$end:\n
+\tCommande optionnelle pour installer les modules Nvidia
+\tpour une nouveau noyau déjà actif.
+- $vB$_2b$end:\n\tCommande optionnelle pour installer les modules Nvidia
+\tpour un autre noyau déjà existant."
+hlp_02c="- $vB$_2f$end:\n
+\tVérifier les mises à jour de Zenvidia depuis le repos GIT."
+hlp_02d="- $vB$_2c$end:\n
+\tVérifier les mises à jour de Bumblebee depuis le repos GIT.
+- $vB$_2d$end:\n
+\tVérifier les mises à jour de Prime depuis le repos GIT."
+
+hlp_03a="$vB\Sélectionnez ici les éléments à modifier ou éditer$end"
+hlp_03b="$hlp_03a:
+- $vB$_3a$end:\n
+\tÉditer la configuration courante du fichier xorg dans /etc/X11.
+- $vB$_3b$end:\n
+\tÉditer le fichier de conf basique utilisateur de Zenvidia.
+- $vB$_3c$end:\n
+\tDémarrer l'outil Nvidia-setting, particulièrement pour Bumblebee,
+\tfonctionne aussi pour Prime et GPU unique.
+- $vB$_3d$end:\n
+\tCet outil permet de sauvegarder, restaurer ou effacer les installations
+\tanciennes ou courantes des pilotes. Il gère aussi les paquets .run téléchargés.
+\tNotez que si une ancienne installation est détectée durant une mise à jour
+\telle sera automatiquement sauvegardée avant la procédure d'installation.
+- $vB$_3e$end:\n
+\tCet outil construit ou reconstruit séparément les source GIT installées.
+\tCela aide dans le cas d'une fresh install ou une mise à niveau, ou dans
+\tle cas d'une perte inattendue des sources déja installées et compilées.
+- $vB$_3f$end:\n
+\tCet outil répare une distro nouvelle ou mise à niveau en recontruisant
+\tles liens et les configurations fatalement perdues durant le processus.
+- $vB$_3g$end:\n
+\tOutil de configuration de script de contrôle de mise à jour Zen_notify."
+hlp_03c="- $vB$_3h$end:\n
+\tOutil de configuration pour le sélecteur d'affichage de Prime."
+
+hlp_04a="$vB\Check GLX test and README file from Nvidia or Zenvidia$end"
+hlp_04b="$hlp_04a:
+- $vB$_4a$end:\n\tTestez l'installation de votre pilote avec glxgears or glxspheres.
+- $vB$_4b$end:\n\tLisez le fichier d'aide Nvidia courant.
+- $vB$_4c$end:\n\tLisez le fichier changelog Nvidia courant.
+- $vB$_4d$end:\n\tLisez le fichier README de Zenvidia."
+#"- $vB$end:\n\t
+#- $vB$end:\n\t"
+hlp_notif="Vous pouvez laisser tel quel ou choisir entre\nl'une des options ci-dessous."

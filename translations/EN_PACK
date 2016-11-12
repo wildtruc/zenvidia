@@ -1,6 +1,6 @@
 #! /bin/bash
 
-E=" Download"
+E="Download"
 PM="Back to previous menu"
 MM="Back to main menu"
 I="Quit"
@@ -328,7 +328,7 @@ m_prime_01="intel"
 m_prime_02="nvidia"
 m_prime_03="permanent nvidia"
 wrn_prime_01="Prime will be set to $j%s$end."
-wrn_prime_02="\nYou may now restart the user session to take effect."
+wrn_prime_02="\nYou may restart the user session to take effect."
 
 # warnings and others big text.
 wrn_06c="The backup you are going to restore is the same as the one used by the system.
@@ -401,7 +401,7 @@ hlp_01c="- $vB$_1c$end:\n\tDownload and install the Optimus GIT source
 
 hlp_02A="$vB\Select here the element to update$end"
 hlp_02B="$hlp_02A:
-- $vB$_2e$end:\n\tDriver update check download and install.
+- $vB$_2e$end:\n\tDriver update check, download and install.
 \tyou could choose here if you want to download update only
 \tor install it directly after download end."
 hlp_02a="- $vB$_2a (dkms)$end:\n\tOptional command to install nvidia dkms modules
@@ -421,7 +421,7 @@ hlp_02d="- $vB$_2c$end:\n\tCheck and install new version of Bumblebee from GIT r
 hlp_03a="$vB\Select here the element to modify or edit$end"
 hlp_03b="$hlp_03a:
 - $vB$_3a$end:\n\tEdit the current xorg configuration file in /etc/X11.
-- $vB$_3b$end:\n\tEdit Zenvidia basic user script to set or unset mostly everything.
+- $vB$_3b$end:\n\tEdit Zenvidia basic user conf script to set or unset mostly everything.
 - $vB$_3c$end:\n\tStart Nvidia-setting tools, especially for Bumblebee,
 \tbut working also for default single GPU or Prime.
 - $vB$_3d$end:\n\tThis tool is to backup, restore and remove old or current driver install.
