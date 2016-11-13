@@ -3082,10 +3082,10 @@ base_menu(){
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$rBB$msg_00_01$end
-$v\n$msg_00_02$end\t\t $j$DISTRO$end
-$v$msg_0_00$end\t\t $j$ARCH$end
+$v\n$msg_00_02$end $j$DISTRO$end
+$v$msg_0_00$end $j$ARCH$end
 $devices 
-$v$msg_0_01$end\t $j$version$end
+$v$msg_0_01$end $j$version$end
 $v$msg_0_02$end\t\t $j$KERNEL$end
 $v$msg_0_03$end\t\t $j$GCC$end
 $v$msg_0_04$end\t $j$NV_bin_ver$end\n
