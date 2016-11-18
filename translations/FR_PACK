@@ -380,7 +380,7 @@ lab_03_65a="Éditer maintenant"
 lab_03_65b="Éditer plus tard"
 
 ## comment & help texts
-hlp_tip_txt="Les messages d'aides sont actuellement actifs sur \"1\".
+hlp_tip_txt="Les messages d'aides sont actuellement actifs.
 Vous pouvez les désactiver à tout moment dans le menu$j\nOutils$end > $j$_3b$end.\n\n"
 hlp_01a="$vB\Sélectionnez ici le type d'installation$end"
 hlp_01b="$hlp_01a:

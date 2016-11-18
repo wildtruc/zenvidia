@@ -386,7 +386,7 @@ lab_03_65a="edit now"
 lab_03_65b="edit later"
 
 ## comment & help texts
-hlp_tip_txt="Help tips text is currently set to \"1\". You can unset it at any
+hlp_tip_txt="Help tips text is currently set. You can unset it at any
 moment in$j Tools$end menu >$j Edit script config$end.\n\n"
 hlp_01a="$vB\Select here the install type$end"
 hlp_01b="$hlp_01a:
