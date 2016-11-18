@@ -163,13 +163,15 @@ root_id(){
 			if [ $dist_type = 0 ]; then
 				if  [ $su_set = 1 ]; then
 					$p_gksu $0
+					exit 0
 				else
-					sed -i "s/su_set=[0-9]/su_set=1/" $plug_version
+					zenity --password --title="Zenvidia first start SuperUser password"| $SU_r $0
+					exit 0
 				fi
 			else
 	#			zenity --password --text="$v\Enter SuperUser password$end"| $SU_r /$EXEC$0
 				zenity --password --title="Zenvidia (SuperUser password)"| $SU_r $0
-			exit 0
+				exit 0
 			fi
 		else
 			zenity --width=450 --error --text="$v SORRY, CAN'T IDENTIFY DISTRO.\nPROMPT DIRECTLY AS SU\nAND TYPE $J sudo $(basename $0)$end$v FOR DEBIAN LIKE,\nOR$j su -c $(basename $0)$end$v FOR OTHER DISTRO.$end"
@@ -184,6 +186,11 @@ root_id(){
 				fi
 			fi
 		}
+		if [ $su_set = 0 ]; then
+			if [ -s $conf_dir/distro/$plug_version ]; then
+				sed -i "s/su_set=[0-9]/su_set=1/" $conf_dir/distro/$plug_version
+			fi
+		fi
 	fi
 }
 
