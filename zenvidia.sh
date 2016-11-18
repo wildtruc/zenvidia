@@ -186,7 +186,7 @@ root_id(){
 				fi
 			fi
 		}
-		if [ $su_set = 0 ]; then
+		if [ $su_set ]&&[ $su_set = 0 ]; then
 			if [ -s $conf_dir/distro/$plug_version ]; then
 				sed -i "s/su_set=[0-9]/su_set=1/" $conf_dir/distro/$plug_version
 			fi
