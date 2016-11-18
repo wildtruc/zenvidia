@@ -132,7 +132,7 @@ ID(){
 distro_id(){
 	unset distro_list
 	if [ -f /proc/version ] ; then
-		distro_list=( Ubuntu Debian 'Fedora' 'Red\ Hat' Mandriva mageia )
+		distro_list=( 'Ubuntu' 'Debian' 'Fedora' 'Red\ Hat' 'Mandriva' 'mageia' )
 		for distro in "${distro_list[@]}" ; do
 			proc_version=$(cat /proc/version | grep -c "$distro")
 			if [ $proc_version -gt 0 ] ; then
@@ -146,14 +146,31 @@ distro_id(){
 		done
 	fi
 }
+distro(){
+	if [ -s $conf_dir/distro/$plug_version ]; then
+		. $conf_dir/distro/$plug_version
+	else
+		zenity --width=250 --error --text="$j$msg_00_12$end\n$v(gcc,lftp,dkms,xterm)$end"
+		exit 0
+	fi
+}
 root_id(){
 	distro_id
 	distro
 	if [[ $EUID -gt 0 ]] ; then
 		if [ -f /proc/version ] ; then
-#			zenity --password --text="$v\Enter SuperUser password$end"| $SU_r /$EXEC$0
-			zenity --password --title="Zenvidia (SuperUser password)"| $SU_r $0
+			# if distro type is debian like, zenity password entry box is replace by gksu.
+			if [ $dist_type = 0 ]; then
+				if  [ $su_set = 1 ]; then
+					$p_gksu $0
+				else
+					sed -i "s/su_set=[0-9]/su_set=1/" $plug_version
+				fi
+			else
+	#			zenity --password --text="$v\Enter SuperUser password$end"| $SU_r /$EXEC$0
+				zenity --password --title="Zenvidia (SuperUser password)"| $SU_r $0
 			exit 0
+			fi
 		else
 			zenity --width=450 --error --text="$v SORRY, CAN'T IDENTIFY DISTRO.\nPROMPT DIRECTLY AS SU\nAND TYPE $J sudo $(basename $0)$end$v FOR DEBIAN LIKE,\nOR$j su -c $(basename $0)$end$v FOR OTHER DISTRO.$end"
 			exit 0
@@ -189,15 +206,6 @@ else
 	RUN_PCK="pkg1"
 fi
 }
-## TODO : system distro --> need progress
-distro(){
-	if [ -s $conf_dir/distro/$plug_version ]; then
-		. $conf_dir/distro/$plug_version
-	else
-		zenity --width=250 --error --text="$j$msg_00_12$end\n$v(gcc,lftp,dkms,xterm)$end"
-		exit 0
-	fi
-}
 efi_warnings(){
 	zenity --width=450 --title="Zenvidia" --question \
 	--text="$vB\THE SYSTEM IS BOOTING OVER UEFI FILE SYSTEM$end
@@ -220,6 +228,9 @@ dep_control(){
 	[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
 	[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
 	[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
+	if [ $dist_type = 0 ]; then
+		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
+	fi
 #	if [[ $(echo "${deplist[*]}") != '' ]] ; then
 	if [[ "${deplist[*]}" ]] ; then
 		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
@@ -552,7 +563,7 @@ Bumblebee_build(){
 primus_build(){
 	if [ -d $local_src/primus ]; then
 		# fix missing libX11.so link in lib32 if not present
-		if [ $dist_type = 2 ]; then
+		if [ $libx_fix = 1 ]; then
 			[ -h /usr/$master$ELF_32/libX11.so ]|| \
 			( cd /usr/$master$ELF_32; ln -sf ./libX11.so.6 ./libX11.so )
 		fi
@@ -3078,6 +3089,8 @@ base_menu(){
 		echo -e "$v$msg_00_04 $[${dev_n[$e]}+1] :$end\t\t $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end"
 	done
 	)
+	# remove deplist list in case of relaunching first because an update asking to
+	unset deplist
 	w_height=550
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
