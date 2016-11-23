@@ -230,11 +230,13 @@ dep_control(){
 	[ -x /usr/bin/wget ]|| deplist+=("$p_wget")
 	[ -x /usr/bin/git ]|| deplist+=("$p_git")
 	[ -x /usr/sbin/dkms ]|| deplist+=("$p_dkms")
-	[ -d $kernel_src ]|| deplist+=("$p_kernel")
-	[ -e /usr/include/ncurses/ncurses.h ]|| deplist+=("$p_ncurses")
-	[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
-	[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
-	[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
+	if [ $dist_type -le 1 ]; then
+		[ -d $kernel_src ]|| deplist+=("$p_kernel")
+		[ -e /usr/include/ncurses/ncurses.h ]|| deplist+=("$p_ncurses")
+		[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
+		[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
+		[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
+	if
 	if [ $dist_type = 0 ]; then
 		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
 	fi
@@ -243,7 +245,7 @@ dep_control(){
 		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
 		if [ $? = 0 ]; then
 			( 
-			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; 				printf \"$esc_message\"; sleep $xt_delay"
+			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; printf \"$esc_message\"; sleep $xt_delay"
 			) | zenity --progress --pulsate --auto-close --text="Installing missing dependencies..."
 		else
 			exit 0
@@ -379,7 +381,7 @@ local_src_ctrl(){
 				build_all
 			fi
 			## Bumblebee report
-			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S$end\t\t> $m_04_05c $m_04_05b\n")
+			report_log+=("$vB$m_04_05:$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Bumblebee" "Prime" "1")"
@@ -397,10 +399,12 @@ optimus_dependencies_ctrl(){ #
 #	xt_list(){
 	[ -x /usr/bin/git ]|| pkg_list+=("$p_git")
 	[ -e /usr/bin/autoconf ]|| pkg_list+=("$p_autoconf")
-	[ -e /usr/include/glib-2*/glib.h ]|| pkg_list+=("$p_glib2")
 	[ -e /usr/include/gnu/stubs-32.h ]|| pkg_list+=("$p_glibc")
-	[ -e /usr/include/bsd/bsd.h ]|| pkg_list+=("$p_libbsd")
-	[ -e /usr/include/X11/X.h ]|| pkg_list+=("$p_libX11")
+	if [ $dist_type -le 1 ]; then
+		[ -e /usr/include/glib-2*/glib.h ]|| pkg_list+=("$p_glib2")
+		[ -e /usr/include/bsd/bsd.h ]|| pkg_list+=("$p_libbsd")
+		[ -e /usr/include/X11/X.h ]|| pkg_list+=("$p_libX11")
+	fi
 #	[ -e /usr/sbin/dkms ]|| pkg_list+=("$p_dkms")
 #	}
 #	xt_sub(){
@@ -548,7 +552,7 @@ Bumblebee_build(){
 		groupadd bumblebee
 		usermod -a -G bumblebee $USER
 	fi
-	if [ $sys_old = 1]; then
+	if [ $sys_old = 1 ]; then
 		if [[ $($sys_c bumblebeed status | grep -o "inactive") != '' ]]; then
 			echo "# Optimus : Enable bumblebee$sys_c_ext at boot start."; sleep 1
 			$sys_c enable bumblebeed$sys_c_ext
@@ -820,7 +824,7 @@ prime_src_ctrl(){
 				prime_build
 			fi
 			## Prime report
-			report_log+=("$vB$m_04_05:$end\t\t$gB $val_04_S$end\t\t> $m_04_05c $m_04_05a\n")
+			report_log+=("$vB$m_04_05:$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Prime" "Bumblebee" "use_bumblebee")"
@@ -1409,7 +1413,7 @@ nv_cmd_install_driver(){
 						nv_cmd_dkms_conf
 					fi
 					version=$new_version
-					REPORT='DKMS'
+					REPORT='DKMS '
 					# Compil and install DKMS modules				
 					nv_build_dkms
 					# In case of modules compil errors, force it from source
@@ -1422,7 +1426,7 @@ nv_cmd_install_driver(){
 			fi
 			if [ $use_dkms = 0 ]; then
 				echo "# Nvidia MODULES compilation..."; sleep 1 
-				REPORT='SOURCE'
+				REPORT='SOURCE '
 				nv_cmd_make_src
 			fi
 		fi
@@ -1437,8 +1441,7 @@ nv_cmd_install_driver(){
 	#		if [ ]
 		echo "# DRIVER ALREADY INSTALL, SKIPING THIS STEP."; sleep 2
 	fi
-	export -p REPORT
-#	if [ $driver_level -ge 355 ]; then
+	#	if [ $driver_level -ge 355 ]; then
 #		$nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-modprobe -u -m
 #	else
 #		$nvtmp/NVIDIA-Linux-$ARCH-$new_version/nvidia-modprobe -u
@@ -1456,7 +1459,7 @@ nv_cmd_update(){
 #	if [ ! -s $kernel_path/nvidia.ko ]|| \
 	if [[ $($d_modinfo -F version nvidia) != $version ]]; then
 		if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
-			report_log+=("$vB\Nvidia-installer:$end\t$rB abort$end\t\t> ERROR couldn't unload nvidia-drm\n")
+			report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
 		fi
 		if [ $use_dkms = 1 ]; then
 			force=0	
@@ -1661,12 +1664,12 @@ install_drv(){
 			bak_version=$old_version
 			backup_old_version
 			if [ -d $nvbackup/nvidia.$bak_version ]; then
-			report_log+=("$vB$m_04_01:$end\t$gB $val_04_P$end\t\t> $m_04_01a\n")
+			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n")
 			else
-			report_log+=("$vB$bak_version backup:$end\t$gB $val_04_S$end\t\t> $m_04_01b\n")
+			report_log+=("$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n")
 			fi
 		else
-			report_log+=("$vB$m_04_01:$end\t$gB $val_04_P$end\t\t> $m_04_01c\n")
+			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01c\n")
 		fi
 		# making installation directories in case installer doesn't find them
 		[ -d $croot_64 ] || ( mkdir -p $croot_32 $croot_64 $xorg_dir )	
@@ -1691,9 +1694,9 @@ install_drv(){
 		## report nvidia installer warning message
 		if [ $(cat $lib_logfile| grep -c "WARNING") -gt 0 ]; then
 			if [ $(cat $lib_logfile| grep "WARNING"| grep -c "libGL.so") -gt 0 ]; then
-				report_log+=("$vB$m_04_02:$end\t$jB $val_04_N$end\t> $m_04_02a\n")
+				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02a\n")
 			elif [ $(cat $lib_logfile| grep "WARNING"| grep -c "libglvnd") -gt 0 ]; then
-				report_log+=("$vB$m_04_02:$end\t$jB $val_04_N$end\t> $m_04_02c\n")
+				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02c\n")
 			fi
 		fi
 		## control if libraries are properly installed
@@ -1703,7 +1706,7 @@ install_drv(){
 			--text="$vB\LIBS INSTALL CONTROL RETURN ERRORS.$end$v.\nCheck $lib_logfile for more details.$end"
 			if [ $? = 0 ]; then base_menu; fi
 		else
-			report_log+=("$vB$m_04_03:$end\t$gB $val_04_S$end\t\t> $m_04_03a\n")
+			report_log+=("$vB$m_04_03$end$gB $val_04_S$end> $m_04_03a\n")
 		fi
 
 		# nv_cmd processes (install without X crash )
@@ -1727,9 +1730,9 @@ install_drv(){
 					if [ $? = 1 ]; then base_menu; fi
 				else
 					if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
-						report_log+=("$vB$m_04_02:$end\t$rB $val_04_A$end\t\t> $m_04_02b\n")
+						report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
 					fi
-					report_log+=("$vB$m_04_04:$end\t$gB $val_04_S$end\t\t> $REPORT $m_04_04a\n")
+					report_log+=("$vB$m_04_04$end$gB $val_04_S$end> $m_04_04a\n")
 				fi
 			fi
 		fi
@@ -1742,7 +1745,7 @@ install_drv(){
 			echo "# Backup new Nvidia-Installer to $nvdir"; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 			cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer $nvdir
-#			report_log+=("$vB$m_04_02:$end\t$gB $val_04_S$end\t\t> $m_04_04c\n")
+#			report_log+=("$vB$m_04_02$end$gB $val_04_S$end> $m_04_04c\n")
 			sleep 1
 		else
 			zenity --width=450 --title="Zenvidia" --error --no-wrap \
@@ -1780,7 +1783,7 @@ install_drv(){
 			echo "# nv-update-$new_version already present in path, skip."; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 		fi
-		printf "${report_log[*]}\n"
+#		printf "${report_log[*]}\n"
 		# if all went fine, process to post install system conf.
 		post_install
 		echo "100"; sleep 2
@@ -2264,7 +2267,7 @@ last_pack(){
     # picked up & inspired by winetricks download progress commande:
     # Parse a percentage, a size, and a time into $1, $2 and $3
     # then use them to create the output line.
-   	perl -p -e "$| = 1; s|^.* +([0-9]+%) +([0-9,.]+[GMKB]) +([0-9hms,.]+).*$|\1\n# $run_pack\t(\1): $m_01_54 \3\t\t\2\/s|"
+   	perl -p -e "$| = 1; s|^.* +([0-9]+%) +([0-9,.]+[GMKB]) +([0-9hms,.]+).*$|\1\n# $run_pack\t(\1): $m_01_54 \3\t\2\/s|"
 	}
 	download_cmd(){
 		wget -c ftp://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $nvupdate/ 2>&1

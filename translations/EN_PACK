@@ -355,33 +355,33 @@ If you think your hardware is$vB Optimus$end compatible, go to $vB\Install$end m
 wrn_opti_0=""
 
 ## reports
-val_04_P="passed"
-val_04_S="success"
-val_04_A="aborted"
-val_04_N="no effect"
-m_04_01="Previous version"
+val_04_P="passed\t\t"
+val_04_S="success\t\t"
+val_04_A="aborted\t\t"
+val_04_N="no effect\t"
+m_04_01="Previous version:\t"
 m_04_01a="previously backed up"
 m_04_01b="normal backup process"
 m_04_01c="nothing to do"
-m_04_02="Nvidia-installer"
+m_04_02="Nvidia-installer:\t"
 m_04_02a="WARNING on missing /usr/lib(32/64)/LibGL.so link"
 m_04_02b="ERROR couldn't unload nvidia-drm"
 m_04_02c="WARNING missing libglvnd developpement files."
 #m_04_02c="copied to $install_dir/bin"
-m_04_03="Libraries install"
+m_04_03="Libraries install:\t"
 m_04_03a="normal install process"
-m_04_04="Modules install"
-m_04_04a="work-around process"
-m_04_05="Optimus"
+m_04_04="Modules install:\t"
+m_04_04a="Compilation work-around process"
+m_04_05="Optimus:\t\t"
 m_04_05a="Prime"
 m_04_05b="Bumblebee"
 m_04_05c="is set to"
-m_04_0=""
+m_04_06="backup:\t"
 tit_03_65="Install Report"
 rep_03_65="Congratulations!$j %s$end driver is now succefully installed.\n
-You may now configure your$j xorg.conf$end file to fit with your default display before 
-restarting your computer with newly installed drivers.
-You may also do it later, if you like, but it's not really recommanded.\n"
+You may now configure your$j xorg.conf$end file to fit with your current default display 
+before restarting your computer with the new installed drivers.
+You may also do it later if you like, but it's not really recommanded.\n"
 lab_03_65a="edit now"
 lab_03_65b="edit later"
 

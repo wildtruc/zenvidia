@@ -349,32 +349,32 @@ Si vous pensez que votre matériel est comptatible aevc$vB Optimus$end, allez au
 wrn_opti_0=""
 
 ## reports
-val_04_P="passé"
-val_04_S="succès"
-val_04_A="abandonné"
-val_04_N="sans effet"
-m_04_01="Version précédente"
+val_04_P="passé\t\t"
+val_04_S="succès\t\t"
+val_04_A="abandonné\t"
+val_04_N="sans effet\t"
+m_04_01="Version précédente:\t"
 m_04_01a="précédemment sauvergardé"
 m_04_01b="procédure de sauvergarde normale"
 m_04_01c="rien à faire"
-m_04_02="Nvidia-installer"
+m_04_02="Nvidia-installer:\t\t"
 m_04_02a="AVERTISSEMENT sur lien manquant /usr/lib(32/64)/LibGL.so"
 m_04_02b="ERREUR n'a pas pu décharger nvidia-drm"
 m_04_02c="AVERTISSEMENT fichiers de développement libglvnd manquant."
 #m_04_02c="copied to $install_dir/bin"
-m_04_03="Installation des librairies"
+m_04_03="Installation librairies:\t"
 m_04_03a="procédure d'installation normale"
-m_04_04="Installation des modules"
-m_04_04a="procédure de contournement"
-m_04_05="Optimus"
+m_04_04="Installation modules:\t"
+m_04_04a="procédure de contournement par compilation"
+m_04_05="Optimus:\t\t\t"
 m_04_05a="Prime"
 m_04_05b="Bumblebee"
 m_04_05c="est activé sur"
-m_04_0=""
+m_04_06="backup:\t\t"
 tit_03_65="Rapport d'installation"
-rep_03_65="Félicitation!Le pilote $j %s$end est maintenant installé avec succès.\n
-Vous devriez maintenant configurer le fichier$j xorg.conf$end pour aller avec votre
-affichage actuel avant de redémarrer votre ordinateur avec ses nouveaux pilotes.
+rep_03_65="Félicitation!Le pilote $j%s$end est maintenant installé avec succès.\n
+Vous devriez maintenant configurer le fichier$j xorg.conf$end pour aller avec les paramètre de votre
+affichage actuel avant de redémarrer votre ordinateur sur les nouveaux pilotes.
 Vous pouvez aussi le faire plus tard, mais ce n'est pas vraiment recommandé.\n"
 lab_03_65a="Éditer maintenant"
 lab_03_65b="Éditer plus tard"
