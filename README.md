@@ -8,9 +8,7 @@ All of the developpement test was made on a discret graphic card for **optimus**
 
 Since I add recently Prime to zenvidia, I was expecting some X server crash, but nothing appened. The only issue I had, Nvidia-installer refused to execute because of nvidia-drm module loaded, it was finally installed by the automatics scripts work-arrounds.
 
-This is a hard developpement, do not expect too much for now.
-
-For now and because needed install.sh update, follows **#Install** section.
+After a long time of hard developpement, it seem to be stable. If you meet issues, jsut tell.
 
 See **Wiki** for **Issues**, **Todo list** and **demands**.
 
@@ -25,7 +23,7 @@ Been test over Bumblebee, Prime and standalone.
 
 Hoping it'll do the same it does for me.
 
-Still need plugins updates for  Arch, Gentoo, etc.
+Still need plugins updates for Gentoo and others distros.
 
 ------------
 
@@ -90,24 +88,18 @@ It comes with 3 options:
 
 Default desktop entry file is set to ```-a```, you can manage options through Zenvidia > Tools.
 
-The script is installed with launching ```make install``` command. to install separately just do in a terminal with normal user priviledge with the option choice :
-```sh
-  zen_notify.sh -a
-```
-It will check updates and install itself automatically.
+The script is installed at the same time as Zenvidia when launching ```make install``` command.
 
 ###Zen Notify Standalone
 (need to be rewrite)
 
-Same as Zen Notify but working without Zenvidia and Zenvidia conf.
+Same as Zen Notify but working driver update check only.
 
-You need to download 'swiss_knife.png' image and the autostart desktop file from the ```/desktop_files``` repo in the same directory as ```zen_notify_standalone.sh```. Then edit ```zen_notify_standalone.sh``` with a text editor and replace the tempory text in ```local_src=``` with the name of directory where you download script, image and desktop file. 
-
-Don't forget to replace the desktop file zen_notify_standalone option to check the way you want.
-
-To install, just do in a terminal :
+Download from main repo 'zen_notify_standalone.sh', 'swiss_knife.png' image, autostart desktop file from the ```/desktop_files``` directory. Then to install, just do in a terminal in root/sudo mode:
 ```sh
-  zen_notify_standalone.sh
+	cp -f zen_notify_standalone.sh /usr/local/bin/
+	cp -f swiss_knife.png /usr/local/pixmaps/
+	cp -f zen_notify_standalone.desktop /home/(your user)/.config/autostart 
 ```
 
 That's it.
