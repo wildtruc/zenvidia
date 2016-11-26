@@ -12,6 +12,7 @@ all: install
 
 install:
 	mkdir -p $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
+	mkdir -p $(L_DIR)/share/{applications,pixmaps}
 	cp -Rf ./translations $(INSTALL_DIR)/
 	cp -Rf ./distro $(INSTALL_DIR)/
 	cp -f ./*.conf $(INSTALL_DIR)/
