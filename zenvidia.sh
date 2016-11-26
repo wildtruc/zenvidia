@@ -236,7 +236,7 @@ dep_control(){
 		[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
 		[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
 		[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
-	if
+	fi
 	if [ $dist_type = 0 ]; then
 		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
 	fi
@@ -1681,9 +1681,9 @@ install_drv(){
 			mkdir -p $d
 		done
 		cd $croot
-		## create distro xorg libs dirs symlink in case compiler doesn't find them
-		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
-		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
+		## FIXME create distro xorg libs dirs symlink in case compiler doesn't find them
+#		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
+#		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
 #		cd $nvdl
 		
 		## install default libs with nvidia-installer	
