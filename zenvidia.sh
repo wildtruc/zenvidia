@@ -2720,7 +2720,9 @@ prime_setup(){
 	--title="Zenvidia prime setup" --text "$rBB$_3h$end$v$prime_msg$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${setup_list[@]}" false $pt "$PM")
-	if [ $? = 1 ]; then base_menu; fi
+	if [ $from_menu_install = 0 ]; then
+		if [ $? = 1 ]; then base_menu; fi
+	fi
 	case $menu_prime in
 		"1") _pset=( "intel"); _prime="$m_prime_01" ;;
 		"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
