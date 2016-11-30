@@ -2685,8 +2685,9 @@ prime_setup(){
 		zenity --height=100 --title="Zenvidia prime setup" $w_type --no-wrap \
 		--icon-name=swiss_knife --text="$vB$(printf "$wrn_prime_01$wrn_prime_02" "$_prime")$end" \
 		"$b_cancel"
+		ext1=$?
 		if [ $from_menu_install = 0 ]; then
-			if [ $? = 1 ]; then menu_modif; fi
+			if [ $ext1 = 1 ]; then menu_modif; fi
 		fi
 		for pset in "${_pset[@]}"; do
 			/usr/sbin/nvidia-prime-select $pset
@@ -2720,9 +2721,10 @@ prime_setup(){
 	menu_prime=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
 	--title="Zenvidia prime setup" --text "$rBB$_3h$end$v$prime_msg$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
-	"${setup_list[@]}" $case_exit)
+	"${setup_list[@]}" false $pt "$PM")
+	ext0=$?
 	if [ $from_menu_install = 0 ]; then
-		if [ $? = 1 ]; then base_menu; fi
+		if [ $ext0 = 1 ]; then base_menu; fi
 		case $menu_prime in
 			"1") _pset=( "intel"); _prime="$m_prime_01" ;;
 			"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
