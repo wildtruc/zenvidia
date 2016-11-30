@@ -196,6 +196,7 @@ root_id(){
 
 # elf types
 libclass(){
+	# define distro base ELF type
 	if [ $(uname -p |grep -c "64") -gt 0 ] ; then
 		ELF_TYPE="64"
 	else
@@ -211,6 +212,10 @@ if [ $ARCH != "i686\|i586\|i386\|x86" ] ; then
 else
 	ARCH="x86"
 	RUN_PCK="pkg1"
+fi
+# be sure that /usr/local/ for lib32 is in LD path
+if [ $(ldconfig -p |grep -c "$install_dir/$master$ELF_32") -eq 0 ]; then
+	printf "$install_dir/$master$ELF_32" > /etc/ld.so.conf.d/local-lib32.conf
 fi
 }
 efi_warnings(){
@@ -1682,8 +1687,8 @@ install_drv(){
 		done
 		cd $croot
 		## FIXME create distro xorg libs dirs symlink in case compiler doesn't find them
-#		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
-#		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
+		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
+		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
 #		cd $nvdl
 		
 		## install default libs with nvidia-installer	
