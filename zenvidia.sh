@@ -1222,7 +1222,7 @@ service_check(){
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
 	if [ -d $croot_32 ]||[ -d $croot_64 ]; then
-		# libnvidia-wfb.so is finally broken every where ?!! 
+		# libnvidia-wfb.so not broken, but old xorg server only with no libwfb.so 
 		if [ -e $xorg_dir/modules/libwfb.so ]; then
 			mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
 			ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
@@ -2715,20 +2715,27 @@ prime_setup(){
 	done
 	if [ $from_menu_install = 0 ]; then
 		prime_msg="$prime_msg_01\n$(printf "$prime_msg_02" "$current_set")"
+		case_exit="false $pt \'$PM\'"
 	fi
 	menu_prime=$(zenity --width=400 --height=300 --list --radiolist --hide-header \
 	--title="Zenvidia prime setup" --text "$rBB$_3h$end$v$prime_msg$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
-	"${setup_list[@]}" false $pt "$PM")
+	"${setup_list[@]}" $case_exit)
 	if [ $from_menu_install = 0 ]; then
 		if [ $? = 1 ]; then base_menu; fi
+		case $menu_prime in
+			"1") _pset=( "intel"); _prime="$m_prime_01" ;;
+			"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
+			"3") _pset=( "nvidia" "nvidiaonly" ); _prime="$m_prime_03" ;;
+			"$pt") menu_modif ;;
+		esac
+	else
+		case $menu_prime in
+			"1") _pset=( "intel"); _prime="$m_prime_01" ;;
+			"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
+			"3") _pset=( "nvidia" "nvidiaonly" ); _prime="$m_prime_03" ;;
+		esac
 	fi
-	case $menu_prime in
-		"1") _pset=( "intel"); _prime="$m_prime_01" ;;
-		"2") _pset=( "nvidia" ); _prime="$m_prime_02" ;;
-		"3") _pset=( "nvidia" "nvidiaonly" ); _prime="$m_prime_03" ;;
-		"$pt") menu_modif ;;
-	esac
 	setup_prime
 }
 ## Define language at script init
