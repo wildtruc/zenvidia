@@ -241,6 +241,7 @@ dep_control(){
 		[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
 		[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
 		[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
+		[ -e /usr/include/xorg/xorg-server.h ]|| deplist+=("$p_xorgdev")
 	fi
 	if [ $dist_type = 0 ]; then
 		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
@@ -386,7 +387,7 @@ local_src_ctrl(){
 				build_all
 			fi
 			## Bumblebee report
-			report_log+=("$vB$m_04_05:$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n")
+			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Bumblebee" "Prime" "1")"
@@ -829,7 +830,7 @@ prime_src_ctrl(){
 				prime_build
 			fi
 			## Prime report
-			report_log+=("$vB$m_04_05:$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n")
+			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n")
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Prime" "Bumblebee" "use_bumblebee")"
@@ -1225,7 +1226,7 @@ post_install(){
 		# libnvidia-wfb.so not broken, but old xorg server only with no libwfb.so 
 		if [ -e $xorg_dir/modules/libwfb.so ]; then
 			mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
-			ln -sf /usr/lib$ELF_TYPE/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
+			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
 		fi
 		[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
 		cd $croot
@@ -1606,13 +1607,13 @@ nv_cmd_install_libs(){
 	[ $use_indirect = 0 ]|| force_glvnd='--force-libglx-indirect'
 	[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
 #	$nocheck --no-kernel-module --no-opengl-files --skip-module-unload \
-#	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect \
+#	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect  --opengl-libdir=$master$ELF_64 \
 	xterm $xt_options -title Zenvidia_install_libs -e "
 	$install_bin -s -z -N --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion --opengl-headers \
 	$add_glvnd $force_glvnd --install-compat32-libs --compat32-prefix=$croot_all \
-	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules \
-	--opengl-prefix=$croot_all --opengl-libdir=$master$ELF_64 \
+	--x-prefix=/usr --x-library-path=$croot_all --x-module-path=$xorg_dir/modules \
+	--opengl-prefix=$croot_all \
 	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
@@ -1687,8 +1688,8 @@ install_drv(){
 		done
 		cd $croot
 		## FIXME create distro xorg libs dirs symlink in case compiler doesn't find them
-		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
-		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
+#		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
+#		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
 #		cd $nvdl
 		
 		## install default libs with nvidia-installer	
@@ -2675,6 +2676,11 @@ zen_notif_setup(){
 }
 prime_setup(){
 	setup_prime(){
+		prime_setcmd(){
+		for pset in "${_pset[@]}"; do
+			/usr/sbin/nvidia-prime-select $pset
+		done
+		}
 		if [ $from_menu_install = 0 ]; then
 		b_cancel="--cancel-label=$PM"
 		w_type='--question'
@@ -2688,11 +2694,11 @@ prime_setup(){
 		ext1=$?
 		if [ $from_menu_install = 0 ]; then
 			if [ $ext1 = 1 ]; then menu_modif; fi
+			prime_setcmd
+			base_menu
+		else
+			prime_setcmd
 		fi
-		for pset in "${_pset[@]}"; do
-			/usr/sbin/nvidia-prime-select $pset
-		done
-		base_menu
 	}
 	unset setup_list setup_option _pset
 	setup_option=(
