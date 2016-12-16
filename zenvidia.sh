@@ -1187,11 +1187,13 @@ if_blacklist(){
 #	if [[ $(cat /etc/modprobe.d/blacklist.conf | grep "nouveau") == '' ]]; then
 	if [ $(cat /etc/modprobe.d/blacklist.conf | grep -c "nouveau") -eq 0 ]; then
 		printf "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
+		echo "# Updated blacklist for nouveau driver..."; echo "$n"; n=$[ $n+4 ]; sleep 2
 	fi
 #	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau pci=nocrs pci=realloc'
 	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau'
 	if [ $(cat $grub_dir/grub.cfg|grep -c "$nouveau_unset") -eq 0 ]; then
 		sed -i "s/ ro rhgb / ro $nouveau_unset rhgb /" $grub_dir/grub.cfg
+		echo "# Updated GRUB conf for nouveau driver blacklisting."; echo "$n"; n=$[ $n+4 ]; sleep 2
 	fi
 #	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
 #	grub2-mkconfig -o /boot/grub2/grub.cfg
@@ -1339,7 +1341,7 @@ post_install(){
 			)
 		fi
 		for links in {fbc,cfg,gtk2,gtk3}; do
-			[ -s $install_dir/$master$ELF_64/libnvidia-$links.$new_version ]|| \
+			[ -s $install_dir/$master$ELF_64/libnvidia-$links.so.$new_version ]|| \
 			( cp -f $extracted/libnvidia-$links.so.$new_version $install_dir/$master$ELF_64/
 			cd $install_dir/$master$ELF_64/
 			ln -sf libnvidia-$links.so.$new_version libnvidia-$links.so.1
@@ -1362,7 +1364,7 @@ post_install(){
 		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
 	fi
 	if_blacklist
-	echo "# Blacklisting nouveau driver in grub..."; echo "$n"; n=$[ $n+4 ]; sleep 2
+#	echo "# Blacklisting nouveau driver in grub if needed..."; echo "$n"; n=$[ $n+4 ]; sleep 2
 }
 
 ### INSTALL
@@ -1612,13 +1614,13 @@ nv_cmd_install_libs(){
 	[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
 #	$nocheck --no-kernel-module --no-opengl-files --skip-module-unload \
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect  --opengl-libdir=$master$ELF_64 \
+#	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
 	xterm $xt_options -title Zenvidia_install_libs -e "
 	$install_bin -s -z -N --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion --opengl-headers \
 	$add_glvnd $force_glvnd --install-compat32-libs --compat32-prefix=$croot_all \
 	--x-prefix=/usr --x-library-path=$croot_all --x-module-path=$xorg_dir/modules \
-	--opengl-prefix=$croot_all \
-	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
+	--opengl-prefix=$croot_all --utility-prefix=$tool_dir \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
 }
