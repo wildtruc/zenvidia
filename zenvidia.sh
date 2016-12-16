@@ -49,13 +49,14 @@ kernel="--kernel-install-path"
 help_pages="$install_dir/share/doc/NVIDIA_GLX-1.0"
 docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
+reportlog=/tmp/nv_report.tmp
 #kernel_src="--kernel-source-path"
 xt_hold=0
 xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-#devel=/home/mike/Devel/NVIDIA/zenvidia
+devel=/home/mike/Devel/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
 #basic_conf=$devel/basic.conf.devel
 ################################################
@@ -68,7 +69,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $color_conf
 
 #. $devel/color.conf
-#locale=$devel/translations/
+locale=$devel/translations/
 
 ### FUNCTIONS
 ID(){
@@ -387,7 +388,8 @@ local_src_ctrl(){
 				build_all
 			fi
 			## Bumblebee report
-			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n")
+#			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n")
+			printf "$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05b\n" >> $reportlog
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Bumblebee" "Prime" "1")"
@@ -830,7 +832,8 @@ prime_src_ctrl(){
 				prime_build
 			fi
 			## Prime report
-			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n")
+#			report_log+=("$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n")
+			printf "$vB$m_04_05$end$gB $val_04_S$end> $m_04_05c $m_04_05a\n" >> $reportlog
 		else
 			zenity --height=100 --info --icon-name=xkill --no-wrap --ok-label="$lab_06c" \
 			--text="$(printf "$v$wrn_opti_01$end" "Prime" "Bumblebee" "use_bumblebee")"
@@ -1465,7 +1468,8 @@ nv_cmd_update(){
 #	if [ ! -s $kernel_path/nvidia.ko ]|| \
 	if [[ $($d_modinfo -F version nvidia) != $version ]]; then
 		if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
-			report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
+#			report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
+			printf "$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n" >> $reportlog
 		fi
 		if [ $use_dkms = 1 ]; then
 			force=0	
@@ -1670,12 +1674,15 @@ install_drv(){
 			bak_version=$old_version
 			backup_old_version
 			if [ -d $nvbackup/nvidia.$bak_version ]; then
-			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n")
+#			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n")
+			printf "$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n" > $reportlog
 			else
-			report_log+=("$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n")
+#			report_log+=("$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n")
+			printf "$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n" > $reportlog
 			fi
 		else
-			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01c\n")
+#			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01c\n")
+			printf "$vB$m_04_01$end$gB $val_04_P$end> $m_04_01c\n" > $reportlog
 		fi
 		# making installation directories in case installer doesn't find them
 		[ -d $croot_64 ] || ( mkdir -p $croot_32 $croot_64 $xorg_dir )	
@@ -1700,9 +1707,11 @@ install_drv(){
 		## report nvidia installer warning message
 		if [ $(cat $lib_logfile| grep -c "WARNING") -gt 0 ]; then
 			if [ $(cat $lib_logfile| grep "WARNING"| grep -c "libGL.so") -gt 0 ]; then
-				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02a\n")
+#				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02a\n")
+				printf "$vB$m_04_02$end$jB $val_04_N$end> $m_04_02a\n" >> $reportlog
 			elif [ $(cat $lib_logfile| grep "WARNING"| grep -c "libglvnd") -gt 0 ]; then
-				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02c\n")
+#				report_log+=("$vB$m_04_02$end$jB $val_04_N$end> $m_04_02c\n")
+				printf "$vB$m_04_02$end$jB $val_04_N$end> $m_04_02c\n" >> $reportlog
 			fi
 		fi
 		## control if libraries are properly installed
@@ -1712,7 +1721,7 @@ install_drv(){
 			--text="$vB\LIBS INSTALL CONTROL RETURN ERRORS.$end$v.\nCheck $lib_logfile for more details.$end"
 			if [ $? = 0 ]; then base_menu; fi
 		else
-			report_log+=("$vB$m_04_03$end$gB $val_04_S$end> $m_04_03a\n")
+			printf "$vB$m_04_03$end$gB $val_04_S$end> $m_04_03a\n" >> $reportlog
 		fi
 
 		# nv_cmd processes (install without X crash )
@@ -1736,9 +1745,9 @@ install_drv(){
 					if [ $? = 1 ]; then base_menu; fi
 				else
 					if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
-						report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
+						printf "$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n" >> $reportlog
 					fi
-					report_log+=("$vB$m_04_04$end$gB $val_04_S$end> $m_04_04a\n")
+					printf "$vB$m_04_04$end$gB $val_04_S$end> $m_04_04a\n" >> $reportlog
 				fi
 			fi
 		fi
@@ -1751,7 +1760,7 @@ install_drv(){
 			echo "# Backup new Nvidia-Installer to $nvdir"; sleep 1
 			echo "$n"; n=$[ $n+4 ]
 			cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer $nvdir
-#			report_log+=("$vB$m_04_02$end$gB $val_04_S$end> $m_04_04c\n")
+#			printf "$vB$m_04_02$end$gB $val_04_S$end> $m_04_04c\n")
 			sleep 1
 		else
 			zenity --width=450 --title="Zenvidia" --error --no-wrap \
@@ -1800,7 +1809,7 @@ install_drv(){
 			[ $(ls -1 $croot_32| grep -c ".*") -gt 40 ]; then	
 				export report_log
 				zenity --title="Zenvidia" --question --no-wrap --icon-name=swiss_knife \
-				--text="$(printf "$rB$tit_03_65$end$v:\n ${report_log[*]}\n\n$vB$rep_03_65\n$ansWN$end$end" "$new_version")" --ok-label="$lab_03_65a" --cancel-label="$lab_03_65b"
+				--text="$(printf "$rB$tit_03_65$end$v:\n $(cat $reportlog)\n\n$vB$rep_03_65\n$ansWN$end$end" "$new_version")" --ok-label="$lab_03_65a" --cancel-label="$lab_03_65b"
 				if [ $? = 0 ]; then edit_xorg_conf; else base_menu; fi
 			fi
 		fi
@@ -1916,7 +1925,10 @@ extract_build(){
 # OPTIMUS PRESENCE CONTROL
 if_optimus(){
 #	[ $if_update = 1 ]&& new_version=$version
-	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+#	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+	if [ ! $driverun ]; then
+		if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+	fi
 	predifine=3
 	predifined_dir=nvidia.$new_version
 	croot_all=$croot/$predifined_dir
@@ -1931,7 +1943,11 @@ if_optimus(){
 # PROPRIATARY DRIVER CUSTOM INSTALL
 if_single(){
 #	[ $if_update = 1 ]&& new_version=$version
-	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+	
+#	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+	if [ ! $driverun ]; then
+		if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+	fi
 	predifine=1
 	predifined_dir=nvidia.$new_version
 	croot_all=$croot/$predifined_dir
@@ -2005,10 +2021,11 @@ from_directory(){
 	}
 	home_dir(){
 		cd /home
-		driverun=$(zenity --width=450 --height=400 --title="Zenvidia" --file-selection \
+		drv_pick=$(zenity --width=450 --height=400 --title="Zenvidia" --file-selection \
 		--filename="/home/$user/$w_01" --file-filter=".run" --text="$vB$m_01_06$j $homerep$end")
 		if [ $? = 1 ]; then base_menu; fi
-		chmod a+x $driverun
+		chmod a+x $drv_pick
+		driverun=$drv_pick
 		new_version=$(printf "$driverun"| sed -n "s/^.*-//g;p")
 	}
 	A="$m_01_03"
@@ -2604,7 +2621,7 @@ edit_xorg_conf(){
 }
 read_help(){
 	zenity --width=500 --height=400 --title="Zenvidia" --text-info \
-	--text="$v\Help files for zenvidia$end" --filename=""
+	--text="$v\Help files for zenvidia$end" --filename="$nvdir/README.md"
 	menu_manage
 }
 read_nv_help(){
