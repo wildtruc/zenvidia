@@ -1,19 +1,19 @@
 # Zenvidia
 This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 
-##History log
+## History log
 I'm not a "real" coder, my script syntax is often approximative and need a real improvement. So, all kind of help is welcome.
 
 All of the developpement test was made on a discret graphic card for **optimus** and **Bumblebee**. My only experience on single GPU is recent and only with **[FedoraPrime](https://github.com/bosim/FedoraPrime)** project and now with the fork I made for my very customized purpose, **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)**.
 
 Since I add recently Prime to zenvidia, I was expecting some X server crash, but nothing appened. The only issue I had, Nvidia-installer refused to execute because of nvidia-drm module loaded, it was finally installed by the automatics scripts work-arrounds.
 
-After a long time of hard developpement, it seem to be stable. If you meet issues, jsut tell.
+After a long time of hard developpement, it seem to be stable. If you meet issues, just tell.
 
 See **Wiki** for **Issues**, **Todo list** and **demands**.
 
 ------------
-##News
+## News
 
 **STABLE** and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like, Ubuntu maybe).
 
@@ -27,22 +27,22 @@ Still need plugins updates for Gentoo and others distros.
 
 ------------
 
-##Usage
+## Usage
 
-###Driver install
+### Driver install
   
  - from local package.
  - from a dowloaded package.
  - from NVIDIA© server.
  - Optimus installation from GIT (bumblebee and prime).
  
-###Updates
+### Updates
 
  - driver updates check.
  - New kernel update (with dkms or not).
  - Optimus GIT sources update.
 
-###Tools
+### Tools
 
  - Edit xorg.conf file (optimus auto detection).
  - Édit Zenvidia config file.
@@ -50,13 +50,13 @@ Still need plugins updates for Gentoo and others distros.
  - Installed driver mangagement (remove, backups).
  - Re-compile some depencies (Bumblebee, etc).
 
-###Tests and support
+### Tests and support
 
  - Test GLX.
  - Changelog and driver manual.
 
-##Install
-###Zenvidia
+## Install
+### Zenvidia
 This will install in default behaviour with no possible custom ability.
 
 Choose a directory to clone repo and :
@@ -79,7 +79,7 @@ Or by the desktop menu entry in Setting menu.
 
 The script will ask you for admin/superuser password, depend fo which distro you are using.
 
-###Zen Notify
+### Zen Notify
 Zenvidia notify is taskbar notifier checking at user session boot time for driver & other GIT repos updates.
 It comes with 3 options:
  - -a > check all.
@@ -90,7 +90,7 @@ Default desktop entry file is set to ```-a```, you can manage options through Ze
 
 The script is installed at the same time as Zenvidia when launching ```make install``` command.
 
-###Zen Notify Standalone
+### Zen Notify Standalone
 (need to be rewrite)
 
 Same as Zen Notify but working driver update check only.
@@ -104,7 +104,7 @@ Download from main repo 'zen_notify_standalone.sh', 'swiss_knife.png' image, aut
 
 That's it.
 
-##Configuration
+## Configuration
 Most part of the basic.conf file vars will be updated during the script execution.
 
 You just have to adjust manually :
@@ -147,7 +147,7 @@ hlp_txt=1
 
 ---------
 
-##Licence
+## Licence
 
 Zenvidia is published under GNU/GPL
 -----------------------------------
