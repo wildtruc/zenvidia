@@ -69,9 +69,9 @@ ansWN="What do you want to do ?"
 msg205="Network connection control" # 205
 
 ### FIRST START
-msg_00_01="\t\t   ZENVIDIA\n$nf\t\t Nvidia® drivers manager$end" # 701*
+msg_00_01="\t\t   ZENVIDIA\n$nf\t\t\\Nvidia® drivers manager$end" # 701*
 msg_00_02="System :\t\t" # 706*
-msg_00_04="Card" # 708*
+msg_00_04="Card %s :\t\t\t" # 708*
 msg_00_06="Repositories are met" # 710
 msg_00_07="NVIDIA repository doesn't exist" # 711*
 msg_00_08="Choose a place (prefer /usr/local/)" # 712*
@@ -85,10 +85,10 @@ msg_00_12="Distro not defined. You need to insall dependecies manually " # 101
 
 ## MAIN MENU
 msg_0_00="Processor type :\t\t" # 707*
-msg_0_01="Driver version installed :   " # 202
-msg_0_02="Kernel version :" # 202a
-msg_0_03="GCC version :" # 202b
-msg_0_04="NVIDIA binary version :" # 202c
+msg_0_01="Driver version installed :\t" # 202
+msg_0_02="Kernel version :\t\t" # 202a
+msg_0_03="GCC version :\t\t" # 202b
+msg_0_04="NVIDIA binary version :\t" # 202c
 msg_0_05="Working directories control" # 709*
 
 ## MENU INSTALL

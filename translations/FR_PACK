@@ -69,9 +69,9 @@ ansWN="Que voulez-vous faire ?" # *
 msg205="Contrôle de la connexion réseau" # 205
 
 ### FIRST START
-msg_00_01="\t\t   ZENVIDIA\n$nf\t\t Nvidia® drivers manager$end" # 701*
+msg_00_01="\t\t   ZENVIDIA\n$nf\t\t\\Nvidia® drivers manager$end" # 701*
 msg_00_02="Système :\t\t" # 706*
-msg_00_04="Carte" # 708*
+msg_00_04="Carte %s :\t\t" # 708*
 msg_00_06="Les répertoires sont présents." # 710
 msg_00_07="Le répertoire NVIDIA n'existe pas" # 711*
 msg_00_08="Choisissez en emplacement (préférer /usr/local/)" # 712*
@@ -86,9 +86,9 @@ msg_00_12="La distribution n'est pas définie. Installez les dépendences manuel
 ## MAIN MENU
 msg_0_00="Type processeur :\t" # 707*
 msg_0_01="Version pilote installé :\t" # 202
-msg_0_02="Version noyau :" # 202a
-msg_0_03="Version GCC :" # 202b
-msg_0_04="Version binaire NVIDIA :" # 202c
+msg_0_02="Version noyau :\t\t" # 202a
+msg_0_03="Version GCC :\t\t" # 202b
+msg_0_04="Version binaire NVIDIA :\t" # 202c
 msg_0_05="Contrôle des répertoires de travail" # 709
 msg601="Que voulez-vous faire ?" # *
 
@@ -420,9 +420,10 @@ hlp_03b="$hlp_03a:
 - $vB$_3c$end:\n\tDémarrer l'outil Nvidia-setting, particulièrement pour Bumblebee,
 \tfonctionne aussi pour Prime et GPU unique.
 - $vB$_3d$end:\n\tCet outil permet de sauvegarder, restaurer ou effacer les installations
-\tanciennes ou courantes des pilotes. Il gère aussi les paquets .run téléchargés.
-\tNotez que si une ancienne installation est détectée durant une mise à jour
-\telle sera automatiquement sauvegardée avant la procédure d'installation.
+\tanciennes ou courantes des pilotes. Il gère aussi les paquets .run
+\ttéléchargés. Notez que si une ancienne installation est détectée
+\tdurant une mise à jour, elle sera automatiquement sauvegardée 
+\tavant la procédure d'installation.
 - $vB$_3e$end:\n\tCet outil construit ou reconstruit séparément les source GIT installées.
 \tCela aide dans le cas d'une fresh install ou une mise à niveau, ou dans
 \tle cas d'une perte inattendue des sources déja installées et compilées.

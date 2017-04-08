@@ -1468,7 +1468,7 @@ nv_cmd_update(){
 	fi
 	nv_cmd_try_legacy_first
 #	if [ ! -s $kernel_path/nvidia.ko ]|| \
-	if [[ $($d_modinfo -F version nvidia) != $version ]]; then
+	if [[ $upgrade_other = 1 || $($d_modinfo -F version nvidia) != $version ]]; then
 		if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
 #			report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
 			printf "$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n" >> $reportlog
@@ -1527,7 +1527,7 @@ sleep $xt_delay"
 }
 nv_cmd_make_src(){
 	if [[ $(printf "$new_version") != '' ]]; then version=$new_version; fi
-		[ $driver_level != '' ]|| driver_level=$(printf "$version"|cut -d. -f1)
+	[ $driver_level != '' ]|| driver_level=$(printf "$version"|cut -d. -f1)
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 #		make clean; make
@@ -3137,7 +3137,7 @@ menu_manage(){
 base_menu(){
 	devices=$(
 	for e in $pci_dev_nb; do
-		echo -e "$v$msg_00_04 $[${dev_n[$e]}+1] :$end\t\t $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end"
+		printf "$vB$msg_00_04$end $j${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))$end\n" $((${dev_n[$e]}+1))
 	done
 	)
 	# remove deplist list in case of relaunching first because an update asking to
@@ -3146,13 +3146,13 @@ base_menu(){
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$rBB$msg_00_01$end
-$v\n$msg_00_02$end $j$DISTRO$end
-$v$msg_0_00$end $j$ARCH$end
+$vB\n$msg_00_02$end $j$DISTRO$end
+$vB$msg_0_00$end $j$ARCH$end
 $devices 
-$v$msg_0_01$end $j$version$end
-$v$msg_0_02$end\t\t $j$KERNEL$end
-$v$msg_0_03$end\t\t $j$GCC$end
-$v$msg_0_04$end\t $j$NV_bin_ver$end\n
+$vB$msg_0_01$end $j$version$end
+$vB$msg_0_02$end $j$KERNEL$end
+$vB$msg_0_03$end $j$GCC$end
+$vB$msg_0_04$end $j$NV_bin_ver$end\n
 $v$msg_0_05 : $end$dir_msg
 $v$msg_00_06 : $end $j$cnx_msg$end
 \n$v$hlp_tip_txt$ansWN$end" \
