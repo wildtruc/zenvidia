@@ -1,3 +1,5 @@
+# ( OUTDATED )
+
 # Zenvidia
 Un script bash/zenity pour gérer les pilotes propriétaires **NVIDIA©**.
 
