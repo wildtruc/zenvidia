@@ -28,7 +28,7 @@
 install_dir=/usr/local						# default tools & system install directory
 nvdir=$install_dir/NVIDIA						# default Zenvidia directory
 conf_dir="$install_dir/NVIDIA"
-#conf_dir="/usr/local/etc"						# default conf directory << TODO
+#conf_dir="/usr/local/etc"						# default conf directory << TODO ?
 conf_dir=$nvdir
 basic_conf=$nvdir/basic.conf
 script_conf=$nvdir/script.conf					# Zenvidia conf file
@@ -56,7 +56,7 @@ xt_delay=4
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
-devel=/home/mike/Devel/NVIDIA/zenvidia
+#devel=/home/mike/Devel/NVIDIA/zenvidia
 #script_conf=$devel/script.conf.devel
 #basic_conf=$devel/basic.conf.devel
 ################################################
@@ -69,7 +69,7 @@ if [ ! -s $script_conf ]; then zenity --width=250 --error --icon-name=xkill --te
 . $color_conf
 
 #. $devel/color.conf
-locale=$devel/translations/
+#locale=$devel/translations/
 
 ### FUNCTIONS
 ID(){
