@@ -50,9 +50,13 @@ nvtmp=/home/$USER/tmp
 ARCH=$(uname -p)
 
 driver_ctrl(){
-lftp -c "anon; cd ftp://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.txt > $nvtmp/last_update"
+#lftp -c "anon; cd ftp://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.txt > $nvtmp/last_update"
+wget -q -O $nvtmp/drvlist_0 https://$nvidia_ftp-$ARCH/
+cat $nvtmp/drvlist_0 |  egrep -o "href.*[0-9]+/'"| perl -pe "s/^.*\'(.*)\/\'/\1/p" > $nvtmp/drvlist
+rm $nvtmp/drvlist_0
 LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
-LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
+#LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
+LAST_BETA=$(tac $nvtmp/drvlist | sed -n 1p)
 #LAST_BETA='370.29'
 if [ -s $nvdir/version.txt ]; then
 	version=$(cat $nvdir/version.txt|sed -n "s/\.//p")

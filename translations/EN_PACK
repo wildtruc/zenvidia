@@ -141,8 +141,8 @@ m_01_19="Available drivers" # 201
 ### check available updates
 m_01_20a="official"
 m_01_20b="BETA"
-m_01_20="The $m_01_20a version is :" # 203
-m_01_21="The last $m_01_20b is :" # 204
+m_01_20="The $m_01_20a version is :\t" # 203
+m_01_21="The last $m_01_20b is :\t\t" # 204
 
 # nv_cmd_uninstall
 m_01_70="Old packages removal"

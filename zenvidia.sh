@@ -1819,7 +1819,7 @@ install_drv(){
 		} | zenity --width=450 --title="Zenvidia" --progress --percentage=1 --auto-close
 	else
 		zenity --width=450 --title="Zenvidia" --error \
-		--text="$v$m_03_66$end\n$v$m_03_65$end$y\http://www.nvidia.fr/Download/Find.aspx?lang=en$end\n$v $m_03_68, $v$m_03_67$end$y ftp://download.nvidia.com/XFree86/$end"
+		--text="$v$m_03_66$end\n$v$m_03_65$end$y\http://www.nvidia.fr/Download/Find.aspx?lang=en$end\n$v $m_03_68, $v$m_03_67$end$y https://download.nvidia.com/XFree86/$end"
 		if [ $? = 0 ]; then base_menu; fi
 	fi
 }
@@ -2048,12 +2048,17 @@ from_directory(){
 
 # check aviable updates
 check_update(){
-	( lftp -c "anon; cd ftp://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.txt > $nvtmp/last_update "
+	( 	wget -q -O $nvtmp/drvlist_0 https://$nvidia_ftp-$ARCH/
+		cat $nvtmp/drvlist_0 |  egrep -o "href.*[0-9]+/'"| perl -pe "s/^.*\'(.*)\/\'/\1/p" > $nvtmp/drvlist
+		rm $nvtmp/drvlist_0
+		wget -q -O $nvtmp/last_update https://$nvidia_ftp-$ARCH/latest.txt
+#	( lftp -c "anon; cd http://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.txt > $nvtmp/last_update "
 	) | zenity width=400 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v$m_01_07$end"
 	LAST_IN=$version
 	LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
-	LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
+#	LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
+	LAST_BETA=$(tac $nvtmp/drvlist | sed -n 1p)
 	# compatibilty control
 	if [[ $LAST_DRV == $LAST_BETA ]] ; then
 			DIFF_list=$LAST_DRV
@@ -2063,8 +2068,7 @@ check_update(){
 	fi
 	TF=1; w_height=355
 	for DRV in $DIFF_list; do
-		(wget -q -O $nvtmp/vd_compat.$TF \
-		ftp://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
+		(wget -q -O $nvtmp/vd_compat.$TF https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
 		sleep 1
 		)| zenity width=400 --title="Zenvidia" --progress --pulsate \
 		--auto-close --text="$v$m_01_08$end ($DRV)..."
@@ -2180,9 +2184,9 @@ win_update(){
 	fi
 	sel_cmd=$(zenity --width=450 --height=$w_height --title="Zenvidia" $zen_opts \
 	--text="$rBB$m_01_19$end\n
-$v $msg_0_01$end\t\t\t$j$LAST_IN$end
-$v $m_01_20$end\t\t\t$j$LAST_DRV$end
-$v $m_01_21$end\t\t\t$j$LAST_BETA$end\n
+$v $msg_0_01$end\t$j$LAST_IN$end
+$v $m_01_20$end\t$j$LAST_DRV$end
+$v $m_01_21$end\t$j$LAST_BETA$end\n
 $compat_msg$extra_msg" $table_opts $list_opts "$R" )
 	if [ $? = 0 ]; then
 		if [ $ui_mod != 0 ]; then
@@ -2295,12 +2299,18 @@ last_pack(){
    	perl -p -e "$| = 1; s|^.* +([0-9]+%) +([0-9,.]+[GMKB]) +([0-9hms,.]+).*$|\1\n# $run_pack\t(\1): $m_01_54 \3\t\2\/s|"
 	}
 	download_cmd(){
-		wget -c ftp://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $nvupdate/ 2>&1
+		wget -c https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $nvupdate/ 2>&1
 	}
-	( lftp -c "anon; cd ftp://download.nvidia.com/XFree86/Linux-$ARCH/$LAST_PACK/ ; ls > $nvtmp/bug_list ; quit" ; sleep 2
+#	( lftp -c "anon; cd https://download.nvidia.com/XFree86/Linux-$ARCH/$LAST_PACK/ ; ls > $nvtmp/bug_list ; quit" ; sleep 2
+	( wget -q -O $nvtmp/bug_list_0 https://$nvidia_ftp-$ARCH/$LAST_PACK/
+	cat $nvtmp/bug_list_0 | egrep -o "href='NVIDIA.*[0-9]+.*'"| perl -pe "s/^.*\'(.*)\'/\1/p" \
+	> $nvtmp/selector
+	sleep 2
 	) | zenity --width=500 --progress --pulsate --auto-close --text="$v$m_01_55$end"
-	if [ "$(cat $nvtmp/bug_list | grep -w "$LAST_PCK")" != '' ] ; then
-		RUN_PACK=$(cat $nvtmp/bug_list | sed -n "s/^.*\ //p"|grep -w "$LAST_PACK"|sed -n "/.run$/p")
+#	if [[ $(cat $nvtmp/selector | grep -w "$LAST_PACK") != '' ]] ; then
+	if [ $(cat $nvtmp/selector | grep -c "$LAST_PACK") -gt 0 ] ; then
+#		RUN_PACK=$(cat $nvtmp/selector | sed -n "s/^.*\ //p"|grep -w "$LAST_PACK"|sed -n "/.run$/p")
+		RUN_PACK=$(cat $nvtmp/selector)
 	fi
 #	n=1
 	unset drv_list
@@ -2325,7 +2335,7 @@ last_pack(){
     fi
     return $err
     _local=$(stat -c "%s" $nvupdate/$run_pack)
-    _remote=$(cat $nvtmp/bug_list | grep -w "$run_pack"|sed -n "/.run$/p"|awk '{print $5}')
+    _remote=$(cat $nvtmp/selector | grep -w "$run_pack"|sed -n "/.run$/p"|awk '{print $5}')
     [ $_remote = $_local ]|| { 
     zenity --height=100 --error --icon-name=xkill --no-wrap \
     --text="$v\Download unexpected termination.\nPlease restart driver download from $vB\Update$end menu$end" --ok-label="Oh! Fuck!"

@@ -15,13 +15,13 @@ See **Wiki** for **Issues**, **Todo list** and **demands**.
 ------------
 ## News
 
+*IMPORTANT UPDATE*: NVIDIA FTP is dead! And been replace by http/https site. 
+
 **STABLE** and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like, Ubuntu maybe).
 
 But still stay tuned on **WIKI** and use regulary the Zenvidida update tool.
 
 Been test over Bumblebee, Prime and standalone.
-
-Hoping it'll do the same it does for me.
 
 Still need plugins updates for Gentoo and others distros.
 
