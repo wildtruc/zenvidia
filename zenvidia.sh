@@ -1632,7 +1632,7 @@ backup_old_version(){
 		mod_ver=$($d_modinfo -F version $orig_dir/$KERNEL/nvidia.ko )
 		[ -d $orig_dir/$KERNEL ]|| mkdir -p $orig_dir/$KERNEL
 		[[ $mod_ver ]]|| cp -f /lib/modules/$KERNEL/extra/nvidia* $orig_dir/$KERNEL/
-		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc}}
+		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc/ld.so.conf.d}}
 		if [[ $new_version ]];then
 			mv -f $orig_dir/ $bak_dir/
 		else
@@ -1646,6 +1646,9 @@ backup_old_version(){
 		cp -Rf /usr/local/$master$ELF_64/libnvidia-{{cfg,fbc,gtk2,gtk3}.{so,so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_64/
 		cp -Rf /usr/local/$master$ELF_32/libnvidia-{fbc{.so,.so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_32/
 		cp -Rf /usr/local/share/nvidia $bak_dir/usr/local/share/
+		if [ $(ls /etc/ld.so.conf.d/| grep -c "nivdia") -gt 0 ]; then
+			cp -Rf /etc/ld.so.conf.d/nvidia-* $bak_dir/etc/ld.so.conf.d/
+		fi
 		printf "$bak_version\n" > $bak_dir/version.txt
 	fi
 }
