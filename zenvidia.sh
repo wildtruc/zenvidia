@@ -940,30 +940,6 @@ zenvidia_update(){
 	) | zenity --width=450 --title="Zenvidia" --text="Zenvidia Update check..." --progress --pulsate --auto-close
 }
 ## CONFIGURATION
-backup_driver(){
-	# link driver for multi driver config
-#	kern_dir=$KERNEL
-	echo "# DRIVER : Rename and backup driver..."; echo "$n"; n=$[ $n+4 ]
-	mods=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
-	if [ -f $kernel_path/nvidia.ko ]; then
-		# Case : install without dkms process
-		cd $kernel_path
-		mkdir -p $croot_all/$kernel
-		if [ -s $kernel_path/nvidia.ko ]; then
-			for mod in "${mods[@]}"; do
-				[ $kernel_path/$mod.ko ]&& cp -f ./$mod.ko $croot_all/$KERNEL/
-			done
-			echo "# DRIVER : Driver install & backup success."; sleep 1
-			echo "$n"; n=$[ $n+4 ]
-			/usr/sbin/depmod -a
-		else
-			echo "# DRIVER : ERROR "; sleep 1; echo "$n"; n=$[ $n+4 ]
-			zenity --width=450 --title="Zenvidia" --error \
-			--text="$j\Driver $version install abort$end$v.\nExit to main menu.$end"
-			base_menu
-		fi
-	fi
-}
 ## VIRTUALIZER CONFIGURATION PART
 bumblebee_conf(){
 	# consider bumblebee is already installed in /opt and bin in /usr/local
@@ -1262,20 +1238,19 @@ post_install(){
 				sys_service='nvidia-prime'
 				dis_service='bumblebeed'
 				service_check
-				/usr/sbin/nvidia-prime-select nvidia
+#				/usr/sbin/nvidia-prime-select nvidia
 				sleep 1
 				/usr/sbin/nvidia-prime-select nvidiaonly
 				if [ ! -f /etc/nvidia-prime/library.conf ]; then
 					touch /etc/nvidia-prime/library.conf
 				fi
-				pr_conf_ct=$(cat /etc/nvidia-prime/library.conf| grep -c ".*")
 				unset elf_lib_list
 				elf_lib_list=("$ELF_32,32" "$ELF_64,64")
 				for nv_lib in "${elf_lib_list[@]}"; do
 					_elf=$(printf "$nv_lib"|cut -d, -f2)
 					_lib=$(printf "$nv_lib"|cut -d, -f1)
 					if [ -d $croot_all/$master$_lib ]; then
-						if [ $pr_conf_ct -eq 0 ]; then
+						if [ $(cat /etc/nvidia-prime/library.conf| grep -c .) -eq 0 ]; then
 							printf "nv_drv_$_elf=\'$croot_all/$master$_lib\'" \
 							>> /etc/nvidia-prime/library.conf
 						else
@@ -1287,7 +1262,7 @@ post_install(){
 						if [ $? = 1 ]; then base_menu; else exit 0; fi
 					fi
 				done
-				if [ $pr_conf_ct -eq 0 ]; then
+				if [ $(cat /etc/nvidia-prime/library.conf| grep -c .) -eq 0 ]; then
 					printf "nv_xorg_path=\'$croot_all/nvidia/xorg\'\nrc_dir=\'/etc/rc.d\'" \
 					>> /etc/nvidia-prime/library.conf
 				else
@@ -1331,6 +1306,7 @@ post_install(){
 	## fix gui libraries install if broken
 	extracted=NVIDIA-Linux-$ARCH-$new_version
 	if [ -d $extracted ]; then
+		## fix lib32 prefix libs 
 		if [ -d $nvtmp/$extracted/32 ]; then
 			[ -s $install_dir/$master$ELF_32/libnvidia-fbc.so.$new_version ]|| \
 			( cp -f $extracted/libnvidia-fbc.so.$new_version $install_dir/$master$ELF_32/
@@ -1340,10 +1316,20 @@ post_install(){
 			cd $nvtmp
 			)
 		fi
+		## fix lib64 prefix libs
 		for links in {fbc,cfg,gtk2,gtk3}; do
 			[ -s $install_dir/$master$ELF_64/libnvidia-$links.so.$new_version ]|| \
 			( cp -f $extracted/libnvidia-$links.so.$new_version $install_dir/$master$ELF_64/
 			cd $install_dir/$master$ELF_64/
+			ln -sf libnvidia-$links.so.$new_version libnvidia-$links.so.1
+			ln -sf libnvidia-$links.so.1 libnvidia-$links.so
+			cd $nvtmp )
+		done
+		## it appears that gtk symlinks are not always correctly linked at install,
+		## fix them if broken
+		for links in {gtk2,gtk3}; do
+			[ -h $install_dir/$master$ELF_64/libnvidia-$links.so.1 ]|| \
+			( cd $install_dir/$master$ELF_64/
 			ln -sf libnvidia-$links.so.$new_version libnvidia-$links.so.1
 			ln -sf libnvidia-$links.so.1 libnvidia-$links.so
 			cd $nvtmp )
@@ -1513,7 +1499,7 @@ printf \"$xB# Build $version DKMS modules:\n\n$xN\"
 printf \"$esc_message\"
 sleep $xt_delay"
 	sleep 1
-	if [[ ! $($d_modinfo -F version nvidia |grep -o "$version") ]];then
+	if [ $($d_modinfo -F version nvidia |grep -c "$version") -eq 0 ];then
 		cd /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module
 		if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
 		if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
@@ -1624,34 +1610,7 @@ nv_cmd_install_libs(){
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
 }
-backup_old_version(){
-	[ -d $nvbackup ]|| mkdir -p $nvbackup
-	if [ -d $croot/nvidia.$bak_version ]; then
-		orig_dir=$croot/nvidia.$bak_version
-		bak_dir=$nvbackup/nvidia.$bak_version
-		mod_ver=$($d_modinfo -F version $orig_dir/$KERNEL/nvidia.ko )
-		[ -d $orig_dir/$KERNEL ]|| mkdir -p $orig_dir/$KERNEL
-		[[ $mod_ver ]]|| cp -f /lib/modules/$KERNEL/extra/nvidia* $orig_dir/$KERNEL/
-		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc/ld.so.conf.d}}
-		if [[ $new_version ]];then
-			mv -f $orig_dir/ $bak_dir/
-		else
-			mkdir -p $bak_dir
-			cp -Rf $orig_dir $bak_dir/ 
-		fi
-		cp -Rf /var/lib/dkms/nvidia/$bak_version $bak_dir/var/lib/dkms/nvidia/
-		cp -Rf /usr/src/nvidia-$bak_version $bak_dir/usr/src/
-		cp -Rf /etc/{OpenCL,zenvidia} $bak_dir/etc/
-		cp -Rf /usr/local/bin/nvidia-* $bak_dir/usr/local/bin/
-		cp -Rf /usr/local/$master$ELF_64/libnvidia-{{cfg,fbc,gtk2,gtk3}.{so,so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_64/
-		cp -Rf /usr/local/$master$ELF_32/libnvidia-{fbc{.so,.so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_32/
-		cp -Rf /usr/local/share/nvidia $bak_dir/usr/local/share/
-		if [ $(ls /etc/ld.so.conf.d/| grep -c "nivdia") -gt 0 ]; then
-			cp -Rf /etc/ld.so.conf.d/nvidia-* $bak_dir/etc/ld.so.conf.d/
-		fi
-		printf "$bak_version\n" > $bak_dir/version.txt
-	fi
-}
+
 ## INSTALL MODULE AND LIBRARIES PROCESS
 # MAIN
 install_drv(){
@@ -1678,12 +1637,12 @@ install_drv(){
 		if [ -d $croot/nvidia.$old_version ]; then
 			bak_version=$old_version
 			backup_old_version
-			if [ -d $nvbackup/nvidia.$bak_version ]; then
+			if [ -s $nvbackup/nvidia.$bak_version.tar.gz  ]; then
 #			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n")
 			printf "$vB$m_04_01$end$gB $val_04_P$end> $m_04_01a\n" > $reportlog
 			else
 #			report_log+=("$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n")
-			printf "$vB$bak_version $m_04_06:$end$gB $val_04_S$end> $m_04_01b\n" > $reportlog
+			printf "$vB$bak_version $m_04_06$end$gB $val_04_S$end> $m_04_01b\n" > $reportlog
 			fi
 		else
 #			report_log+=("$vB$m_04_01$end$gB $val_04_P$end> $m_04_01c\n")
@@ -1827,6 +1786,69 @@ install_drv(){
 	fi
 }
 
+backup_driver(){
+	# link driver for multi driver config
+#	kern_dir=$KERNEL
+	echo "# DRIVER : Rename and backup driver..."; echo "$n"; n=$[ $n+4 ]
+	mods=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
+	if [ -f $kernel_path/nvidia.ko ]; then
+		# Case : install without dkms process
+		cd $kernel_path
+		mkdir -p $croot_all/$KERNEL
+		if [ -s $kernel_path/nvidia.ko ]; then
+			for mod in "${mods[@]}"; do
+				[ $kernel_path/$mod.ko ]&& cp -f ./$mod.ko $croot_all/$KERNEL/
+			done
+			echo "# DRIVER : Driver install & backup success."; sleep 1
+			echo "$n"; n=$[ $n+4 ]
+			/usr/sbin/depmod -a
+		else
+			echo "# DRIVER : ERROR "; sleep 1; echo "$n"; n=$[ $n+4 ]
+			zenity --width=450 --title="Zenvidia" --error \
+			--text="$j\Driver $version install abort$end$v.\nExit to main menu.$end"
+			base_menu
+		fi
+	fi
+}
+backup_old_version(){
+	[ -d $nvbackup ]|| mkdir -p $nvbackup
+	if [ -d $croot/nvidia.$bak_version ]; then
+		orig_dir=$croot/nvidia.$bak_version
+#		bak_dir=$nvbackup/nvidia.$bak_version
+		bak_dir=$nvtmp/nvidia.$bak_version
+		mod_ver=$($d_modinfo -F version $orig_dir/$KERNEL/nvidia.ko )
+		[ -d $orig_dir/$KERNEL ]|| mkdir -p $orig_dir/$KERNEL
+		[[ $mod_ver ]]|| cp -f /lib/modules/$KERNEL/extra/nvidia* $orig_dir/$KERNEL/
+
+		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc/ld.so.conf.d}}
+		if [[ $new_version ]];then
+			mv -f $orig_dir/ $bak_dir/
+		else
+			mkdir -p $bak_dir
+			cp -Rf $orig_dir $bak_dir/
+		fi
+		cp -Rf /var/lib/dkms/nvidia/$bak_version $bak_dir/var/lib/dkms/nvidia/
+		cp -Rf /usr/src/nvidia-$bak_version $bak_dir/usr/src/
+		cp -Rf /etc/{OpenCL,zenvidia} $bak_dir/etc/
+		cp -Rf /usr/local/bin/nvidia-* $bak_dir/usr/local/bin/
+		cp -Rf /usr/local/$master$ELF_64/libnvidia-{{cfg,fbc,gtk2,gtk3}.{so,so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_64/
+		cp -Rf /usr/local/$master$ELF_32/libnvidia-{fbc{.so,.so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_32/
+		cp -Rf /usr/local/share/nvidia $bak_dir/usr/local/share/
+		if [ $(ls /etc/ld.so.conf.d/| grep -c "nvidia") -gt 0 ]; then
+			mkdir -p $bak_dir/etc/ld.so.conf.d
+			cp -Rf /etc/ld.so.conf.d/nvidia-* $bak_dir/etc/ld.so.conf.d/
+		fi
+		printf "$bak_version\n" > $bak_dir/version.txt
+		
+		cd $bak_dir/usr/local/$master$ELF_64/
+		for links in {gtk2,gtk3}; do
+			ln -sf libnvidia-$links.so.$bak_version libnvidia-$links.so.1
+		done
+		cd $nvtmp
+		tar -zcf $nvbackup/nvidia.$bak_version.tar.gz nvidia.$bak_version
+		rm -Rf $bak_dir
+	fi
+}
 upgrade_new_kernel(){
 	up_version=$(cat $nvdir/version.txt)
 	ls_kern=$(ls -1 /boot| grep -v "rescue"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
@@ -1855,7 +1877,8 @@ upgrade_kernel(){
 #		kernels="-K"
 		kernel_path="/lib/modules/$KERNEL/extra/"
 		kernel_src="/usr/src$alt/$KERNEL"
-#	else 
+#		kernel=$KERNEL
+	#	else 
 #		kernels="-K"
 	fi
 	drv_release=$(ls $nvdl/ | grep "$version")
@@ -1929,10 +1952,18 @@ extract_build(){
 }
 # OPTIMUS PRESENCE CONTROL
 if_optimus(){
-#	[ $if_update = 1 ]&& new_version=$version
-#	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
 	if [ ! $driverun ]; then
-		if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+		if [ $(printf "$LAST_PACK"| grep -c .) -gt 0 ]; then
+			new_version=$LAST_PACK	
+		else
+			new_version=$version
+		fi
+	else
+		if [ $(printf "$driverun"| grep -c "$version") -gt 0 ];then
+			new_version=$version
+		else
+			new_version=$(printf "$driverun"| sed -n "s/^.*-//p")
+		fi
 	fi
 	predifine=3
 	predifined_dir=nvidia.$new_version
@@ -1950,8 +1981,21 @@ if_single(){
 #	[ $if_update = 1 ]&& new_version=$version
 	
 #	if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+#	if [ ! $driverun ]; then
+#		if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+#	fi
 	if [ ! $driverun ]; then
-		if [ $LAST_PACK ]; then new_version=$LAST_PACK; else new_version=$version; fi
+		if [ $(printf "$LAST_PACK"| grep -c .) -gt 0 ]; then
+			new_version=$LAST_PACK	
+		else
+			new_version=$version
+		fi
+	else
+		if [ $(printf "$driverun"| grep -c "$version") -gt 0 ];then
+			new_version=$version
+		else
+			new_version=$(printf "$driverun"| sed -n "s/^.*-//p")
+		fi
 	fi
 	predifine=1
 	predifined_dir=nvidia.$new_version
@@ -1975,12 +2019,13 @@ install_type_sel(){
 	false 1 "$A1" false 2 "$A2" false 3 "$MM")
 #	false 1 " $A1" false 2 " $A2" false 3 " $A3" false 4 "$MM")
 	if [ $? = 1 ]; then exit 0; fi
+
 	case $dir_cmd in
 		"1") if_single ;;
 #		"2") if_legacy; optimus=0 ;;
 		"2") from_menu_install=1
 			menu_optimus
-			if [ use_bumblebee=1 ]; then
+			if [ $use_bumblebee = 1 ]; then
 				opti_exec=$install_dir/bin/optirun
 				opti_ctrl=local_src_ctrl
 				msg=$m_01_31
@@ -2506,7 +2551,8 @@ backup_restore(){
 	if [ $b_type = 0 ]; then
 		croot_repo=$(ls -1 $croot | grep "nvidia.")
 	else
-		croot_repo=$(ls -1 $nvbackup | grep "nvidia.")
+#		croot_repo=$(ls -1 $nvbackup | grep "nvidia.")
+		croot_repo=$(ls -1 $nvbackup | grep "nvidia."| sed -n "s/.tar.gz//p")
 	fi
 	for drive in $croot_repo; do
 		drive_list+=("false")
@@ -2524,6 +2570,7 @@ backup_pcks(){
 	b_type=0
 	backup_restore
 	bak_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
+#	bak_version=$(printf "$drive_packs"|sed -n "s/nvidia.\([0-9]*\).tar.gz/\1/p")
 	if [[ -d $nvbackup/nvidia.$bak_version ]]; then
 		zenity --width=250 --height=100 --title="Zenvidia ($_6b)" --info --icon-name=swiss_knife \
 		--no-wrap --text="$j$bak_version$end$v $m_01_70.$end"
@@ -2554,7 +2601,8 @@ restore_pcks(){
 	b_msg="$_6c\n$v$m_01_75 $b_mod.$end"
 	b_type=1
 	backup_restore
-	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
+#	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
+	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\([0-9]*\)/\1/p")
 	ver_res=$(printf "$res_version"| sed -n "s/\.//p")
 #	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//;s/.bak$//p")
 	if [ ! -d $croot/$drive_packs ]; then
@@ -2564,8 +2612,8 @@ restore_pcks(){
 			"nvidia.$res_version/$(uname -r)/*,/lib/modules/$(uname -r)/extra/,-f,depmod -a"
 			"version.txt,$nvdir/,-f"
 			"etc/,/,-Rf"
-			"usr/,/usr/,-Rf"
-			"var/,/var/,-Rf"			
+			"usr/,/,-Rf"
+			"var/,/,-Rf"			
 			"nvidia.$res_version,$croot/,-Rf"
 		)
 		confirm_msg=$(printf "$v$m_01_76$end." "$res_version" "$version")
@@ -2574,19 +2622,74 @@ restore_pcks(){
 		val_back="$PM"
 		val_exit="manage_pcks"
 		win_confirm
+		tar -zxf $nvbackup/nvidia.$res_version.tar.gz -C $nvtmp/
 		(	for restor in "${bk_list[@]}"; do
 				input=$(printf "$restor"| cut -d, -f1)
 				output=$(printf "$restor"| cut -d, -f2)
 				c_opt=$(printf "$restor"| cut -d, -f3)
 				c_ext=$(printf "$restor"| cut -d, -f4)
-				cp $c_opt $nvbackup/$drive_packs/$input $output
+#				cp $c_opt $nvbackup/$drive_packs/$input $output
+				cp $c_opt $nvtmp/$drive_packs/$input $output
 				$c_ext
 			done
 			cd $croot/
 			ln -sf -T ./nvidia.$res_version ./nvidia
+			## remove /opt/nvidia.prev_version for compatibility future restore purpose
+			rm -Rf ./nvidia.$version
+			## fix symlinks if necessary
+			for lib_elf in {$master$ELF_32,$master$ELF_64}; do
+				for links in {cfg,fbc,gtk2,gtk3}; do
+					if [ $(ls -1 /usr/local/$lib_elf/libnvidia-$links.so.$res_version| \
+					grep -c .) -gt 0 ]; then
+						if [ $(ls -l /usr/local/$lib_elf/libnvidia-$links.so.1| \
+						grep -c "$res_version" ) -eq 0 ]; then
+							if [ -h /usr/local/$lib_elf/libnvidia-$links.so.1 ]; then
+								rm -f /usr/local/$lib_elf/libnvidia-$links.so.1
+							fi
+							cd /usr/local/$lib_elf/
+							ln -sf libnvidia-$links.so.$res_version libnvidia-$links.so.1
+							ln -sf libnvidia-$links.so.1 libnvidia-$links.so
+						fi
+						if [ -s /usr/local/$lib_elf/libnvidia-$links.so.$version ]; then
+							rm -f /usr/local/$lib_elf/libnvidia-$links.so.$version
+						fi
+					fi
+				done
+				if [ $(ls -l /usr/$lib_elf/vdpau/libvdpau_nvidia.so.1| \
+				grep -c "$res_version" ) -eq 0 ]; then
+					if [ -h /usr/$lib_elf/vdpau/libvdpau_nvidia.so.1 ]; then
+						rm -f /usr/$lib_elf/vdpau/libvdpau_nvidia.so.1
+					fi
+					ln -sf $croot/nvidia.$res_version/$lib_elf/vdpau/libvdpau_nvidia.so.$res_version \
+					/usr/$lib_elf/vdpau/libvdpau_nvidia.so.1 
+				fi
+			done
 			ldconfig
 		)| zenity --width=400 --title="Zenvidia $b_mod" --progress --pulsate --auto-close \
 		--text="$(printf "$v$m_01_78$end" "$res_version")"
+		rm -Rf $nvtmp/nvidia.$res_version
+		if [ $(ls -1 /opt/nvidia.$res_version/| grep -c "$(uname -r)") -eq 0 ]; then
+			confirm_msg=$(printf "$v$m_01_79$end." "$res_version")
+			val_title="Zenvidia $b_mod"
+			val_confirm="$m_01_80"
+			val_back="$PM"
+			val_exit="manage_pcks"
+			win_confirm
+			( version=$res_version 
+#				upgrade_kernel
+			if [ $use_dkms = 1 ]; then
+				force=0
+				nv_build_dkms 
+			else
+				nv_cmd_make_src
+			fi
+#			KERNEL=
+			croot_all=$croot/nvidia.$res_version
+			kernel_path=/lib/modules/$KERNEL/extra
+			backup_driver
+			)| zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
+			--text="$v Restore modules missing. Building new ones...$end"
+		fi
 	else
 		# current version overwrite ALERT message
 		if [[ $ver_res -eq $ver_mod ]]; then
@@ -3155,7 +3258,7 @@ base_menu(){
 	)
 	# remove deplist list in case of relaunching first because an update asking to
 	unset deplist
-	w_height=550
+	w_height=450
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 	menu_cmd=$(zenity --height=$w_height --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$rBB$msg_00_01$end
@@ -3168,7 +3271,7 @@ $vB$msg_0_03$end $j$GCC$end
 $vB$msg_0_04$end $j$NV_bin_ver$end\n
 $v$msg_0_05 : $end$dir_msg
 $v$msg_00_06 : $end $j$cnx_msg$end
-\n$v$hlp_tip_txt$ansWN$end" \
+\n$v$hlp_wrn$ansWN$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	false 1 "$_01" false 2 "$_02" false 3 "$_03" false 4 "$_04" )
 	if [ $? = 1 ]; then exit 0; fi
