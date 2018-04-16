@@ -1,12 +1,16 @@
 # Zenvidia
 This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 
+## IMPORTANT NOTICE FOR V1.0
+New minor update is rename v1.0. *.sh* suffixes are removed. To update do first ```git pull```, then ```sudo make update```. You will be automaticaly notified for next update. 
+
 ## History log
 I'm not a "real" coder, my script syntax is often approximative and need a real improvement. So, all kind of help is welcome.
 
-All of the developpement test was made on a discret graphic card for **optimus** and **Bumblebee**. My only experience on single GPU is recent and only with **[FedoraPrime](https://github.com/bosim/FedoraPrime)** project and now with the fork I made for my very customized purpose, **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)**.
+All of the originals developpement tests were made on a discret graphic card for **optimus** and **Bumblebee**. further experience on single GPU was recent and with **[FedoraPrime](https://github.com/bosim/FedoraPrime)** project and after with the fork I made for my very customized purpose, **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)**. I have still now a laptop for Prime/Optimus tests, but my default desktop is with a single GPU card.
 
-Since I add recently Prime to zenvidia, I was expecting some X server crash, but nothing appened. The only issue I had, Nvidia-installer refused to execute because of nvidia-drm module loaded, it was finally installed by the automatics scripts work-arrounds.
+## Issues
+Nvidia-installer refuse to execute because of nvidia-drm module loaded, the automatic script work-arround does the job.
 
 After a long time of hard developpement, it seem to be stable. If you meet issues, just tell.
 
@@ -15,15 +19,20 @@ See **Wiki** for **Issues**, **Todo list** and **demands**.
 ------------
 ## News
 
-*IMPORTANT UPDATE*: NVIDIA FTP is dead! And been replace by http/https site. 
+*FIX UPDATE*: quick fix base on new nvidia-installer options that prevent 390.xx to be installed.
+ - Some function could be broken like optimus git repos updates. Fixes are on going, but could take some time. Previuosly, basic git repos was hard linked to to the script, now it will detect in user path where are thoses repos for update, etc. All test are not done and there still many work to do.
+ - Downloading old driver is currently broken.
+ - Backup could meet some issues (didn't find the bug yet)
+ - Prime is quickly adapt to new **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** major changes.
+ - Bumblebee and others are redefined. You can meet issues because I have no more Bumblebleed install.
+ - Authentification is now base on polkit.
 
-**STABLE** and over Fedora (and like: Mageia, OpenMandriva) and Debian (and like, Ubuntu maybe).
+I'm' thinking to a complete revision and rewrite, but not sure for now because of personnal issues.
 
-But still stay tuned on **WIKI** and use regulary the Zenvidida update tool.
+Sorry for the inconvinience.
 
-Been test over Bumblebee, Prime and standalone.
-
-Still need plugins updates for Gentoo and others distros.
+### Note:
+It is better for these update to perform a 'make install', so, backup you basic.conf, script.conf, color.conf before (all are in /usr/local/NVIDIA).
 
 ------------
 

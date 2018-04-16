@@ -3,7 +3,7 @@ Type=Application
 Encoding=UTF-8
 Name=Zenvidia
 Comment=Manage NVIDIA drivers
-Exec=zenvidia.sh
+Exec=zen_start
 Icon=swiss_knife.png
 Categories=Application;Settings;
 

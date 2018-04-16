@@ -1,0 +1,144 @@
+ ## CHANGELOG
+ 
+ - (2018-03-15) v1.0pre (35) - Some change before code review. 
+   - .sh suffixes are removed.
+   - zen_notify modified for better design and check.
+   - update.sh reviewed and modified. Still an issue in configs diff, so backup your configs files before update.
+   - makefile reviewed to update.sh new design.
+   - changed sudo login to polkit policy (multi distro compat).
+   - add zen_start to launch zenvidia through polkit. Desktop files modified accordingly.
+   - zenvidia: readapt git updater for auto discover git locals repos. This is still in test.
+ 	
+ # PREVIOUS LOG
+ 
+ - (2017-07-28) (34)
+   - Bug Fix: Prime driver version checker was unproperly set and filter when install directly after download. This is untested, but it was probably the same with other direct install method after download.
+   - Add compressed tar.gz file to backup function set by default (backups can take a lot of place). The function use nv_build_dkms or nv_cmd_make_src if modules are not present in runing kernel.
+ - (2017-07-10) (33)
+   - There were an issue with restore_pcks fn that wasn't restore nvidia's ld.so.conf files.
+ - (2017-06-06) (32)
+   - Updated nvidia ftp server to http.
+ - (2017-08-04) (31)
+   - Fix broken 'Update driver for an other kernel'. Function wasn't launching alternative DKMS/source install.
+   - Change main fonts width and fix tab and translation as appropriate.
+ - (2016-16-12) (30)
+   - Changer install report display method (from a temp file instead of a per function list one)
+   - Modified a few text display tabulations.
+   - Fixed install type wrong conditionnal security (if_single, if_optimus functions).
+ - (2016-01-12) (29)
+   - Fixed a few mistakes in prime_setup, nv_cmd_install_libs (I don't want to talk about it...)
+   - \[Out of code\] Change ```rc.nvidia``` remove way in nvidia-prime-select for ```nvidia only mode```.
+ - (2016-26-11) (28)
+   - Minor updates in installation report display (languages adaptation).   
+   - Re-design zen_notify_standalone for driver check only.
+   - Fixed typing error in Bumblebee install function.
+   - Added first Arch Linux distro plugin.
+   - Fixed Makefile share/applications & pixmaps directories creation at install (user notice)
+   - fixed a conditional syntax fatal error.
+ - (2016-18-11) (27)
+   - Added Gksu password entry UI for Debian and other Ubuntu like distros. This will normaly fix the unexpected behaviour of Zenity password entry with sudo method.
+ - (2016-13-11) (26)
+   - minor updates in language packs and corresponding in script. Still need to changes the whole behaviour of messages. Will come...
+ - (2016-09-11) (25)
+   - fixed stupid error (forgot to comment dev only lines)
+   - updated FR langage pack.
+ - (2016-09-11) (25)
+   - Added first xorg conf diff patching, will normaly update newly created xorg during install with the already present custom xorg conf.
+   - Fix a few bugs, including missing xorg conf file for single type install (sic!)
+   - Change update.sh and Make file a bit better.
+ - (2016-06-11) (23)
+   - Added Bumblebee/Prime service checker in case of Optimus display management switch.
+   - Added help tip for zen_notify and current config display. 
+   - Added Prime current setup display to Prime tool.
+   - Fixed nvidia-prime-select issue (remove nvidia.rc link when switching to non permanent).
+   - zenvida icon/logo updated.
+   - updated Ubuntu, Debian conf files to 'sudo -S' instead of 'sudo' (zenity password issue)
+ - (2016-04-11) (22)
+   - Modified menu and help tips to be displayed in case of basic conf context (dkms, optimus, etc), so menus will only display what was configured during install or by user. This behaviour is to prevent user confusion between different install types.
+   - zen_notify is now set by default to 'z' (nvidia driver and zenvidida only)
+   - Added Primus libGL rebuild 
+ - (2016-02-11) (21) > upload by mistake as 20
+   - Refreshed remove_pcks design for multi files selection and remove.
+   - Added libglvnd warning to install libraries report.
+   - Fixed lib ld.so.conf config for Prime during post install process.
+   - Added Prime setup tool in Tools menu and in post install process.
+   - Performed some install and tools tests over single GPU device and Optimus with success (Fedora 24).
+ - (2016-29-10) (20)
+   - Added Help Tips, can be disabled in Tools menu.
+   - Added zen_notify config edit in Tools menu.
+   - fixed variable mistake in basic.conf diff in update.sh.
+   - fixed basic.conf diff regex and IFS in update.sh.
+   - fixed unfinished command install direct 'from net'.
+ - (2016-29-10) (19)
+   - Added an installation report for better output clarity.
+   - Fixed zen_notify git update in user temp dir.
+ - (2016-27-10)
+   - It appears that when installing libraires separatly, nvidia-installer remove all driver in modules and in dkms. Had to reverse processe and install librairies first and then modules. Nvidia-installer still fail to install modules because of nvidia-drm, only dkms and direct compil work-around make it.
+   - rename xorg.conf.nvidia.'module version' by xorg.conf.nvidia to prevent overwrite or custom xorg.conf. 
+ - (2016-19-10)
+   - After a strange behavior in driver download progress when lauching in ```su -c```, changed the downlaod progress command getting inspiration from ```winetricks``` code (thanks to the team, you learn me something really useful)
+ - (2016-17-10)
+   - changed update.sh behaviour after diff mistakes in script. Applying now a real patch file for conf files, except for basic.conf that only doing conf file update without changing any custom lines.
+ - (2016-15-10)
+   - experimenting new behavior for xterm window (debug phase).
+ - (2016-10-10)
+   - After a priviledge issue between su and default user, .git directory is now copied into $USER/tmp from local_src for zen_notify.sh checks.
+   - zen_notify_standalone can only be used with -n option until I figure out how to move. 
+   - FR_PACK updated
+   - zenvidia.sh zen_notify.sh updated
+ - (2016-09-10)
+   - Add xkill.png to repo for warning/error messages.
+   - Add and changed warning messages for backup/restore/remove tool and prevent of overwrite/remove current install.
+   - Changed the update.sh way to diff basic.conf and color.conf
+   - Updated EN_PACK (FR_PACK not translated yet)
+   - making sure nvidia-prime directory exist before making xorg.conf file.
+ - (2016-08-10)
+   - Add restoration backed up drivers 'restore_pcks' function.
+   - Modified GIT source priviledge management to let default user make a ```git --fecth --dry-run``` to check GIT repos with zen_notify.
+   - A few little change in 'fix_broken_install'.
+ - (2016-04-10)
+   - update.sh : changed insertion/replacement method.
+   - zenvidia.sh : modified zenvidia_update function for better log ouput.
+ - (2016-03-10)
+   - Changed a few var name to make the code more readable.
+   - Remove old unuseful vars.
+   - Add an independant confirmation window.
+   - Add 'broken install repair' in 'tools' menu. It will relink, install, fix an existent Nvidia install on a newly distro/system install (if your Nvidia Dirs are installed on a separate /usr/local partition).
+ - (2016-30-09)
+   - Added 2 new options in basic.conf redarding xterm window delay before auto close or hold it. Useful when user like to get time to read what's happening in it (like me).
+   - Modified the update.sh script to update configuration files without change options already customized by user.
+ - (2016-27-09)
+   - Default install replaced to /opt directory after Wine and Steam issues with /usr/local/DRIVERS.
+   - xorg conf file is now available for Single GPU install type.
+   - create a zen_notify_standalone for those that really don't care of what to do with Zenvidia. 
+ - (2016-24-09)
+   - After many test under Single GPU, many little stupid errors appeared and fixed.
+   - It seems that nvidia-installer --modules-only doesn't compil for a first install, but the work arounds does.
+   - It seems too that libnvidia-wfb.so is broken for all kind of type of install. Fixed by linking system one. 
+ - (2016-23-09)
+   - Forgot 'wget' in dependencies list, fixed a few stupid mistakes.
+   - Trying my first install on a clean system in single GPU mode (sic). Many bugs.
+   - Re-design hardware detection (because the bug), also fixed other little things.
+   - Added nouveau blacklisting in modprobe and grub.
+ - (2016-23-09)
+   - Created a zen_notify script that only check driver and source update, then notify it to the desktop. Can be used with and without zenvidia with a few tricks.
+   - Added 2 desktop files. 1 to launch Zenvidia from Setting menu, 1 for zen_notify to start at user session boot time.
+ - (2016-22-09)
+   - Add zenvidida update script to menu update. Modified GIT Makefile as appropriate.
+   - Changed var optimus_src to local_src. GIT source repos are definitivly located in /usr/local/src
+ - (2016-19-09)
+   - Add old libs backup to primus build function.
+   - re-designed dependencies check & add packages list to distro conf.
+   - re-designed nvidia-installer to check and install at first start only.
+   - re-design first install command
+ - (2016-16-09)
+   - fixed backup section system libs vars.
+   - Add better colors to xterm and a space reservation in case of cairo-dock use as right/left dock. Modified color.conf/basic.conf as appropriate.
+   - Add auto clean up for Bumblebee old configs.
+   - Fixed none updated var in libs installer.
+ - (2016-15-09)
+   - Made some weird mistake on mod version check and fixed it.
+   - Fixed libvdpau links, mplayer working perfectly over vdpau. Still need to know compatibility with all distros
+   - Replaced script conf edit by basic conf edit in 'Edit script config' section.
+ - (2016-14-09) - Changed Prime compile behaviour. Pull resquest on GIT repo wasn't very clear.
+ - (2016-13-09) - Add Unbuntu/Mint, Mageia, OpenMandriva to plugins repo.

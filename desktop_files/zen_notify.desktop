@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=zen_notify.sh -z
+Exec=zen_notify -z
 X-GNOME-Autostart-enabled=true
 NoDisplay=false
 Hidden=false
