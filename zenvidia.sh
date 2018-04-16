@@ -3340,7 +3340,7 @@ fi
 # INITIALS checks
 compil_vars
 libclass
-root_id # << distro_id < distro
+	#root_id # << distro_id < distro
 version_id
 ID
 arch
