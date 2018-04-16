@@ -2,7 +2,12 @@
 This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 
 ## IMPORTANT NOTICE FOR V1.0
-New minor update is rename v1.0. *.sh* suffixes are removed. To update do first ```git pull```, then ```sudo make update```. You will be automaticaly notified for next update. 
+New major update before v1.0.
+ - Upgraded to 390.xx new installer options.
+ - **.sh** suffixes are removed.
+ - Polkit Auth instead of su/sudo.
+ - To update do ```sudo make install``` (see **News** below).
+ - You will be automaticaly notified for next update. 
 
 ## History log
 I'm not a "real" coder, my script syntax is often approximative and need a real improvement. So, all kind of help is welcome.
