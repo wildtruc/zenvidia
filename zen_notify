@@ -57,7 +57,7 @@ LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
 LAST_BETA=$(cat $nvtmp/last_beta)
 #LAST_BETA='370.29'
 
-if [ -s $nvdir/version.tt ]; then
+if [ -s $nvdir/version.txt ]; then
 	version=$(cat $nvdir/version.txt| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
 else
 	version=$(modinfo -F version nvidia| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
@@ -78,11 +78,14 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 		drv_short=$(printf "$driver"|cut -d',' -f1 |sed -n "s/\.//p")
 		release=$(printf "$driver"|cut -d',' -f2)
 		driver=$(printf "$driver"|cut -d',' -f1)
-		_driver_notif+=( "$driver $release update." )
+		if [ $drv_short -gt $version ]; then
+			_driver_notif+=( "$driver $release update." )
+		fi
 	done
 	if [ $drv_short -gt $version ]; then
+		notif_msg+='Nvidia driver update'
 #		zenity --notification --window-icon=swiss_knife --text="Nvidia ${_driver_notif[@]}"
-		notify-send -t 5000 -u low -i swiss_knife "Nvidia driver update" "$(echo -e "${_driver_notif[*]}")"
+		notify-send -t 5000 -u low -i swiss_knife "${notif_msg[*]}" "$(echo -e "${_driver_notif[*]}")"
 	fi
 	IFS=$ifs
 fi
@@ -90,10 +93,12 @@ fi
 source_ctrl(){
 if [ ${#local_git_list[@]} -gt 0 ]; then
 	for local_git in "${local_git_list[@]}"; do
-		if [[ -d $local_src && $(ls $local_src| grep -c "$local_git") -gt 0 ]]; then
-			local_git_repo=$local_src/$local_git
-		else
-			local_git_repo=$(find -P $HOME -maxdepth 3 -mount -wholename "*/$local_git")
+		if [[ -d $local_src ]]; then 
+			if [ $(ls $local_src| grep -c "$local_git") -gt 0 ]; then
+				local_git_repo=$local_src/$local_git
+			else
+				local_git_repo=$(find -P $HOME -maxdepth 3 -mount -wholename "*/$local_git")
+			fi
 		fi
 #		if [[ -d $local_git ]]; then
 		if [[ -d $local_git_repo ]]; then
@@ -102,19 +107,21 @@ if [ ${#local_git_list[@]} -gt 0 ]; then
 			if [[ $(cat $nvtmp/git.log|grep -c "master") -eq 1 ]]; then
 #				find -P $HOME -maxdepth 3 -mount -wholename "*/zenvidia"
 				local_git_name=$(printf "$local_git"| sed -n "s/^.*\///g;p")
-				zenity --notification --window-icon=swiss_knife --text="$local_git_name $msg_git"
-				_local_git+=("$local_git repo update.")
+#				zenity --notification --window-icon=swiss_knife --text="$local_git_name $msg_git"
+#				_local_git+=("$local_git repo update.")
+				notif_msg+='Zenvidia and '
+				_driver_notif+=("$local_git repo update.")
 			fi
 #		else
 #			exit 0
 		fi
 	done
-	if [ ${#_local_git[@]} -gt 0 ]; then
-		notify-send -t 5000 -u low -i swiss_knife "Git repos update" "$(echo -e "${_local_git[*]}")"
-	fi
+#	if [ ${#_local_git[@]} -gt 0 ]; then
+#		notify-send -t 5000 -u low -i swiss_knife "Git repos update" "$(echo -e "${_local_git[*]}")"
+#	fi
 fi
 }
-#sleep 30
+sleep 30
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"
 	printf "\t -a : check all.\n"
@@ -126,14 +133,13 @@ while [ $# -gt 0 ]
 #	getopts "z-n-h" OPT; do
 	getopts "a-z-n-h" OPT; do
 	case $OPT in
-		a) driver_ctrl
-		local_git_list=( 'bbswitch' 'Bumblebee' 'primus' 'nvidia-prime-select' 'zenvidia' )
+		a)	local_git_list=( 'bbswitch' 'Bumblebee' 'primus' 'nvidia-prime-select' 'zenvidia' )
 		source_ctrl
+		driver_ctrl
 		;;
-		z) driver_ctrl
-#		local_git_list=( "$HOME/.zenvidia/src/.git" )
-		local_git_list=( "zenvidia" )
+		z) local_git_list=( "zenvidia" )
 		source_ctrl
+		driver_ctrl
 		;;
 		n) driver_ctrl;;
 		h) usage_help ;;
