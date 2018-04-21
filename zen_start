@@ -1,0 +1,7 @@
+#! /bin/bash
+pk_exec=$(find /usr/{bin,sbin,local/bin,local/sbin} -name pkexec)
+bash_opts='bash -x '
+if [ $EUID -gt 0 ]; then
+	$pk_exec /usr/local/bin/zenvidia
+fi
+exit 0
