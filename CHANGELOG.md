@@ -1,5 +1,16 @@
  ## CHANGELOG
  
+ - (2018-11-28) v1.0.1 (36) - change and fixes
+   - Message (important): I have severe heals issue and I don't really know if I could still manage my project alive. I will try to continue to fix bugs and Nvidia options updates, but i can't tell about the future. It's strongly recommanded to fork.
+   - Issue #1: DKMS is compiling, but not install modules. Not a clue at this point (Fedora? dkms? nvidia?). Anyway, 2nd workaround install drivers after a few fix. Until debug and fianl fix of this issue, in case of a kernel upgrade, it is mandatory to use the 'Update driver for an other kernel' entry from 'update' menu before restart the computer.
+   - Issue #2: script remove all /opt dir and place it in nvidia's directory when installing a previous version of the driver. Have no clue yet.
+   - fix: There was an issue with compiling driver for an other kernel when dkms failed. Had to add env new kernel variables and control to fix.
+   - Add a modules chooser at install time : most driver modules are not required for default usage. For a better user experience, a modules selector has been added in case user doesn't use Cuda or Optumus Prime. Use of blacklist was prefered to nvidia-installer options sets. Cuda config option is depracated. No translation pack update for the moment.
+   - Update script to new/removed nvidia_installer options 410 serie (libs part).
+   - nvidia-installer driver compil part has been remove, because useless (can't build with modules loaded and nvidia-installer have no workaround option, a quite stupid).
+   - Not done: remove commented trash codes, bumblebleed/prime sections controls and tests.
+   - as usual: please, report if somehing strange happens.
+ 
  - (2018-03-15) v1.0pre (35) - Some change before code review. 
    - .sh suffixes are removed.
    - zen_notify modified for better design and check.

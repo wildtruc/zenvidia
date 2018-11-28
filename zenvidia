@@ -53,6 +53,7 @@ reportlog=/tmp/nv_report.tmp
 #kernel_src="--kernel-source-path"
 xt_hold=0
 xt_delay=4
+opts_setted=0
 
 ################################################
 ## DEVELOPPEMENT only, DON'T EDIT OR UNCOMMENT'
@@ -160,45 +161,6 @@ distro(){
 		exit 0
 	fi
 }
-#root_id(){
-#	distro_id
-#	distro
-#	if [[ $EUID -gt 0 ]] ; then
-#		if [ -f /proc/version ] ; then
-#			# if distro type is debian like, zenity password entry box is replace by gksu.
-#			if [ $dist_type = 0 ]; then
-#				if  [ $su_set = 1 ]; then
-#					$p_gksu $0
-#					exit 0
-#				else
-#					zenity --password --title="Zenvidia first start SuperUser password"| $SU_r $0
-#					exit 0
-#				fi
-#			else
-#	#			zenity --password --text="$v\Enter SuperUser password$end"| $SU_r /$EXEC$0
-#				zenity --password --title="Zenvidia (SuperUser password)"| $SU_r $0
-#				exit 0
-#			fi
-#		else
-#			zenity --width=450 --error --text="$v SORRY, CAN'T IDENTIFY DISTRO.\nPROMPT DIRECTLY AS SU\nAND TYPE $J sudo $(basename $0)$end$v FOR DEBIAN LIKE,\nOR$j su -c $(basename $0)$end$v FOR OTHER DISTRO.$end"
-#			exit 0
-#		fi
-#	else
-#		[[ $USER == $def_user ]]|| {
-#			if [ $(id -u -n) == $USER ]; then
-#				user_name=$(zenity --entry --text="Enter default user name" --entry-text="your user name")
-#				if [ $(cat /etc/passwd |grep -c $user_name) -eq 1 ]; then
-#					sed -i "s/def_user=.*$/def_user=$user_name/" $basic_conf
-#				fi
-#			fi
-#		}
-#		if [ $su_set ]&&[ $su_set = 0 ]; then
-#			if [ -s $conf_dir/distro/$plug_version ]; then
-#				sed -i "s/su_set=[0-9]/su_set=1/" $conf_dir/distro/$plug_version
-#			fi
-#		fi
-#	fi
-#}
 
 # elf types
 libclass(){
@@ -1377,11 +1339,12 @@ post_install(){
 
 ### INSTALL
 old_kernel(){
-	if [ $cuda = 0 ]; then
-		nv_list=( nvidia nvidia-modeset nvidia-drm )
-	else
-		nv_list=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
-	fi
+#	if [ $cuda = 0 ]; then
+#		nv_list=( nvidia nvidia-modeset nvidia-drm )
+#	else
+#		nv_list=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
+#	fi
+	nv_list=( nvidia nvidia-uvm nvidia-modeset nvidia-drm )
 	for nvname in "$nv_list"; do
 		old_driver=$($d_modinfo -F version /lib/modules/$OLD_KERNEL/extra/$nvname.ko)
 		if [ -s /lib/modules/$OLD_KERNEL/extra/$nvname.ko ]; then
@@ -1397,33 +1360,110 @@ clean_previous(){
 			old_kernel
 		fi
 }
+nv_modules_set(){
+	## nvidia_installer can't unload nvidia_drm.
+	## nvidia-installer use --no-drm and --no-uvm options in the command line to not managed uvm and/or
+	## drm modules. However, it could be messy to use those options when compling drivers modules, thus,
+	## script will prefer to blacklist unused modules instead of not compiling them and allow thier usage
+	## in a possible future.
+	## PC has to be reboot after modules set.
+	_insert_type=1
+	_help_tip="$v - Unified Memory Module ($j nvidia-uvm $end)
+   is required for CUDA driver and application.
+ - Prime Sync DRM Module ($j nvidia-drm $end)
+   is required for Optimus PRIME modesetting environment.$end
+If you do not have or intend to use CUDA service and/or Optimus PRIME,
+it is safe to not use/build them.\n"
+	if ! [ $no_warn ]; then no_warn=0; _insert_type=0; fi
+	## get values from config file.
+	if [ $hlp_txt = 1 ]; then _tip=$_help_tip; else _tip=''; fi
+	if [ $use_uvm -gt 0 ]; then UVM='TRUE'; else UVM='FALSE'; fi
+	if [ $use_drm -gt 0 ]; then DRM='TRUE'; else DRM='FALSE'; fi
+	modules_msg="$vB\This is the first time you launch this options sets.\n
+With the next window you can select the nvidia's drivers type you want/need
+to use and will set the basic configuration file for future builds.
+$_help_tip$end"
+	# warn about first use.
+	if [ $no_warn = 0 ]; then
+		zenity --question --title="Zenvidia modules set" --icon-name=dialog-warning --text="$modules_msg" \
+		--no-wrap --cancel-label="I got it, but don't show me this message again" --ok-label="I got it"
+		no_warn=$?
+		if [ $_insert_type = 1 ]; then
+			sed -Eni "s/^(no_warn)=[0-9]$/\1=$no_warn/g;p" $basic_conf
+		else
+			echo -e "# display first time modules build messsage (0) or not (1)
+	no_warn=$no_warn" >> $basic_conf
+		fi
+	fi
+	_title="Modules build selection"
+	_text="$rBB\Nvidia Optional Modules$end 
+$vB\By default Zenvidia will only build the main Nvidia driver.
+You can select here the optional driver as you need.
+$_tip
+Check the appropriate boxes in list below to build optional drivers.$end
+$v(Choice will be saved in default conf file)$end"
+	driver_var=$(zenity --width=500 --list --title="$_title" --text="$_text" --column="check" --column="hide" \
+	--column="driver" --checklist --multiple --print-column=2 --hide-column=2 --separator=' ' --hide-header \
+	$UVM "use_uvm" "Unified Memory Module (nvidia-uvm)" $DRM "use_drm" "Optimus Prime Sync DRM Module (nvidia-drm)")
+	for mod in "_uvm" "_drm"; do
+		class='use'$mod
+		if [ $(printf "${driver_var[@]}"| grep -c "$class") -gt 0 ]; then
+			used_val=1
+			rep=''
+		else
+			used_val=0
+			rep='blacklist nvidia'$mod
+		fi
+		sed -Eni "s/^($class)=[0-9]$/\1=$used_val/g;p" $basic_conf
+		export $class=$used_val
+		if [ $(cat /etc/modprobe.d/blacklist.conf| grep -c "$mod") -eq 0 ]; then
+			if [ $used_val = 0 ]; then echo -e "blacklist nvidia$mod" >> /etc/modprobe.d/blacklist.conf; fi
+		else
+			sed -Eni "s/^blacklist nvidia$mod$/$rep/g;p" /etc/modprobe.d/blacklist.conf
+		fi
+		sed -i "/^$/d" /etc/modprobe.d/blacklist.conf
+	done
+#	exit 0
+}
 nv_cmd_try_legacy_first(){
+	## XXX Whatever module loaded, nvidia_installer refuse constently to compil drivers.
+	## This is a stupid nvidia's developper issue that wont be fix ever (they apparently
+	## don't know that a driver can be compil when same driver is loaded O_o !).
+	## Thus, zenvidia has stopped to use it since v1.0 and above.
+	## This function has been kept for legacy and maybe.... fix (?).
+	if [ $opts_setted = 0 ]; then nv_build_options; fi
 	if [ ! $upgrade_other = '' ]; then 
 		new_version=$version
 		install_bin='./nvidia-installer'
 	fi
 	cd $nvtmp/NVIDIA-Linux-$ARCH-$new_version
 	echo "# Trying compil from LEGACY BUILD directory..."; sleep 1
-	no_check='--no-check-for-alternate-installs'
-	[ $cuda = 1 ]|| unified="--no-unified-memory"
+#	no_check='--no-check-for-alternate-installs'
+#	[ $cuda = 1 ]|| unified="--no-unified-memory"
 	[ $use_dkms = 0 ]|| dkms="--dkms"
 	xterm $xt_options -title Zenvidia_Nvidia_Installer -e "
-$install_bin -s -z -N --no-x-check $unified $dkms -K -b $no_check \
+$install_bin -s -z $no_net --no-x-check $no_uvm $no_uvm $dkms -K -b $no_check \
 --skip-module-unload --no-distro-scripts \
 --kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
 $SIGN_S $SElinux $temp --log-file-name=$driver_logfile
-depmod -a
+depmod $KERNEL -a
 printf \"$esc_message\"
 sleep $xt_delay"
 }
 nv_cmd_install_driver(){
 	# if this is a second attempt of installing drivers, test first the actual mod version
 	# then send warn if it is already the updated one.
+	# test
+#	if [[ $($d_modinfo -F version nvidia) == $new_version ]]; then
+	# real
 	if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
 		[ $use_dkms = 0 ]|| nv_cmd_dkms_conf
-		nv_cmd_try_legacy_first
+		## XXX v1.0 remove.
+		# nv_cmd_try_legacy_first
+		# test
+#		if [[ $($d_modinfo -F version nvidia) == $new_version ]]; then
+		# real
 		if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
-
 			[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
 			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
 			if [ $use_dkms = 1 ]; then
@@ -1474,7 +1514,8 @@ nv_cmd_update(){
 			cp -f $nvtmp/NVIDIA-Linux-$ARCH-$version/kernel/dkms.conf /usr/src/nvidia-$version/
 		fi
 	fi
-	nv_cmd_try_legacy_first
+	## XXX v1.0 remove.
+	# nv_cmd_try_legacy_first
 #	if [ ! -s $kernel_path/nvidia.ko ]|| \
 	if [[ $upgrade_other = 1 || $($d_modinfo -F version nvidia) != $version ]]; then
 		if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
@@ -1485,7 +1526,8 @@ nv_cmd_update(){
 			force=0	
 			nv_build_dkms
 #			if [ ! -e $kernel_path/nvidia.ko ]|| \
-			if [[ $($d_modinfo -F version nvidia) != $version ]]; then
+			if [[ $($d_modinfo -F version nvidia) != $version || \
+			$($d_modinfo -k $KERNEL -F version nvidia) != $version ]]; then
 				echo "# DKMS compilation ERROR !!"; sleep 2 
 				echo "# Force MODULES compilation from source..."; sleep 1
 				nv_cmd_make_src
@@ -1524,35 +1566,48 @@ sleep $xt_delay"
 	if [ $($d_modinfo -F version nvidia |grep -c "$version") -eq 0 ];then
 		cd /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module
 		if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
-		if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
-		if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
+		if [ $use_uvm = 1 ]; then
+			if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
+			if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
+		fi
 		if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
-		if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
-		[ $kernel_path/nvidia.ko ]&& /usr/sbin/depmod -a
+		if [ $use_drm = 1 ]; then
+			if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
+		fi
+		[ $kernel_path/nvidia.ko ]&& /usr/sbin/depmod $KERNEL -a
 	else
 		echo "# $operande done."; sleep 1
 	fi
 }
 nv_cmd_make_src(){
-	if [[ $(printf "$new_version") != '' ]]; then version=$new_version; fi
-	[ $driver_level != '' ]|| driver_level=$(printf "$version"|cut -d. -f1)
+#	if [[ $(printf "$new_version") != '' ]]; then version=$new_version; fi
+	if [[ $new_version != '' ]]; then version=$new_version; fi
+	[[ $driver_level != '' ]]|| driver_level=$(printf "$version"|cut -d. -f1)
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 #		make clean; make
-		make clean; xterm $xt_options -title Compiling -e "make; printf \"$esc_message\" ; sleep $xt_delay"
-		if [ $driver_level -lt 355 ]; then
-			cd uvm/; make clean; xterm $x_opt -e "make" ; cd ../
+		if [ $upgrade_other = 1 ]; then
+			make_cmd='env KERNEL_UNAME='$KERNEL' KERNEL_SOURCES='$kernel_src
 		fi
-		if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
-		if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
-		if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
-		if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
-		if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
-		/usr/sbin/depmod -a
-		/usr/sbin/ldconfig
+		make clean; xterm $xt_options -title Compiling -e "$make_cmd make; printf \"$esc_message\" ; sleep $xt_delay"
+		if [ $driver_level -lt 355 ]; then
+			cd uvm/; make clean; xterm $x_opt -e "$make_cmd make" ; cd ../
+		fi
+		vermagic=$($d_modinfo -F vermagic /usr/src/nvidia-$version/nvidia.ko| awk '{print $1}')
+#		k_version=$($d_modinfo -F version $kernel_path/nvidia)
+		if [[ $vermagic == $KERNEL ]]; then
+			if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
+			if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
+			if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
+			if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
+			if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
+			/usr/sbin/depmod $KERNEL -a
+			/usr/sbin/ldconfig
+		fi
 	fi
 }
 nv_cmd_uninstall(){	
+	## FIXME Don't use nvidia_installer for friver remove. Restore grub and blacklist.
 	( $tool_dir/bin/nvidia-installer --uninstall -s --no-x-check $temp $logfile \
 	-b --no-sigwinch-workaround --no-distro-scripts $no_check --no-nvidia-modprobe
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
@@ -1578,58 +1633,78 @@ CLEAN=\"\'make\' clean\"
 
 BUILT_MODULE_NAME[0]=\"\${PACKAGE_NAME}\"
 DEST_MODULE_LOCATION[0]=\"/extra\"\n" > /usr/src/nvidia-$version/dkms.conf
-		if [ $cuda = 1 ]; then
+		if [ $use_uvm = 1 ]; then
 			printf "BUILT_MODULE_NAME[1]=\"\${PACKAGE_NAME}-uvm\"
 BUILT_MODULE_LOCATION[1]=\"uvm/\"
 DEST_MODULE_LOCATION[1]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf
 		fi
 	fi
 	if [ $driver_level -gt 355 ]; then
-		printf "PACKAGE_NAME=\"nvidia\"
+		## dkms config part.
+		kms_conf+="PACKAGE_NAME=\"nvidia\"
 PACKAGE_VERSION=\"$version\"
 AUTOINSTALL=\"yes\"
 
-MAKE[0]=\"\'make\' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES=\'__EXCLUDE_MODULES\' KERNEL_UNAME=\${kernelver} modules\"
+MAKE[0]=\"'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='__EXCLUDE_MODULES' KERNEL_UNAME=\${kernelver} modules\"
 
 BUILT_MODULE_NAME[0]=\"\${PACKAGE_NAME}\"
-DEST_MODULE_LOCATION[0]=\"/extra\"\n" > /usr/src/nvidia-$version/dkms.conf
-		if [ $cuda = 1 ]; then
-			printf "BUILT_MODULE_NAME[1]=\"\${PACKAGE_NAME}-uvm\"
-DEST_MODULE_LOCATION[1]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf
+DEST_MODULE_LOCATION[0]=\"/extra\"\n"
+		n=1
+		## XXX on test : blacklist only at this state
+#		if [ $use_uvm = 1 ]; then mods_list+=( "uvm" ); fi
+#		mods_list+=( "modset" )
+#		if [ $driver_level -ge 364 ]; then if [ $use_drm = 1 ]; then mods_list+=( "drm" ); fi; fi
+		mods_list+=( "modset" )
+		mods_list+=( "uvm" )
+		mods_list+=( "drm" )
+		for mods in ${mods_list[@]}; do
+			kms_conf+="BUILT_MODULE_NAME[$n]=\"\${PACKAGE_NAME}-$mods\"
+DEST_MODULE_LOCATION[$n]=\"/extra\"\n"
+			((n++))
+		done
+		echo -e "${kms_conf[@]}" > /usr/src/nvidia-$version/dkms.conf
+	fi
+## XXX TEST XXX This is probably a useless part.
+#	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/ ]; then
+#		cp -f /usr/src/nvidia-$version/dkms.conf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/
+#	fi
+}
+nv_build_options(){
+	if [ $opts_setted = 0 ]; then
+		no_check='--no-check-for-alternate-installs'
+		no_net='-N'
+		[ $use_indirect = 0 ]|| force_glvnd='--force-libglx-indirect'
+		[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
+		## This part is options for both library and modules build/install.
+		if [ $(echo "$new_version"| cut -d'.' -f1) -ge 390 ]; then 
+			compat32='--compat32-libdir='$master$ELF_32
+			compat64='--opengl-libdir='$master$ELF_64
+			gl_headers='--opengl-headers'
+			no_net=''
+## XXX Accordingly with nv_modules_set variables, blacklisting is used instead of compilation. XXX
+##			[ $use_drm = 0 ]|| no_drm='--no-drm'
+##			[ $use_uvm = 0 ]|| no_uvm='--no-unified-memory'
 		fi
-		if [ $cuda = 1 ]; then n1=2 ;else n1=1; fi
-		printf "BUILT_MODULE_NAME[$n1]=\"\${PACKAGE_NAME}-modeset\"
-DEST_MODULE_LOCATION[$n1]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf
-	fi
-	if [ $driver_level -ge 364 ]; then
-		if [ $cuda = 1 ]; then n2=3 ;else n2=2; fi
-		printf "BUILT_MODULE_NAME[$n2]=\"\${PACKAGE_NAME}-drm\"
-DEST_MODULE_LOCATION[$n2]=\"/extra\"\n" >> /usr/src/nvidia-$version/dkms.conf 
-	fi
-	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/ ]; then
-		cp -f /usr/src/nvidia-$version/dkms.conf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/
+		if [ $(echo "$new_version"| cut -d'.' -f1) -ge 410 ]; then 
+			gl_headers=''
+		fi
 	fi
 }
 nv_cmd_install_libs(){
+## INFOS
 #	-b --no-sigwinch-workaround --no-distro-scripts $no_check \	
 #	--x-prefix=$xorg_dir --x-module-path=$xorg_dir/modules --opengl-prefix=$croot_all \
 #	sh $driverun -a $quiet -z -Z --no-x-check --ui=none $unified \
 #	--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path  --no-abi-note \
 #	sh $driverun -s -z -N --no-x-check \
-	cd $nvtmp/NVIDIA-Linux-$ARCH-$new_version
-	if [ $(echo "$new_version"| cut -d'.' -f1) -ge 390 ]; then 
-		compat32='--compat32-libdir='$master$ELF_32
-		compat64='--opengl-libdir='$master$ELF_64
-	fi
-	no_check='--no-check-for-alternate-installs'
-	[ $use_indirect = 0 ]|| force_glvnd='--force-libglx-indirect'
-	[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
+## EXTRA INFOS
 #	$nocheck --no-kernel-module --no-opengl-files --skip-module-unload \
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect  --opengl-libdir=$master$ELF_64 \
 #	--utility-prefix=$tool_dir --utility-libdir=$tool_dir/$master$ELF_64 \
+	cd $nvtmp/NVIDIA-Linux-$ARCH-$new_version
 	xterm $xt_options -title Zenvidia_install_libs -e "
-	$install_bin -s -z -N --no-x-check --no-distro-scripts \
-	$nocheck --no-kernel-module --skip-module-unload --no-recursion --opengl-headers \
+	$install_bin -s -z $no_net --no-x-check --no-distro-scripts \
+	$nocheck --no-kernel-module --skip-module-unload --no-recursion $gl_headers \
 	$add_glvnd $force_glvnd --install-compat32-libs \
 	--compat32-prefix=$croot_all $compat32 $compat64 \
 	--x-prefix=/usr --x-library-path=$croot_all --x-module-path=$xorg_dir/modules \
@@ -1647,6 +1722,8 @@ install_drv(){
 	val_exit="base_menu"
 	val_title="Zenvidia"
 	win_confirm
+	## define modules to build at compil/dkms time.
+	nv_modules_set
 	## extract .run package for install processes
 	[ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version ]|| extract_build	
 	# nvidia-installer options
@@ -1689,8 +1766,11 @@ install_drv(){
 #		ln -sf -T /usr/$master$ELF_32 $xorg_dir/$master$ELF_32
 #		ln -sf -T /usr/$master$ELF_64 $xorg_dir/$master$ELF_64
 #		cd $nvdl
-		
-		## install default libs with nvidia-installer	
+		## set compil/install time options
+		nv_build_options
+		## code info that options are setted.
+		opts_setted=1
+		## install default libs with nvidia-installer
 		{ nv_cmd_install_libs
 		} | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 		--text="$v\LIBRARIES$end : Extract and install default nvidia libs..."
@@ -1828,7 +1908,7 @@ backup_driver(){
 			done
 			echo "# DRIVER : Driver install & backup success."; sleep 1
 			echo "$n"; n=$[ $n+4 ]
-			/usr/sbin/depmod -a
+			/usr/sbin/depmod $KERNEL -a
 		else
 			echo "# DRIVER : ERROR "; sleep 1; echo "$n"; n=$[ $n+4 ]
 			zenity --width=450 --title="Zenvidia" --error \
@@ -1892,7 +1972,7 @@ upgrade_new_kernel(){
 upgrade_kernel(){
 	[ $install_type = 1 ]&& if_optimus
 	[ $install_type = 0 ]&& if_single
-#	[ $install_type = 2 ]&& if_legacy
+#	[ $install_type = 2 ]&& if_legacykernel_src
 #	if [[ $(echo $NEW_KERNEL) != '' ]];then
 	if [[ $NEW_KERNEL ]];then
 		KERNEL=$NEW_KERNEL
@@ -1922,12 +2002,12 @@ upgrade_kernel(){
 	( echo "# $m_02_01 $KERNEL ..."
 	cd $nvdl/
 	nv_cmd_update
-	if [ ! -f $kernel_path/nvidia.ko ]; then
+	if [[ ! -f $kernel_path/nvidia.ko || $KERNEL != $vermagic ]]; then
 		zenity --width=450 --title="Zenvidia" --error \
 		--text="$j INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')$end."
 		exit 0
 	fi
-	if ( $install_type = 1 ); then
+	if [ $install_type = 1 ]; then
 		if [ $use_bumblebee = 1 ]; then
 			echo "# $m_02_03."; sleep 1
 			sys_service='bumblebeed'
@@ -2035,6 +2115,7 @@ if_single(){
 	kernel_path=/lib/modules/$(uname -r)/extra
 	[ $install_type = 0 ]|| sed -i "s/install_type=[0-9]/install_type=0/" $script_conf
 	drv_install_msg="$v$m_02_15.$end"
+	export install_type=$install_type
 }
 
 install_type_sel(){
@@ -2527,6 +2608,8 @@ manage_pcks(){
 		"4") menu_modif ;;
 	esac
 }
+## TODO remove old backups, source dirs and dkms dirs if still exist. 
+#remove_bkps(){}
 remove_pcks(){
 	# list package in release directory
 	unset rm_packs packs_list

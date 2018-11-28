@@ -9,35 +9,26 @@ New major update before v1.0.
  - To update do ```sudo make install``` (see **News** below).
  - You will be automaticaly notified for next update. 
 
-## History log
-I'm not a "real" coder, my script syntax is often approximative and need a real improvement. So, all kind of help is welcome.
-
-All of the originals developpement tests were made on a discret graphic card for **optimus** and **Bumblebee**. further experience on single GPU was recent and with **[FedoraPrime](https://github.com/bosim/FedoraPrime)** project and after with the fork I made for my very customized purpose, **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)**. I have still now a laptop for Prime/Optimus tests, but my default desktop is with a single GPU card.
-
 ## Issues
 Nvidia-installer refuse to execute because of nvidia-drm module loaded, the automatic script work-arround does the job.
 
-After a long time of hard developpement, it seem to be stable. If you meet issues, just tell.
+During the review time, you may meet numbers of issues.
 
 See **Wiki** for **Issues**, **Todo list** and **demands**.
 
 ------------
 ## News
 
-*FIX UPDATE*: quick fix base on new nvidia-installer options that prevent 390.xx to be installed.
- - Some function could be broken like optimus git repos updates. Fixes are on going, but could take some time. Previuosly, basic git repos was hard linked to to the script, now it will detect in user path where are thoses repos for update, etc. All test are not done and there still many work to do.
- - Downloading old driver is currently broken.
- - Backup could meet some issues (didn't find the bug yet)
- - Prime is quickly adapt to new **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** major changes.
- - Bumblebee and others are redefined. You can meet issues because I have no more Bumblebleed install.
- - Authentification is now base on polkit.
+*FIX & UPDATE* (11/28/2018): fix for new 410 serie options sets.
+ - remove nvidia-installer driver compil part (definitivly unusable).
+ - add per module config install. nvidia uvm and/or drm are optionals and useless for most of us.
+ - prime and bumblebleed are still not revised.
+ - ISSUE : DKMS is compiling, but not installing modules. Not a clue at this point (Fedora? dkms? nvidia? kernel?). 
+ 	Anyway, 2nd workaround install drivers after a few fixes.
+ 	Until debug and final fix of this issue, in case of a kernel upgrade, it is mandatory to use the 'Update driver for an other kernel' menu entry from 'update' menu before restart the computer.
 
-I'm' thinking to a complete revision and rewrite, but not sure for now because of personnal issues.
-
-Sorry for the inconvinience.
-
-### Note:
-It is better for these update to perform a 'make install', so, backup you basic.conf, script.conf, color.conf before (all are in /usr/local/NVIDIA).
+## Notice
+I have severe heals issue and I don't really know if I could still manage my project alive. I will try to continue to fix bugs and Nvidia options updates, but i can't tell about the future. It's strongly recommanded to fork.
 
 ------------
 
@@ -103,20 +94,6 @@ It comes with 3 options:
 Default desktop entry file is set to ```-a```, you can manage options through Zenvidia > Tools.
 
 The script is installed at the same time as Zenvidia when launching ```make install``` command.
-
-### Zen Notify Standalone
-(need to be rewrite)
-
-Same as Zen Notify but working driver update check only.
-
-Download from main repo 'zen_notify_standalone.sh', 'swiss_knife.png' image, autostart desktop file from the ```/desktop_files``` directory. Then to install, just do in a terminal in root/sudo mode:
-```sh
-	cp -f zen_notify_standalone.sh /usr/local/bin/
-	cp -f swiss_knife.png /usr/local/pixmaps/
-	cp -f zen_notify_standalone.desktop /home/(your user)/.config/autostart 
-```
-
-That's it.
 
 ## Configuration
 Most part of the basic.conf file vars will be updated during the script execution.
