@@ -42,7 +42,7 @@ safeuninstall:
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
 	
 update:
-#	sudo -u $(C_USER) git pull
+	sudo -u $(C_USER) git pull
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
 	install -Dm644 -t $(INSTALL_DIR)/ README.md
