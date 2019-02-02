@@ -1,5 +1,8 @@
  ## CHANGELOG
  
+ - (2019-02-02) v1.0.1 (37) - git commmit fix.
+   - I've just realize zenvidia pkexec policy rules was not commit correctly. My apology, it shouldn't happen.
+ 
  - (2018-11-28) v1.0.1 (36) - change and fixes
    - Message (important): I have severe heals issue and I don't really know if I could still manage my project alive. I will try to continue to fix bugs and Nvidia options updates, but i can't tell about the future. It's strongly recommanded to fork.
    - Issue #1: DKMS is compiling, but not install modules. Not a clue at this point (Fedora? dkms? nvidia?). Anyway, 2nd workaround install drivers after a few fix. Until debug and fianl fix of this issue, in case of a kernel upgrade, it is mandatory to use the 'Update driver for an other kernel' entry from 'update' menu before restart the computer.
