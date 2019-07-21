@@ -1,5 +1,13 @@
  ## CHANGELOG
  
+ - (2019-07-21) v1.0.2 (38) - changes and fixes.
+   - Add a GCC Mismatch option in the case of an error occur in GCC compilator mismatch between driver compiler and kernel compiler. Rare.
+   - DKMS part can abort in Fedora environment, add a driver compilation check before starting workaround and then move .ko file to kernel dir if detected.
+   - Implement previous dkms driver total remove when upgrade to new driver version. Seems DKMS have issue with that (Fedora env exception ? Nvidia-installer ?). 
+   - Restructured nvidia hardware compatibility list.
+   - Fixed "back to main" selector in some window that didn't... send back.
+   - Old code syntax are still there and commented at this point. Bumblebee and others are still not upgraded.
+   
  - (2019-02-02) v1.0.1 (37) - git commmit fix.
    - I've just realize zenvidia pkexec policy rules was not commit correctly. My apology, it shouldn't happen.
  

@@ -49,7 +49,8 @@ kernel="--kernel-install-path"
 help_pages="$install_dir/share/doc/NVIDIA_GLX-1.0"
 docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
-reportlog=/tmp/nv_report.tmp
+#reportlog=/tmp/nv_report.tmp
+reportlog=$(mktemp --tmpdir "$(basename $0).XXX")
 #kernel_src="--kernel-source-path"
 xt_hold=0
 xt_delay=4
@@ -1463,6 +1464,8 @@ nv_cmd_install_driver(){
 		# test
 #		if [[ $($d_modinfo -F version nvidia) == $new_version ]]; then
 		# real
+#		update=0
+		upgrade_other=0
 		if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
 			[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
 			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
@@ -1471,6 +1474,7 @@ nv_cmd_install_driver(){
 					if [[ $(cat /usr/src/nvidia-$new_version/dkms.conf|grep -o "$new_version") == '' ]]; then
 						nv_cmd_dkms_conf
 					fi
+					if [ ! $old_version ]; then $old_version=$version; fi
 					version=$new_version
 					REPORT='DKMS '
 					# Compil and install DKMS modules				
@@ -1518,12 +1522,13 @@ nv_cmd_update(){
 	# nv_cmd_try_legacy_first
 #	if [ ! -s $kernel_path/nvidia.ko ]|| \
 	if [[ $upgrade_other = 1 || $($d_modinfo -F version nvidia) != $version ]]; then
-		if [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
+		if [ -s $driver_logfile ] && [ $(cat $driver_logfile | grep "ERROR"| grep -c "nvidia-drm") -gt 0 ]; then
 #			report_log+=("$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n")
 			printf "$vB$m_04_02$end$rB $val_04_A$end> $m_04_02b\n" >> $reportlog
 		fi
 		if [ $use_dkms = 1 ]; then
-			force=0	
+			force=0
+#			update=1
 			nv_build_dkms
 #			if [ ! -e $kernel_path/nvidia.ko ]|| \
 			if [[ $($d_modinfo -F version nvidia) != $version || \
@@ -1540,12 +1545,29 @@ nv_cmd_update(){
 		fi
 	fi
 }
+# in case GCC version is missing or wrong, GCC options IGNORE_CC_VERSION has to be added in conftest.sh:
+# line: 3229 > IGNORE_CC_VERSION
+# > IGNORE_CC_VERSION=1
+# + else
+# + 	IGNORE_CC_VERSION=1
+# > fi
 nv_build_dkms(){
-	if [ $force != 0 ]; then
-		if [ -d /var/lib/dkms/nvidia/$version ]; then
-			remove_dkms="/usr/sbin/dkms remove -m nvidia/$version -k $KERNEL"
-		fi
+	# remove previous version if any before installing new one.
+#	if [[ $KERNEL != $(uname -r) ]]; then old_version=$version; fi
+	if [[ $old_version && $old_version != $version ]]; then
+#		remove_dkms="/usr/sbin/dkms remove -m nvidia/$old_version -k $(uname -r)"
+		remove_dkms="/usr/sbin/dkms remove -m nvidia/$old_version --all"
+		remove_message="printf \"$xB# Removing previous $old_version DKMS modules from DKMS directory.\n$xN\""
 	fi
+#	if [ $force -gt 0 ]; then
+#	if [[ $upgrade_other && $upgrade_other -gt 0 ]]; then
+#		if [[ $KERNEL != $(uname -r) && -d /var/lib/dkms/nvidia/$version ]]; then
+#			remove_dkms="/usr/sbin/dkms remove -m nvidia/$version -k $KERNEL"
+#			remove_message="printf \"$xB# Removing previous DKMS modules from DKMS directory.\n$xN\""
+##			install_dkms="/usr/sbin/dkms install -m nvidia/$version -k $KERNEL"
+##			install_message="printf \"$xB# Installing new DKMS modules from DKMS directory.\n$xN\""
+#		fi
+#	fi
 	if [ ! -d /var/lib/dkms/nvidia/$version ]; then
 		echo "# Add DKMS modules to DKMS directory..."; sleep 1
 #		/usr/sbin/dkms add -m nvidia/$version -k $KERNEL -c /usr/src/nvidia-$version/dkms.conf
@@ -1556,27 +1578,56 @@ nv_build_dkms(){
 	xterm $xt_options -title Zenvidia_dkms_build -e "
 printf \"$xB# Installing DKMS modules:\n\n$xN\"
 $remove_dkms
+$remove_message
 $add_message
 $add_dkms
-printf \"$xB# Build $version DKMS modules:\n\n$xN\"
-/usr/sbin/dkms --force install -m nvidia/$version -k $KERNEL
+printf \"$xB# Build & Install $version DKMS modules:\n\n$xN\"
+/usr/sbin/dkms install -m nvidia/$version -k $KERNEL
 printf \"$esc_message\"
 sleep $xt_delay"
 	sleep 1
-	if [ $($d_modinfo -F version nvidia |grep -c "$version") -eq 0 ];then
-		cd /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module
-		if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
-		if [ $use_uvm = 1 ]; then
-			if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
-			if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
+	if [ -s /var/lib/dkms/nvidia/$version/build/make.log ]; then
+		cp -f /var/lib/dkms/nvidia/$version/build/make.log dkms-$driver_logfile
+	fi
+	## XXX
+	## case : dkms compilation abort or send errors.
+	## if rebuild for new kernel, check installed modules vermagic for version and kernel.
+	## then chek kernel version before nvidia module version.
+	compil_v=$($d_modinfo -F version nvidia |grep -c "$version")
+	compil_k=$($d_modinfo -F vermagic nvidia |grep -c "$KERNEL")
+	if [[ ! -e $kernel_path\nvidia.ko || $upgrade_other = 0 ]]; then 
+		if [[ $compil_k -eq 0 || $compil_v -eq 0 ]];then
+	#	if [ $($d_modinfo -F version nvidia |grep -c "$version") -eq 0 ];then
+			mod_move(){
+				if [ -s nvidia.ko ]; then
+					cp -f nvidia.ko $kernel_path
+					if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path; fi
+					if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path; fi
+#					if [ $use_uvm = 1 ]; then
+#						if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path; fi
+#						if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path; fi
+#					fi
+					if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path; fi
+#					if [ $use_drm = 1 ]; then
+#						if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path; fi
+#					fi
+					if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path; fi
+					[ -s $kernel_path/nvidia.ko ]&& /usr/sbin/depmod $KERNEL -a
+					vermagic=$($d_modinfo -F vermagic $kernel_path/nvidia.ko| awk '{print $1}')
+				fi
+			}
+			if [ -d /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module ]; then
+				cd /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module
+				mod_move
+			else
+				if [ -s /var/lib/dkms/nvidia/$version/build/nvidia.ko ]; then
+					cd /var/lib/dkms/nvidia/$version/build
+					mod_move
+				fi
+			fi
+		else
+			echo "# $operande done."; sleep 1
 		fi
-		if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
-		if [ $use_drm = 1 ]; then
-			if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
-		fi
-		[ $kernel_path/nvidia.ko ]&& /usr/sbin/depmod $KERNEL -a
-	else
-		echo "# $operande done."; sleep 1
 	fi
 }
 nv_cmd_make_src(){
@@ -1585,29 +1636,42 @@ nv_cmd_make_src(){
 	[[ $driver_level != '' ]]|| driver_level=$(printf "$version"|cut -d. -f1)
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
-#		make clean; make
-		if [ $upgrade_other = 1 ]; then
-			make_cmd='env KERNEL_UNAME='$KERNEL' KERNEL_SOURCES='$kernel_src
+#		# test driver code compilator version __GNUC__, __GNUC_MINOR__
+		if [ $gcc_mismatch = 1 ];then
+			ignore_mismatch=" IGNORE_CC_MISMATCH=1"
+		else
+			ignore_mismatch=""
 		fi
-		make clean; xterm $xt_options -title Compiling -e "$make_cmd make; printf \"$esc_message\" ; sleep $xt_delay"
+		if [ $upgrade_other = 1 ]; then
+			make_env='env KERNEL_UNAME='$KERNEL' KERNEL_SOURCES='$kernel_src''$ignore_mismatch
+		fi
+		make clean; xterm $xt_options -title Compiling -e "$make_env make; printf \"$esc_message\" ; sleep $xt_delay"
 		if [ $driver_level -lt 355 ]; then
 			cd uvm/; make clean; xterm $x_opt -e "$make_cmd make" ; cd ../
 		fi
 		vermagic=$($d_modinfo -F vermagic /usr/src/nvidia-$version/nvidia.ko| awk '{print $1}')
 #		k_version=$($d_modinfo -F version $kernel_path/nvidia)
 		if [[ $vermagic == $KERNEL ]]; then
-			if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
-			if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
-			if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
-			if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
-			if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
-			/usr/sbin/depmod $KERNEL -a
+			# make modules_install
+			# make modules_install will install in kernel's video driver directory.
+			# check if exist first, then do it hardly if necessary.
+			if [ ! -s $kernel_root/kernel/drivers/video/nvidia.ko ]; then
+				if [ -s nvidia.ko ]; then cp -f nvidia.ko $kernel_path/; fi
+				if [ -s nvidia-uvm.ko ]; then cp -f nvidia-uvm.ko $kernel_path/; fi
+				if [ -s uvm/nvidia-uvm.ko ]; then cp -f uvm/nvidia-uvm.ko $kernel_path/; fi
+				if [ -s nvidia-modeset.ko ]; then cp -f nvidia-modeset.ko $kernel_path/; fi
+				if [ -s nvidia-drm.ko ]; then cp -f nvidia-drm.ko $kernel_path/; fi
+				/usr/sbin/depmod $KERNEL -a
+			fi
 			/usr/sbin/ldconfig
+		fi
+		if [ -s /usr/src/nvidia-$version/make.log ]; then
+			cp -f /usr/src/nvidia-$version/make.log $driver_logfile
 		fi
 	fi
 }
 nv_cmd_uninstall(){	
-	## FIXME Don't use nvidia_installer for friver remove. Restore grub and blacklist.
+	## FIXME Don't use nvidia_installer for driver remove. This restore grub and blacklist.
 	( $tool_dir/bin/nvidia-installer --uninstall -s --no-x-check $temp $logfile \
 	-b --no-sigwinch-workaround --no-distro-scripts $no_check --no-nvidia-modprobe
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
@@ -1654,8 +1718,8 @@ DEST_MODULE_LOCATION[0]=\"/extra\"\n"
 #		if [ $use_uvm = 1 ]; then mods_list+=( "uvm" ); fi
 #		mods_list+=( "modset" )
 #		if [ $driver_level -ge 364 ]; then if [ $use_drm = 1 ]; then mods_list+=( "drm" ); fi; fi
-		mods_list+=( "modset" )
 		mods_list+=( "uvm" )
+		mods_list+=( "modset" )
 		mods_list+=( "drm" )
 		for mods in ${mods_list[@]}; do
 			kms_conf+="BUILT_MODULE_NAME[$n]=\"\${PACKAGE_NAME}-$mods\"
@@ -1728,7 +1792,7 @@ install_drv(){
 	[ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version ]|| extract_build	
 	# nvidia-installer options
 #	KERNEL=$kernel_ver
-	lib_logfile=$nvlog/install-$new_version.log
+	lib_logfile=$nvlog/libinstall-$new_version.log
 	driver_logfile=$nvlog/$new_version-$KERNEL.log
 	# other vars
 	dkms_kernel=/lib/modules/$KERNEL/extra
@@ -1848,11 +1912,20 @@ install_drv(){
 			echo "# Update new driver version..."; sleep 1; echo "$n"; n=$[ $n+4 ]
 			printf "$new_version" > $nvdir/version.txt
 			echo "# Update compatibility data files..."; sleep 1; echo "$n"; n=$[ $n+4 ]
-			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/A1. N*/,/Below are the legacy GPU/p' > $nvdir/supported.txt
-			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 304.xx/,/The 173.14.xx/p' > $nvdir/supported.304.xx
-			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 173.14.xx/,/The 96.43.xx/p' > $nvdir/supported.173.14.xx
-			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 96.43.xx/,/The 71.86.xx/p' > $nvdir/supported.96.43.xx
-			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 71.86.xx/,/Appendix B./p' > $nvdir/supported.71.86.xx
+#			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/A1. N*/,/Below are the legacy GPU/p' > $nvdir/supported.txt
+#			cat NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -n '/The 304.xx/,/The 173.14.xx/p' > $nvdir/supported.304.xx
+			COMPAT=('A1. N' '390' '367' '340' '304' '173.14' '96.43' '71.86' '\*')
+			last='Below are'
+			N=0
+			until [ $N = $((${#COMPAT[*]}-1)) ]; do
+				new=${COMPAT[$N]}
+				pattern='The '
+				if [ $(echo "$new"| grep -c "A1") -gt 0 ]; then suffix='txt'; pattern=''; else suffix=$new'.xx'; fi
+				#if [ $(echo "$new"| grep -c "A1") -gt 0 ]; then suffix='txt'; pattern=''; else suffix=$new'.txt'; fi
+				cat $nvtmp/NVIDIA-Linux-$ARCH-$new_version/README.txt | sed -En "/^$pattern$new(.xx)?/,/^.*$last(.xx)?/p" > $nvdir/supported.$suffix
+				last=${COMPAT[$N+2]}
+				((N++))
+			done
 		fi
 #		driver_version=$(cat $nvdir/version.txt)
 		# Backup install binary in release archive
@@ -1878,7 +1951,7 @@ install_drv(){
 		if [[ $mod_version == $new_version ]]; then
 			if [ $(ls -1 $croot_64| grep -c ".*") -gt 40 ]|| \
 			[ $(ls -1 $croot_32| grep -c ".*") -gt 40 ]; then	
-				export report_log
+#				export report_log
 				zenity --title="Zenvidia" --question --no-wrap --icon-name=swiss_knife \
 				--text="$(printf "$rB$tit_03_65$end$v:\n$(cat $reportlog)\n\n$vB$rep_03_65\n$ansWN$end$end" "$new_version")" --ok-label="$lab_03_65a" --cancel-label="$lab_03_65b"
 				if [ $? = 0 ]; then edit_xorg_conf; else base_menu; fi
@@ -1957,6 +2030,7 @@ backup_old_version(){
 	fi
 }
 upgrade_new_kernel(){
+	unset kern_list
 	up_version=$(cat $nvdir/version.txt)
 	ls_kern=$(ls -1 /boot| grep -v "rescue"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
 	for linuz in ${ls_kern}; do
@@ -1966,8 +2040,13 @@ upgrade_new_kernel(){
 	NEW_KERNEL=$(zenity --height=300 --title="Zenvidia" --list --radiolist --hide-header \
 	--text "$menu_msg\n$v$m_02_07$end $j$up_version$end $v$m_02_08$end $j$board$end.
 \n$v$m_02_09$end" --column "1" --column "2" --separator=";" "${kern_list[@]}" false "$MM"
-	if [ $? = 1 ]; then base_menu; fi)
-	upgrade_kernel
+	if [ $? = 1 ]; then base_menu; fi )
+#	if [[ $NEW_KERNEL == $MM ]]; then base_menu; fi
+	if [ $(echo -e "$NEW_KERNEL"| egrep -c "[0-9]+") -gt 0 ]; then
+		upgrade_kernel
+	else
+		if [[ $NEW_KERNEL == $MM ]]; then base_menu; else exit 0; fi
+	fi
 }
 upgrade_kernel(){
 	[ $install_type = 1 ]&& if_optimus
@@ -2079,7 +2158,8 @@ if_optimus(){
 	croot_64=$croot/$predifined_dir/$master$ELF_64
 	xorg_dir=$croot/$predifined_dir/xorg
 	kernel=$(uname -r)
-	kernel_path=/lib/modules/$(uname -r)/extra
+	kernel_root=/lib/modules/$kernel
+	kernel_path=$kernel_root/extra
 	[ $install_type = 1 ]|| sed -i "s/install_type=[0-9]/install_type=1/" $script_conf
 	drv_install_msg="$v$m_02_13.$end"
 	export install_type=$install_type
@@ -2112,7 +2192,8 @@ if_single(){
 	croot_64=$croot/$predifined_dir/$master$ELF_64
 	xorg_dir=$croot/$predifined_dir/xorg
 	kernel=$(uname -r)
-	kernel_path=/lib/modules/$(uname -r)/extra
+	kernel_root=/lib/modules/$kernel
+	kernel_path=$kernel_root/extra
 	[ $install_type = 0 ]|| sed -i "s/install_type=[0-9]/install_type=0/" $script_conf
 	drv_install_msg="$v$m_02_15.$end"
 	export install_type=$install_type
@@ -2524,7 +2605,8 @@ win_confirm(){
 	confirm_w=$(zenity --title="$val_title" --list --radiolist \
 	--hide-header --text "$confirm_msg\n\n$v$m_01_13$end" --hide-column "2" --column "1" --column "2" \
 	--column "3" --separator=";" false 1 "$val_confirm" false 2 "$val_back")
-	if [ $? = 1 ]; then exit 0 ; fi
+#	if [ $? = 1 ]; then exit 0 ; fi
+	if [ $? = 1 ]; then base_menu ; fi
 	case $confirm_w in "2") $val_exit;; esac
 }
 ## REPAI TOOL
@@ -3199,7 +3281,9 @@ menu_update(){
 	--text "$rBB$_02$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${up_list[@]}" false $nu "$MM" )
-	if [ $? = 1 ]; then exit 0; fi
+#	if [ $? = 1 ]; then exit 0; fi
+	if [ $? = 1 ]; then base_menu; fi
+	
 #	case $menu_upd in
 #		"1") menu_msg="$v$msg_2_01$end"; upgrade_other=0; upgrade_kernel; base_menu ;;
 #		"2") menu_msg="$v$msg_2_02$end"; upgrade_other=1; upgrade_new_kernel; base_menu ;;
