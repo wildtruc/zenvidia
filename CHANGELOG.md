@@ -1,4 +1,7 @@
  ## CHANGELOG
+ - (2019-07-25) v1.0.3 (39) - zen_notify fixes.
+   - Changed git local repo "find" command line option to directory only.
+   - reverse functions order for a better notification display.
  
  - (2019-07-21) v1.0.2 (38) - changes and fixes.
    - Add a GCC Mismatch option in the case of an error occur in GCC compilator mismatch between driver compiler and kernel compiler. Rare.
