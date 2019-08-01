@@ -1,4 +1,7 @@
  ## CHANGELOG
+ - (2019-08-01) v1.0.4 (40) - fixes on previous update.
+   - zen_notify fixes for notify-send displayed text.
+ 	 	
  - (2019-07-25) v1.0.3 (39) - zen_notify fixes.
    - Changed git local repo "find" command line option to directory only.
    - reverse functions order for a better notification display.

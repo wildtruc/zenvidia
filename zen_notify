@@ -31,6 +31,9 @@ msg_git="GIT update."
 nvtmp=/home/$USER/.zenvidia
 ARCH=$(uname -p)
 drv_temp=$(mktemp --tmpdir zen_notif-XXXX)
+drv_list=$(mktemp --tmpdir zen_notif_list-XXX)
+last_update=$(mktemp --tmpdir zen_notif_last-XXX)
+last_beta=$(mktemp --tmpdir zen_notif_beta-XXX)
 [[ -d $nvtmp ]]|| mkdir -p $nvtmp
 local_src=$nvtmp/src
 
@@ -38,7 +41,6 @@ if [[ ! -e home/$USER/.config/autostart/zen_notify.desktop ]]; then
 	if [[ -d $local_src/zenvidia ]]; then
 		zen_git=$local_src/zenvidia
 	else
-#		zen_git=$(find -P $HOME -maxdepth 3 -mount -wholename "*/zenvidia")
 		zen_git=$(find -P $HOME -maxdepth 3 -mount -type d -path "*/zenvidia")
 	fi
 	if [[ -d $zen_git && ! -e /home/$USER/.config/autostart/zen_notify.desktop ]]; then
@@ -47,18 +49,14 @@ if [[ ! -e home/$USER/.config/autostart/zen_notify.desktop ]]; then
 fi
 
 driver_ctrl(){
-#lftp -c "anon; cd ftp://$nvidia_ftp-$ARCH/ ; ls > $nvtmp/drvlist ; cat latest.txt > $nvtmp/last_update"
 ## get all driver list.
 wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
 ## get latest.txt file.
-wget -q -O $nvtmp/last_update https://$nvidia_ftp-$ARCH/latest.txt
-#cat $nvtmp/drvlist_0 |  egrep -o "href.*[0-9]+/'"| perl -pe "s/^.*\'(.*)\/\'/\1/p" > $nvtmp/drvlist
-cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $nvtmp/drvlist
-cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $nvtmp/last_beta
-LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
-#LAST_BETA=$(cat $nvtmp/drvlist | awk '{ print $9 }' | sort -gr | sed -n 1p)
-LAST_BETA=$(cat $nvtmp/last_beta)
-#LAST_BETA='370.29'
+wget -q -O $last_update https://$nvidia_ftp-$ARCH/latest.txt
+cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $drv_list
+cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
+LAST_DRV=$(cat $last_update | awk '{ print $1 }')
+LAST_BETA=$(cat $last_beta)
 
 if [ -s $nvdir/version.txt ]; then
 	version=$(cat $nvdir/version.txt| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
@@ -85,54 +83,41 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			_driver_notif+=( "$driver $release update." )
 		fi
 	done
-	if [ $drv_short -gt $version ]; then
-		notif_msg+='Nvidia driver update'
-		driver_up=1
-#		zenity --notification --window-icon=swiss_knife --text="Nvidia ${_driver_notif[@]}"
-#		notify-send -t 5000 -u low -i swiss_knife "${notif_msg[*]}" "$(echo -e "${_driver_notif[*]}")"
-	else
-		driver_up=0
+	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $version ]]; then
+		notif_msg+='Nvidia driver'
 	fi
+	driver_up=1
 	IFS=$ifs
+else
+	driver_up=0
 fi
 }
 source_ctrl(){
-if [ $driver_up -gt 0 ]; then notif_txt='Zenvidia and'; else notif_txt='Zenvidia'; fi
+if [ $driver_up -gt 0 ]; then notif_txt=' and Zenvidia'; line='\n'; else notif_txt='Zenvidia'; line=''; fi
 if [ ${#local_git_list[@]} -gt 0 ]; then
 	for local_git in "${local_git_list[@]}"; do
 		if [[ -d $local_src ]]; then 
 			if [ $(ls $local_src| grep -c "$local_git") -gt 0 ]; then
 				local_git_repo=$local_src/$local_git
 			else
-#				local_git_repo=$(find -P $HOME -maxdepth 3 -mount -wholename "*/$local_git")
 				local_git_repo=$(find -P $HOME -maxdepth 3 -mount -type d -path "*/$local_git")
 			fi
 		fi
-#		if [[ -d $local_git ]]; then
 		if [[ -d $local_git_repo ]]; then
 			cd $local_git_repo
-			git fetch --dry-run &>$nvtmp/git.log	
-			if [[ $(cat $nvtmp/git.log|grep -c "master") -eq 1 ]]; then
-#				find -P $HOME -maxdepth 3 -mount -wholename "*/zenvidia"
+			git fetch --dry-run &>/tmp/zen_git.log	
+			if [[ $(cat /tmp/zen_git.log|grep -c "master") -eq 1 ]]; then
 				local_git_name=$(printf "$local_git"| sed -n "s/^.*\///g;p")
-#				zenity --notification --window-icon=swiss_knife --text="$local_git_name $msg_git"
-#				_local_git+=("$local_git repo update.")
 				notif_msg+="$notif_txt "
-				_driver_notif+=("$local_git repo update.")
+				_driver_notif+=("$line$local_git repo update.")
 			fi
-#		else
-#			exit 0
 		fi
 	done
-#	if [ ${#_local_git[@]} -gt 0 ]; then
-#		notify-send -t 5000 -u low -i swiss_knife "Git repos update" "$(echo -e "${_local_git[*]}")"
-#	fi
-fi
 }
 notifying(){
-	notify-send -t 5000 -u low -i swiss_knife "${notif_msg[*]}" "$(echo -e "${_driver_notif[*]}")"
+	notify-send -t 5000 -u low -i swiss_knife "${notif_msg[*]}update" "$(echo -e "${_driver_notif[*]}")"
 }
-sleep 30
+#sleep 30
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"
 	printf "\t -a : check all.\n"
