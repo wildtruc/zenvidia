@@ -1,4 +1,13 @@
  ## CHANGELOG
+ - (2019-08-12) v1.0.5 (41) - fixes and update.
+   - zen_notify doesn't warn about not existant repos in Nvidia ftp (rare, but happens). This is fixed.
+   - Has been update in zenvidia for the same reason.
+   - Added warning display message for incompatible drivers in drivers download window.
+   - fixed remote repos download (for old and new drivers).
+   - A few minor fixes.
+   - Clean code.
+   - Bumblebee and prime setup has to be blocked, no enought data to update them at this point (next).
+   
  - (2019-08-01) v1.0.4 (40) - fixes on previous update.
    - zen_notify fixes for notify-send displayed text.
  	 	

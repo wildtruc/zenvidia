@@ -31,9 +31,9 @@ msg_git="GIT update."
 nvtmp=/home/$USER/.zenvidia
 ARCH=$(uname -p)
 drv_temp=$(mktemp --tmpdir zen_notif-XXXX)
-drv_list=$(mktemp --tmpdir zen_notif_list-XXX)
-last_update=$(mktemp --tmpdir zen_notif_last-XXX)
-last_beta=$(mktemp --tmpdir zen_notif_beta-XXX)
+drv_list=$nvtmp/drvlist
+last_update=$nvtmp/last_update
+last_beta=$nvtmp/last_beta
 [[ -d $nvtmp ]]|| mkdir -p $nvtmp
 local_src=$nvtmp/src
 
@@ -80,7 +80,15 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 		release=$(printf "$driver"|cut -d',' -f2)
 		driver=$(printf "$driver"|cut -d',' -f1)
 		if [ $drv_short -gt $version ]; then
-			_driver_notif+=( "$driver $release update." )
+			if [ ${#DRV_LIST[@]} -gt 1 ]; then sol=' ';eol='\n'; else sol='';eol=''; fi
+			if [[ $(cat $drv_list) =~ $driver ]]; then
+				icon_set=swiss_knife
+				_driver_notif+=( "$driver $release update.$eol" )
+			else
+				icon_set=swiss_knife
+#				icon_set=bad_thing
+				_driver_notif+=( "$driver $release update.\n(NOT DOWNLAODABLE YET)$eol" )
+			fi
 		fi
 	done
 	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $version ]]; then
@@ -113,11 +121,12 @@ if [ ${#local_git_list[@]} -gt 0 ]; then
 			fi
 		fi
 	done
+fi
 }
 notifying(){
-	notify-send -t 5000 -u low -i swiss_knife "${notif_msg[*]}update" "$(echo -e "${_driver_notif[*]}")"
+	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo -e "$sol${_driver_notif[*]}")"
 }
-#sleep 30
+sleep 30
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"
 	printf "\t -a : check all.\n"

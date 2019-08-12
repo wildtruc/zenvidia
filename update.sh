@@ -6,7 +6,7 @@ install_prefix=/usr/local
 nvdir=$install_prefix/NVIDIA
 nvconf=$install_prefix/etc/zenvidia
 
-## migrate conf files to local/etc (reserve beore code review).
+## migrate conf files to local/etc (reserve before code review).
 #if [[ -s $nvdir/script.conf ]]; then
 #	mv -f -t $nvconf $nvdir/{script,basic,color}.conf 
 #fi
@@ -20,7 +20,7 @@ color_conf=$nvdir/color.conf
 
 ## create temporary files.
 nv_patch=$(mktemp --tmpdir nv_patch-XXXX)
-nv_diff=$(mktemp --tmpdir nv_patch-XXXX)
+nv_diff=$(mktemp --tmpdir nv_diff-XXXX)
 # update conf without remove user's changes.
 conf_list=("$script_conf" "$basic_conf" "$color_conf")
 for conf in "${conf_list[@]}"; do
