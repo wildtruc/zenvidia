@@ -2099,6 +2099,7 @@ install_type_sel(){
 			if [ -x $opti_exec ]; then
 				install_msg="$m_01_27a ($msg $m_01_27b)$end"
 			else
+				install_msg="$j\ATTENTION$end$v : $msg $m_01_28$end"
 			fi
 			if_optimus
 		;;
