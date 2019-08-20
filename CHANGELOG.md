@@ -1,4 +1,10 @@
  ## CHANGELOG
+ - (2019-08-20) v1.0.6 (42) - urgent fixes (b) and grub update to blsconfig.
+  - on fedora 30 and probably many other distros, grub has moved to blscfg, script needed to be update.
+  - made urgent fixes on previous updates (dev brain is not so well :s, sorry...)
+  - add some missing dependencies in auto install (diff,patch), control is made at each start now.
+  - fixed some miss behaviour in librairies linking.
+ 
  - (2019-08-12) v1.0.5 (41) - fixes and update.
    - zen_notify doesn't warn about not existant repos in Nvidia ftp (rare, but happens). This is fixed.
    - Has been update in zenvidia for the same reason.

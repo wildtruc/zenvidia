@@ -111,6 +111,9 @@ ID(){
 			done
 		fi
 	done
+	## pci list: variant.
+#	vga_pci_list=( $($d_lspci -nnmm| egrep "\ ()VGA|3D)\ ") )
+	
 	ifs=$IFS
 	IFS=$(echo -en "\n\b")
 	pci_dev="${pci_n[*]}"
@@ -188,12 +191,14 @@ $vB\YOU SHALL REBOOT THE SYSTEM AFTER KEY GEN PROCESS$end"
 # dependencies control
 dep_control(){
 	unset deplist
-	[ -x /usr/bin/lftp ]|| deplist+=("$p_lftp")
+#	[ -x /usr/bin/lftp ]|| deplist+=("$p_lftp")
 	[ -x /usr/bin/xterm ]|| deplist+=("$p_xterm")
 	[ -x /usr/bin/make ]|| deplist+=("$p_gcc")
 	[ -x /usr/bin/wget ]|| deplist+=("$p_wget")
 	[ -x /usr/bin/git ]|| deplist+=("$p_git")
 	[ -x /usr/sbin/dkms ]|| deplist+=("$p_dkms")
+	[ -x /usr/bin/diff ]|| deplist+=("$p_diff")
+	[ -x /usr/bin/patch ]|| deplist+=("$p_patch")
 	if [ $dist_type -le 1 ]; then
 		[ -d $kernel_src ]|| deplist+=("$p_kernel")
 		[ -e /usr/include/ncurses/ncurses.h ]|| deplist+=("$p_ncurses")
@@ -205,13 +210,14 @@ dep_control(){
 	if [ $dist_type = 0 ]; then
 		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
 	fi
+	w_width='400'
 #	if [[ $(echo "${deplist[*]}") != '' ]] ; then
 	if [ "${#deplist[*]}" -gt 0 ] ; then
-		zenity --question --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
+		zenity --question --width=$w_width --text="$v Required dependencies are not met.\n You need to install them now ?$end" --ok-label="Install"
 		if [ $? = 0 ]; then
 			( 
 			xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; printf \"$esc_message\"; sleep $xt_delay"
-			) | zenity --progress --pulsate --auto-close --text="Installing missing dependencies..."
+			) | zenity --progress --pulsate --auto-close --width=$w_width --text="Installing missing dependencies..."
 		else
 			exit 0
 		fi
@@ -954,6 +960,7 @@ Section \"Files\"
 	ModulePath \"$croot/nvidia/xorg/modules\"
 	ModulePath \"/usr/$master$ELF/xorg/modules\"
 EndSection
+## ABI config
 \n" > xorg.conf.nvidia.$new_version
 	}
 	sec_module(){
@@ -1035,7 +1042,7 @@ X
 Section \"ServerFlags\"
 	Option	\"Xinerama\" \"0\"
 	# allows the server to start up even if the mouse does not work
-	AllowMouseOpenFail 
+	AllowMouseOpenFail
 EndSection
 \n" >> xorg.conf.nvidia.$new_version
 	}
@@ -1088,6 +1095,7 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 					ln -sf $x_conf_dir/xorg.nvidia.conf /etc/X11/xorg.conf
 				fi
 			fi
+			abi_crtl
 #			cd $x_conf_dir
 #			sec_files
 #			sec_module
@@ -1108,41 +1116,60 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 #			cp -f ./xorg.conf.nvidia.$new_version ./xorg.nvidia.conf
 		fi
 	else
-		if [ $(diff -q ./xorg.conf.nvidia.$new_version ./xorg.conf  | grep -c ".*") -gt 0 ]; then
-			if [ ! -e ./xorg.conf.nvidia ]; then
-				if [ ./xorg.conf.nvidia.$old_version ]; then
-					mv -f ./xorg.conf.nvidia.$old_version ./xorg.conf.nvidia
+		if [ -s /etc/X11/xorg.conf ]; then
+			if [ $(diff -q ./xorg.conf.nvidia.$new_version ./xorg.conf  | grep -c ".*") -gt 0 ]; then
+				if [ ! -e ./xorg.conf.nvidia ]; then
+					if [ ./xorg.conf.nvidia.$old_version ]; then
+						mv -f ./xorg.conf.nvidia.$old_version ./xorg.conf.nvidia
+					fi
 				fi
+				diff -u ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia &>/tmp/nv_patch.diff
+				patch -p0 -i /tmp/nv_patch.diff ./xorg.conf.nvidia.$new_version
+				cp -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+				ln -sf ./xorg.conf.nvidia ./xorg.conf
 			fi
-			diff -u ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia &>/tmp/nv_patch.diff
-			patch -p0 -i /tmp/nv_patch.diff ./xorg.conf.nvidia.$new_version
-			cp -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+		else
+			mv -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
 			ln -sf ./xorg.conf.nvidia ./xorg.conf
 		fi
 	fi
 }
-
-if_blacklist(){
-#	if [[ $(cat /etc/modprobe.d/blacklist.conf | grep "nouveau") == '' ]]; then
-	if [ $(cat /etc/modprobe.d/blacklist.conf | grep -c "nouveau") -eq 0 ]; then
-		printf "blacklist nouveau" >> /etc/modprobe.d/blacklist.conf
-		echo "# Updated blacklist for nouveau driver..."; echo "$n"; n=$[ $n+4 ]; sleep 2
+abi_crtl(){
+## enable xorg ABI23 behaviour to fix vsync and render for prime setting. 
+## TODO ? sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
+	if [[ -s /var/log/Xorg.0.log ]]; then
+		abi_ver=$(cat /var/log/Xorg.0.log| sed -En "s|^.*ABI.*Driver.* ([0-9]{2})\..*$|\1|p"| uniq)
+		if [[ $abi_ver && $abi_ver -ge 23 ]]; then
+			if [ $(cat $install_dir/xorg.nvidia.conf| grep -c "IgnoreABI" ) -eq 0 ]; then
+				server_flag="Section \"ServerFlags\"\n\tOption\t\"IgnoreABI\" \"1\"\nEndSection"
+				sed -Eni -e "s|^(## ABI config)$|\1\n$server_flag|g;p" $install_dir/xorg.nvidia.conf
+			fi
+		fi
 	fi
-#	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau pci=nocrs pci=realloc'
-	nouveau_unset='nouveau.modeset=0 rd.driver.blacklist=nouveau'
-	if [ $(cat $grub_dir/grub.cfg|grep -c "$nouveau_unset") -eq 0 ]; then
-		sed -i "s/ ro rhgb / ro $nouveau_unset rhgb /" $grub_dir/grub.cfg
+}
+if_blacklist(){
+	grub_cfg=$(find /boot -wholename "*/grub.cfg")
+	grub_def=/etc/default/grub
+	grub_key='GRUB_CMDLINE_LINUX'
+	if [ $(cat $grub_def| egrep -c "^$grub_key.*blacklist=nouveau.*$") -eq 0 ]; then
+		blacklist='nouveau.modeset=0 rd.driver.blacklist=nouveau'
+		## modset var is coming from nvidia-prime config sets or other distro config systems.
+		## First test if prime tools has already set it, then process.
+		if [ $modeset = 0 ]; then
+			modset='nvidia-drm.modeset=0 '$blacklist
+		else
+			modset=$blacklist
+		fi
+		## add nouveau blacklist to modeprobe.d configs list.
+		if ! [[ -s /etc/modprobe.d/blacklist-nouveau.conf ]]; then
+			echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
+			echo "# Updated blacklist for nouveau driver..."; echo "$n"; n=$[ $n+4 ]; sleep 2
+		fi
+		## replace default env grub with new vars and create a new grub.cfg.
+		sed -Eni "s|^($grub_key)=\"(.*)\"$|\1=\"$modset \2\"|g;p" $grub_def
+		grub2-mkconfig -o $grub_cfg
 		echo "# Updated GRUB conf for nouveau driver blacklisting."; echo "$n"; n=$[ $n+4 ]; sleep 2
 	fi
-#	GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True  KEYTABLE=fr rd.luks=0 LANG=fr_FR.UTF-8 rhgb quiet rd.blacklist=nouveau"
-#	grub2-mkconfig -o /boot/grub2/grub.cfg
-
-## XXX Since fedora 30, grub config has changed and regex is no longer adapted to new version that only
-## write a 'set_default' for all kernel version options.
-## this will be fix in next versions.
-
-# TODO ABI23 compatibility for Optimus VSYNC in modprobe.d
-# sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
 }
 service_check(){
 	if [ $sys_old = 1 ]; then
@@ -1184,6 +1211,7 @@ post_install(){
 			backup_driver; echo "$n"; n=$[ $n+4 ]
 			# bumblebee
 			if [ $use_bumblebee = 1 ]; then
+				modeset=1
 				echo "# Optimus : Configure and load/reload Bumblebee..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
 				local_src_ctrl; echo "$n"; n=$[ $n+4 ]
@@ -1197,6 +1225,7 @@ post_install(){
 				service_check
 			## prime
 			else
+				modeset=0
 				echo "# Optimus : Configure and load/reload Prime..."; sleep 1
 				echo "$n"; n=$[ $n+4 ]
 				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
@@ -1244,6 +1273,7 @@ post_install(){
 		else # [ $optimus = 0 ]
 			xorg_conf
 			backup_driver
+			modeset=1
 			if [ ! -s /etc/ld.so.conf.d/nvidia-$master$ELF_TYPE ]; then
 				unset elf_lib_list
 				elf_lib_list=("$ELF_64" "$ELF_32")
@@ -1304,8 +1334,9 @@ post_install(){
 	fi
 	## symlink libvdpau_nvidia to system
 	for lib_V in "${elf_lib[@]}"; do
-		link_v=$(ls -l /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| sed -n "s/^.*-> //p")
-		if [[ ! $(printf "$link_v"|grep -o "$new_version") ]]; then
+		link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$new_version")
+		if [ $link_v -eq 0 ]; then
+			[ -d /usr/$lib_V/vdpau ]|| mkdir -p /usr/$lib_V/vdpau
 			ln -sf $croot_all/$lib_V/vdpau/libvdpau_nvidia.so.$new_version /usr/$lib_V/vdpau/libvdpau_nvidia.so.1 
 		fi
 	done
@@ -1370,7 +1401,7 @@ $_help_tip$end"
 			sed -Eni "s/^(no_warn)=[0-9]$/\1=$no_warn/g;p" $basic_conf
 		else
 			echo -e "# display first time modules build messsage (0) or not (1)
-	no_warn=$no_warn" >> $basic_conf
+no_warn=$no_warn" >> $basic_conf
 		fi
 	fi
 	_title="Modules build selection"
@@ -1399,7 +1430,8 @@ $v(Choice will be saved in default conf file)$end"
 		else
 			sed -Eni "s/^blacklist nvidia$mod$/$rep/g;p" /etc/modprobe.d/blacklist.conf
 		fi
-		sed -i "/^$/d" /etc/modprobe.d/blacklist.conf
+		## removed blanck lines from file.
+		sed -in "/^[[:space:]]*$/d;s/^\ //g" /etc/modprobe.d/blacklist.conf
 	done
 #	exit 0
 }
@@ -1696,6 +1728,34 @@ nv_cmd_install_libs(){
 	--opengl-prefix=$croot_all --utility-prefix=$tool_dir \
 	$docs $profile $SIGN_S $SElinux $temp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
+	## driver supported devices file is often not up to date,
+	## control if log file message is not fatal before processing next.
+	if [ -s $lib_logfile ]; then
+		if [[ ${#COMP_I[@]} -gt 0 ]]; then
+			compat_list=${COMP_I[@]}
+		else
+			compat_list=$(cat $nvtmp/compat.update)
+		fi
+		ifs=$IFS
+		IFS=$(echo -en "\n\b")
+		for fatal_dev in $compat_list ; do
+			fatal_msg='WARNING.*'$fatal_dev'.*supported through'
+			if [ $(cat $lib_logfile| grep -c "$fatal_msg") -gt 0 ]; then
+				adviced_dev=$(cat $lib_logfile| sed -En "s/^.* ((.*){2,3}.xx) .*$/\1/p" )
+				zenity --width=300 --title="Zenvidia" --warning \
+				--text="$rB$fatal_dev GPU not supported.\nSelect $adviced_dev serie instead.$end"
+				if [ -d $croot_all ]; then
+					rm -f $croot_all
+				fi
+				base_menu
+			fi 
+		done
+		IFS=$ifs
+	else
+		echo -e "Log file : $lib_logfile doesn't exist. It shouldn't happen."
+		exit 0
+	fi
+
 }
 
 ## INSTALL MODULE AND LIBRARIES PROCESS
@@ -1717,6 +1777,8 @@ install_drv(){
 	# other vars
 	dkms_kernel=/lib/modules/$KERNEL/extra
 	install_bin="./nvidia-installer"
+	## tell script that all post_install process came from install.
+	from_install=1
 	if [ -s $driverun ] ; then
 	{	sleep 1
 		n=4
@@ -2167,7 +2229,7 @@ check_update(){
 			DIFF_list="$LAST_DRV $LAST_BETA"
 	fi
 	w_height=355
-	unset dl_allow
+	unset dl_allow COMP_L COMP_I
 	for DRV in $DIFF_list; do
 		## prevent and remove compatibility list first
 		if [[ -e $nvtmp/compat.$DRV ]]; then rm -f $nvtmp/compat.$DRV; fi
@@ -2200,6 +2262,8 @@ check_update(){
 			DEV_filter=$(cat $nvtmp/compat.$DRV| egrep -i "${dev[$e]}.*$DEV_slot")
 			DEV_nm=$(printf "$DEV_filter"|cut -d"," -f2)
 			VDPAU=$(printf "$DEV_filter"|cut -d"," -f4)
+			## create a list of nvidida devices for lib install fatal log messages.
+			COMP_I+=( "$DEV_nm\n" )
 			## eval text to display in window message.
 			if [[ -n $DEV_filter ]]; then
 				if [ $VDPAU != '' ]; then 
@@ -2234,6 +2298,9 @@ check_update(){
 			dl_warn_msg="\n$vB\Remote packages list available in next window.$end"	
 		fi
 	done
+	## write it in default script directory for further use.
+	echo -e "${COMP_I[@]}" > $nvtmp/compat.update
+	sed -in "/^[[:space:]]*$/d;s/^\ //g" $nvtmp/compat.update
 	ifs=$IFS
 	IFS=$(echo -en "\n\b")
 	compat_msg="${COMP_L[*]}\n"
@@ -2247,36 +2314,47 @@ win_update(){
 		in_offi=$(ls -1 $nvdl/ | grep -c "$LAST_DRV")
 		in_beta=$(ls -1 $nvdl/ | grep -c "$LAST_BETA")
 	fi
+	unset more_msg
 	case $in_local in 
+		## ↓ if not dowloaded packages are detected, set ui mode to full and process to next 
 		0) ui_mod=1; extra_msg="\n$v$m_01_13$end";;
-		1)	ui_mod=0
+		## ↓ if one or more packages are detected, set ui mode to full.
+		## Then check if ui mode has to be set differently.
+		1)	ui_mod=1
+			## ↓ check if last driver is installed and mack it 'installed'. 
 			if [[ $LAST_IN == $LAST_DRV ]]; then set_in=" ($m_01_18)"; fi
-			start_msg="$j$LAST_DRV$end$vB $m_01_14a $m_01_16.$end$v$set_in$end"
-			more_msg=''
-			end_msg=$m_01_17
+			## ↓ control present packages and choose waht to display.
 			for more_drv in {"$in_offi,$LAST_DRV","$in_beta,$LAST_BETA"}; do
-				more_0=$(echo "$more_drv"|cut -d',' -f1)
-				more_1=$(echo "$more_drv"|cut -d',' -f2)
-				if [$more_1 = 1 ]; then
-					ui_mod=1
-					more_msg="\n$j$more_0$end$vB $m_01_14b $m_01_16.$end"
-					end_msg="\n$m_01_13"
-					w_height=$(($w_height+65))
-				fi
+				_exist=$(echo "$more_drv"|cut -d',' -f1)
+				_drive=$(echo "$more_drv"|cut -d',' -f2)
+				case $_exist in
+					0) more_msg+=( "\n$j$_drive$end$vB $m_01_14b $m_01_16.$end" ) ;;
+					1) more_msg+=( "\n$j$_drive$end$vB $m_01_14a $m_01_16.$end$v$set_in$end" ) ;;
+				esac
 			done
-			if [[ $in_offi = 1 && $in_beta = 1 ]]; then
+#			start_msg="$j$LAST_DRV$end$vB $m_01_14a $m_01_16.$end$v$set_in$end"
+			start_msg="${more_msg[@]}"
+#			more_msg=''
+			end_msg="\n$m_01_13"
+		;;
+		## set ui_mod to 0 if offi and beta exist or are the same.
+		2) if [[ $in_offi = 1 && $in_beta = 1 ]]; then
+				ui_mod=0
 				if [[ $LAST_DRV == $LAST_BETA ]]; then
-					start_msg="$j$LAST_DRV$end$vB, $m_01_14c $m_01_16.$end"
+					start_msg="$j$LAST_DRV$end$rB, $m_01_14c $m_01_16.$end"
 				else
 					if [[ $LAST_IN == $LAST_DRV||$LAST_BETA ]]; then
 						set_in=" ($LAST_IN $m_01_18)"
 					fi
-					start_msg="\n$v$m_01_14c $m_01_16 $set_in.$end"
+					start_msg="\n$rB$m_01_14c $m_01_16 $set_in.$end"
+					end_msg=$m_01_17
 				fi
 			fi
-			extra_msg="\n$start_msg$more_msg\n$v$end_msg$end"
 		;;
 	esac
+	if [ $ui_mod = 1 ]; then w_height=$(($w_height+65)); fi
+#			extra_msg="\n$start_msg$more_msg\n$v$end_msg$end"
+	extra_msg="\n$start_msg\n$v$end_msg$end"
 	case $ui_mod in
 		0)	w_height=300
 			zen_opts='--info --icon-name=swiss_knife '
@@ -2799,7 +2877,7 @@ edit_xorg_conf(){
 #	if [ $? = 0 ]; then menu_manage
 #	elif [ $? = 1 ]; then exit 0
 #	fi
-	menu_modif
+	if [ $from_install = 1 ]; then base_menu; else menu_modif; fi
 }
 read_help(){
 	zenity --width=500 --height=400 --title="Zenvidia" --text-info \
@@ -3247,10 +3325,10 @@ menu_modif(){
 	--text "$rBB$_03$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mod_list[@]}" false $nd "$MM")
-	if [ $? = 1 ]; then exit 0; fi
+	if [ $? = 1 ]; then base_menu; fi
 	if [ $install_type = 0 ]; then
 		case $menu_mod in
-			"1") edit_xorg_conf ;;
+			"1") from_install=0; edit_xorg_conf ;;
 			"2") edit_script_conf ;;
 			"3") nv_config ;;
 			"4") manage_pcks ;;
@@ -3261,7 +3339,7 @@ menu_modif(){
 		esac
 	else
 		case $menu_mod in
-			"1") edit_xorg_conf ;;
+			"1") from_install=0; edit_xorg_conf ;;
 			"2") edit_script_conf ;;
 			"3") nv_config ;;
 			"4") manage_pcks ;;
@@ -3377,6 +3455,7 @@ first_start_cmd(){
 	base_menu
 }
 start_cmd(){
+	dep_control
 	install_controls
 	connection_control
 	base_menu
