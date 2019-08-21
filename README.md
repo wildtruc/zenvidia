@@ -1,31 +1,18 @@
 # Zenvidia
 This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 
-## IMPORTANT NOTICE FOR V1.0
-New major update before v1.0.
- - Upgraded to 390.xx new installer options.
- - **.sh** suffixes are removed.
- - Polkit Auth instead of su/sudo.
- - To update do ```sudo make install``` (see **News** below).
- - You will be automaticaly notified for next update. 
 
 ## Issues
-Nvidia-installer refuse to execute because of nvidia-drm module loaded, the automatic script work-arround does the job.
+**v1.0.6**
+Nvidia-installer refuse to execute because of nvidia-drm module loaded, this is a nvidia development issues. The only solution is to work-arround and the script does the job. As a result, zenvidia no longer uses nvidia-installer to install the drivers themselves.
 
-During the review time, you may meet numbers of issues.
-
-See **Wiki** for **Issues**, **Todo list** and **demands**.
+DKMS refuses to install the drivers and can even report errors even if there are none and the drivers are compiled anyway. I don't know if this issue is exclusive to my desktop.
 
 ------------
 ## News
+Bumblebee and prime support is still suspended. At the very most, it won't work, at the very least, it will crash your desktop. So, please, don't. ^^ (will be fixe in a near futrure, but it need deeper code review and it's beyond my present condition right now.)
 
-*FIX & UPDATE* (11/28/2018): fix for new 410 serie options sets.
- - remove nvidia-installer driver compil part (definitivly unusable).
- - add per module config install. nvidia uvm and/or drm are optionals and useless for most of us.
- - prime and bumblebleed are still not revised.
- - ISSUE : DKMS is compiling, but not installing modules. Not a clue at this point (Fedora? dkms? nvidia? kernel?). 
- 	Anyway, 2nd workaround install drivers after a few fixes.
- 	Until debug and final fix of this issue, in case of a kernel upgrade, it is mandatory to use the 'Update driver for an other kernel' menu entry from 'update' menu before restart the computer.
+For Prime in specific, you can always use zenvidia for an install on single hardware, then use **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** tool to config Prime. I can't tell if Ubuntu tools could be used to configure Prime afterward, the distro is problably using proper nvidia driver ubuntu's non-free repos for this and is not adapted to zenvidia particular sets. **[Nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** does. 
 
 ## Notice
 I have severe heals issue and I don't really know if I could still manage my project alive. I will try to continue to fix bugs and Nvidia options updates, but i can't tell about the future. It's strongly recommanded to fork.
