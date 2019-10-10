@@ -1,4 +1,12 @@
  ## CHANGELOG
+ - (2019-10-10) v1.0.7 (43)
+  - Preparing script for next 'offload' tech for optimus. Cleaning useless code and starting to remove all referenced 'bumblebee' data (project looks dead).
+  - There were a bug in extract_build functiion, extractor didn't find the driver directory for an unknow reason. Rewrote function filters expecting to avoid this.
+  - Add common vars for install type function, bumblebeed avoided, there no more reason to separate them.
+  - Fixed DKMS building disfunction: nutshell in DKMS conf file building (sic!) and replace nvidia-installer option by script's one.
+  - Old commented and all bumblebee code will be cleaned next version.
+  - Note: Bumblebee project looks dead, but it's not really sure and old device could still have the use of it. Then, I will keep bumblebee code in backup in case of project resurection.
+   
  - (2019-08-20) v1.0.6 (42) - urgent fixes (b) and grub update to blsconfig.
   - on fedora 30 and probably many other distros, grub has moved to blscfg, script needed to be update.
   - made urgent fixes on previous updates (dev brain is not so well :s, sorry...)
