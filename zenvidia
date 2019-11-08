@@ -1207,10 +1207,13 @@ service_check(){
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
 	if [ -d $croot_32 ]||[ -d $croot_64 ]; then
-		# libnvidia-wfb.so is broken with old version, need to be replace with xorg server libwfb.so. If exist ins nvidia's dirs. 
+		# libnvidia-wfb.so is broken with old version, need to be replace with xorg server libwfb.so. If exist in nvidia's dirs. 
 		if [ -e $xorg_dir/modules/libwfb.so ]; then
-			mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
-			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
+			## 418 and above don't need nvidia libwfb.so to be replace anymore
+			if [ $wfb_rep -gt 0 ]; then
+				mv -f $xorg_dir/modules/libwfb.so $xorg_dir/modules/libwfb.so.orig
+				ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $xorg_dir/modules/libwfb.so
+			fi
 		fi
 		[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
 		cd $croot
@@ -1729,6 +1732,8 @@ nv_build_options(){
 		[ $use_indirect = 0 ]|| force_glvnd='--force-libglx-indirect'
 		[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
 		## This part is options for both library and modules build/install.
+		## tell script to replace nvidia's libwfb.so by system's one in post install process.
+		wfb_rep=1
 		if [ $chk_version -ge 390 ]; then 
 			compat32='--compat32-libdir='$master$ELF_32
 			compat64='--opengl-libdir='$master$ELF_64
@@ -1740,6 +1745,8 @@ nv_build_options(){
 		fi
 		if [ $chk_version -ge 430 ]; then
 			xorg_dir=$xorg_def
+			## 418 and above don't need nvidia libwfb.so to be replace anymore
+			wfb_rep=0
 		fi
 	fi
 }

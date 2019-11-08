@@ -1,4 +1,7 @@
  ## CHANGELOG
+ - (2019-11-08) v1.0.8 (44)
+  - fix: Until 415 series, it was needed to replace nvidia's libwfb.so by system xorg ones. Above version don't need it, because libnvidia-wfb doesn't even exist. Then, a filter has been added. (I know, coming a bit late)
+  
  - (2019-10-10) v1.0.7 (43)
   - Preparing script for next 'offload' tech for optimus. Cleaning useless code and starting to remove all referenced 'bumblebee' data (project looks dead).
   - There were a bug in extract_build functiion, extractor didn't find the driver directory for an unknow reason. Rewrote function filters expecting to avoid this.
