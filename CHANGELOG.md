@@ -1,4 +1,8 @@
  ## CHANGELOG
+ - (2019-10-01) v1.0.9 (45 last)
+  - Final cleaned code. Script is now entirely dedicated to driver, bumblebee and prime are remouved.
+  - This is the last time I dive into it. Take care, people.
+  
  - (2019-11-08) v1.0.8 (44)
   - fix: Until 415 series, it was needed to replace nvidia's libwfb.so by system xorg ones. Above version don't need it, because libnvidia-wfb doesn't even exist. Then, a filter has been added. (I know, coming a bit late)
   
