@@ -2230,6 +2230,8 @@ menu_install(){
 		hlp_tip="\n$hlp_01b"
 		hlp_tip="\n$hlp_01a"
 		w_height='--height=200'
+	else
+		w_height='--height=100'
 	fi
 		install_list=("$_1a" "$_1b")
 	n=1

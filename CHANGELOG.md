@@ -1,4 +1,7 @@
  ## CHANGELOG
+ - (2019-10-01) v1.1 (46)
+  - Bug fix: Wrong window height prevent to display "Install from" menu titles.
+ 
  - (2019-10-01) v1.0.9 (45 last)
   - Final cleaned code. Script is now entirely dedicated to driver, bumblebee and prime are remouved.
   - This is the last time I dive into it. Take care, people.
