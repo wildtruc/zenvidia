@@ -51,7 +51,7 @@ _6c="Restore"
 _6d="Selected to be removed:\n$j%s$end driver(s)."
 _6e="Driver backup"
 _6f="Remove the associated directory"
-_6g="Please, confirm you action."
+_6g="Please, confirm your action."
 _6h="Remove primary driver directory"
 
 ## menu test
@@ -119,7 +119,7 @@ m_01_04="Use a local directory" # 323
 m_01_05="Driver list in" # 324
 m_01_06="Select a driver from a local directory" # 325
 
-# check_update
+# check_update XXX
 m_01_07="FTP data download" # 206
 m_01_08="Compatibility check" # 207
 #msg208="n'est pas compatible VDPAU"

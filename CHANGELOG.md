@@ -1,4 +1,10 @@
  ## CHANGELOG
+ - (2019-10-23) v1.1 downgrade (48)
+  - ISSUE: Clean code missing some features and last driver install became wierd. Obviously, I cleaned to much.
+  - FIX: Downgraded to previous code until resending a real and functional cleaned code.
+  - MEANWHILE: Driver installer add a new dir in /usr/lib, backup/restore was broken because of this. Added also ld.conf.so.d nvidia conf properly to backup/restore function.
+  - My apologies for all this. Please backup your driver before doing anything, juste in case.
+  
  - (2019-10-01) v1.1 (46)
   - Bug fix: Wrong window height prevent to display "Install from" menu titles.
  

@@ -205,7 +205,7 @@ dep_control(){
 		[ -e /usr/include/libkmod.h ]|| deplist+=("$p_kmod")
 		[ -e /usr/include/pci/config.h ]|| deplist+=("$p_pciutils")
 		[ -e /usr/include/pciaccess.h ]|| deplist+=("$p_libpciaccess")
-		[ -e /usr/include/xorg/xorg-server.h ]|| deplist+=("$p_xorgdev")
+#		[ -e /usr/include/xorg/xorg-server.h ]|| deplist+=("$p_xorgdev")
 	fi
 	if [ $dist_type = 0 ]; then
 		[ -x /usr/bin/gksu ]|| deplist+=("$p_gksu")
@@ -233,6 +233,7 @@ connection_control(){
 	else cnx_msg=$ansNA
 	fi
 }
+
 ## gcc compatibility control
 compil_vars(){
 #	if [ -s $tool_dir/bin/'nvidia-installer' ]; then
@@ -310,6 +311,10 @@ authorityKeyIdentifier=keyid"
 		mv -f -t $kernel_src $nvdir/public_key.x509 $nvdir/private_key.priv
 	fi
 }
+
+## VIRTUALIZER AND TOOLS BUILDING PART
+## REMOVED ##
+
 dkms_rebuild(){
 	force=1
 	(	kernel_path=/lib/modules/$KERNEL/extra
@@ -354,48 +359,9 @@ zenvidia_update(){
 	fi
 	) | zenity --width=450 --title="Zenvidia" --text="Zenvidia Update check..." --progress --pulsate --auto-close
 }
-# rem
 ## CONFIGURATION
 ## VIRTUALIZER CONFIGURATION PART
-#bumblebee_conf(){
-#	# consider bumblebee is already installed in /opt and bin in /usr/local
-#	x_conf_dir=$tool_dir/etc/bumblebee
-#	echo "# Optimus : Configure Bumblelbee service..."; n=$[ $n+1 ]; echo "$n"
-#	cd $x_conf_dir
-#	printf "[bumblebeed]
-#VirtualDisplay=:8
-#KeepUnusedXServer=false
-#ServerGroup=bumblebee
-#TurnCardOffAtExit=false
-#NoEcoModeOverride=false
-#Driver=nvidia
-#[optirun]
-#Bridge=auto
-#PrimusLibraryPath=$croot/primus/$master$ELF_64:$croot/primus/$master$ELF_32
-#VGLTransport=proxy
-#AllowFallbackToIGC=false
-#[driver-nvidia]
-##KernelDriver=nvidia.$new_version
-##Module=nvidia.$new_version
-#KernelDriver=nvidia
-#Module=nvidia
-#PMMethod=auto
-#LibraryPath=$croot/nvidia.$new_version/$master$ELF_32:$croot/nvidia.$new_version/$master$ELF_64
-#XorgModulePath=$croot/nvidia.$new_version/xorg/modules,/usr/lib$ELF_TYPE/xorg/modules
-#XorgConfFile=$x_conf_dir/xorg.conf.nvidia.$new_version
-#[driver-nouveau]
-#KernelDriver=nouveau
-#PMMethod=auto
-#XorgConfFile=$x_conf_dir/xorg.conf.nouveau
-#\n" > bumblebee.$new_version
-#	ln -sf ./bumblebee.$new_version ./bumblebee.conf
-#	if [[ -s $x_conf_dir/bumblebee.$old_version ]]; then
-#		rm -f $x_conf_dir/{bumblebee,xorg.conf.nvidia}.$old_version
-#	fi
-#	# ensure /etc/nvidia is set properly connfigured for OpenCL
-#	mkdir -p /etc/OpenCL/vendors
-#	printf "$croot_all/$master$ELF_64/nvidia.$new_version/libnvidia-opencl.so.1\n" > /etc/OpenCL/vendors/nvidia.icd
-#}
+## REMOVED ##
 
 xorg_conf(){
 	sec_files(){
@@ -431,7 +397,11 @@ EndSection
 	}
 	sec_device(){
 		for e in $pci_dev_nb; do
-			pci_slot=$(printf "${slot[$e]}"| sed -n "s/^0//;s/:0/:/;s/\./:/p")
+			if [ $install_type = 1 ]&&[ $use_bumblebee = 0 ]; then
+				pci_slot='bus_id:0:0'
+			else
+				pci_slot=$(printf "${slot[$e]}"| sed -n "s/^0//;s/:0/:/;s/\./:/p")
+			fi
 			if [[ $(printf "${dev[$e]}"|grep "GeForce\|Quadro\|NVS\|Tesla\|GRID") != '' ]]; then
 			printf "Section \"Device\"
 	Identifier	\"Device${dev_n[$e]}\"
@@ -533,21 +503,73 @@ EndSubSection\n" >> xorg.conf.nvidia.$new_version
 		printf "EndSection
 \n" >> xorg.conf.nvidia.$new_version
 	}
-	if [[ -s /etc/X11/xorg.conf ]]; then
-		if [ $(diff -q ./xorg.conf.nvidia.$new_version ./xorg.conf  | grep -c ".*") -gt 0 ]; then
-			if [ ! -e ./xorg.conf.nvidia ]; then
-				if [ ./xorg.conf.nvidia.$old_version ]; then
-					mv -f ./xorg.conf.nvidia.$old_version ./xorg.conf.nvidia
+## xorg conf to file
+	if [ $install_type = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			x_conf_dir=$tool_dir/etc/bumblebee
+			cd $x_conf_dir
+			sec_files
+			sec_device
+			sec_option_op
+		elif [ $use_bumblebee = 0 ]; then
+			x_conf_dir=/etc/nvidia-prime
+			[[ -d $x_conf_dir ]]|| mkdir -p $x_conf_dir
+			if [[ -f $x_conf_dir/xorg.nvidia.conf ]]; then
+				if [ $(file -p /etc/X11/xorg.conf| grep -c "xorg.nvidia.conf") -eq 0 ]; then
+#					mv -f $x_conf_dir/xorg.nvidia.conf $x_conf_dir/xorg.nvidia.conf.bak
+					ln -sf $x_conf_dir/xorg.nvidia.conf /etc/X11/xorg.conf
 				fi
 			fi
-			diff -u ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia &>/tmp/nv_patch.diff
-			patch -p0 -i /tmp/nv_patch.diff ./xorg.conf.nvidia.$new_version
-			cp -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
-			ln -sf ./xorg.conf.nvidia ./xorg.conf
+			abi_crtl
+#			cd $x_conf_dir
+#			sec_files
+#			sec_module
+#			sec_device
+#			sec_option_op
 		fi
 	else
-		mv -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
-		ln -sf ./xorg.conf.nvidia ./xorg.conf
+		x_conf_dir=/etc/X11
+		cd $x_conf_dir
+		sec_files
+		sec_device
+		sec_option_df
+	fi
+	if [ $install_type = 1 ];then
+		if [ $use_bumblebee = 1 ]; then
+			ln -sf ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+#		elif [ $use_bumblebee = 0 ]; then
+#			cp -f ./xorg.conf.nvidia.$new_version ./xorg.nvidia.conf
+		fi
+	else
+		if [[ -s /etc/X11/xorg.conf ]]; then
+			if [ $(diff -q ./xorg.conf.nvidia.$new_version ./xorg.conf  | grep -c ".*") -gt 0 ]; then
+				if [ ! -e ./xorg.conf.nvidia ]; then
+					if [ ./xorg.conf.nvidia.$old_version ]; then
+						mv -f ./xorg.conf.nvidia.$old_version ./xorg.conf.nvidia
+					fi
+				fi
+				diff -u ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia &>/tmp/nv_patch.diff
+				patch -p0 -i /tmp/nv_patch.diff ./xorg.conf.nvidia.$new_version
+				cp -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+				ln -sf ./xorg.conf.nvidia ./xorg.conf
+			fi
+		else
+			mv -f ./xorg.conf.nvidia.$new_version ./xorg.conf.nvidia
+			ln -sf ./xorg.conf.nvidia ./xorg.conf
+		fi
+	fi
+}
+abi_crtl(){
+## enable xorg ABI23 behaviour to fix vsync and render for prime setting. 
+## TODO ? sudo rmmod nvidia-drm; sudo modprobe nvidia-drm modeset=1
+	if [[ -s /var/log/Xorg.0.log ]]; then
+		abi_ver=$(cat /var/log/Xorg.0.log| sed -En "s|^.*ABI.*Driver.* ([0-9]{2})\..*$|\1|p"| uniq)
+		if [[ $abi_ver && $abi_ver -ge 23 ]]; then
+			if [ $(cat $install_dir/xorg.nvidia.conf| grep -c "IgnoreABI" ) -eq 0 ]; then
+				server_flag="Section \"ServerFlags\"\n\tOption\t\"IgnoreABI\" \"1\"\nEndSection"
+				sed -Eni -e "s|^(## ABI config)$|\1\n$server_flag|g;p" $install_dir/xorg.nvidia.conf
+			fi
+		fi
 	fi
 }
 if_blacklist(){
@@ -574,6 +596,29 @@ if_blacklist(){
 		echo "# Updated GRUB conf for nouveau driver blacklisting."; echo "$n"; n=$[ $n+4 ]; sleep 2
 	fi
 }
+service_check(){
+	if [ $sys_old = 1 ]; then
+		if [ $dis_service ]; then
+			v_pid=$($d_sys_c $dis_service status| grep "PID"| \
+			perl -p -e "s|^.*: +([0-9]+).*$|\1|")
+			if [ $v_pid ]; then
+				$d_sys_c $dis_service stop
+				$d_sys_c $dis_service disable
+			fi
+		fi
+		$d_sys_c $sys_service restart
+	else
+		if [ $dis_service ]; then
+			v_pid=$($d_sys_c status $dis_service.$sys_c_ext| grep "PID"| \
+			perl -p -e "s|^.*: +([0-9]+).*$|\1|")
+			if [ $v_pid ]; then
+				$d_sys_c stop $dis_service$sys_c_ext
+				$d_sys_c disable $dis_service$sys_c_ext
+			fi
+		fi
+		$d_sys_c restart $sys_service$sys_c_ext
+	fi
+}
 ## AFTER INSTALL
 post_install(){
 	echo "# Post install routines..."; echo "$n"; n=$[ $n+4 ]
@@ -589,6 +634,88 @@ post_install(){
 		[ -d $croot/nvidia.$new_version ]|| mv -f $croot/$predifined_dir $croot/nvidia.$new_version
 		cd $croot
 		ln -sf -T ./nvidia.$new_version ./nvidia		
+		if [ $install_type = 1 ]; then
+			xorg_conf; echo "$n"; n=$[ $n+2 ]
+			backup_driver; echo "$n"; n=$[ $n+4 ]
+			# bumblebee
+			if [ $use_bumblebee = 1 ]; then
+				modeset=1 # unused
+				echo "# Optimus : Configure and load/reload Bumblebee..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				local_src_ctrl; echo "$n"; n=$[ $n+4 ]
+				bumblebee_conf; echo "$n"; n=$[ $n+2 ]
+				# update primus libGL to new driver libGL
+				primus_update
+				echo "# Optimus : Start or Restart Optimus service..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				sys_service='bumblebeed'
+				dis_service='nvidia-prime'
+				service_check
+			## prime
+			else
+				modeset=0 # unused
+				echo "# Optimus : Configure and load/reload Prime..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				prime_src_ctrl; echo "$n"; n=$[ $n+4 ]
+				echo "# Optimus : Start or Restart Prime service..."; sleep 1
+				echo "$n"; n=$[ $n+4 ]
+				sys_service='nvidia-prime'
+				dis_service='bumblebeed'
+				service_check
+#				/usr/sbin/nvidia-prime-select nvidia
+				sleep 1
+				/usr/sbin/nvidia-prime-select nvidia
+				if [ ! -f /etc/nvidia-prime/library.conf ]; then
+					touch /etc/nvidia-prime/library.conf
+				fi
+				unset elf_lib_list
+				elf_lib_list=("$ELF_32,32" "$ELF_64,64")
+				for nv_lib in "${elf_lib_list[@]}"; do
+					_elf=$(printf "$nv_lib"|cut -d, -f2)
+					_lib=$(printf "$nv_lib"|cut -d, -f1)
+					if [ -d $croot_all/$master$_lib ]; then
+						if [ $(cat /etc/nvidia-prime/library.conf| grep -c .) -eq 0 ]; then
+							printf "nv_drv_$_elf=\'$croot_all/$master$_lib\'" \
+							>> /etc/nvidia-prime/library.conf
+						else
+							perl -ni -pe "s|nv_drv_$_elf=.*$|nv_drv_$_elf='$croot_all/$master$_lib'|i" /etc/nvidia-prime/library.conf
+						fi
+					else
+						zenity --width=450 --title="Zenvidia" --error --icon-name=xkill \
+						--text="$vB Could not find$j $croot_all/$master$_lib$end.\nAbort.$end."
+						if [ $? = 1 ]; then base_menu; else exit 0; fi
+					fi
+				done
+				if [ $(cat /etc/nvidia-prime/library.conf| grep -c .) -eq 0 ]; then
+#					printf "nv_xorg_path=\'$croot_all/nvidia/xorg\'\nrc_dir=\'/etc/rc.d\'" \
+					printf "nv_xorg_path=\'$croot_all/nvidia/xorg\'" \
+					>> /etc/nvidia-prime/library.conf
+				else
+					perl -ni -pe "s|nv_xorg_path=.*$|nv_xorg_path='$croot_all/xorg'|i" \
+					/etc/nvidia-prime/library.conf
+# 					XXX Removed from nvidia-prime-select
+#					perl -ni -pe "s|rc_dir=.*$|rc_dir='/etc/rc.d'|i" \
+#					/etc/nvidia-prime/library.conf
+				fi
+				prime_msg="$prime_msg_01\n$prime_msg_03"
+				prime_setup
+			fi		
+		else # [ $optimus = 0 ]
+			xorg_conf
+			backup_driver
+			modeset=1 # unused
+			if [ ! -s /etc/ld.so.conf.d/nvidia-$master$ELF_TYPE ]; then
+				unset elf_lib_list
+				elf_lib_list=("$ELF_64" "$ELF_32")
+				for nv_lib in "${elf_lib_list[@]}"; do
+					ld_conf=$croot_all/$master$nv_lib
+					[[ $nv_lib == 64 ]]|| nv_lib=32
+					nv_lib_file='/etc/ld.so.conf.d/nvidia-'$master$nv_lib'.conf'
+					printf "$ld_conf" > $nv_lib_file
+				done
+			fi
+			ldconfig
+		fi
 		cd $nvdir
 	fi
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
@@ -747,7 +874,6 @@ $v(Choice will be saved in default conf file)$end"
 	done
 #	exit 0
 }
-## UNUSED / LEGACY
 nv_cmd_try_legacy_first(){
 	## XXX Whatever module loaded, nvidia_installer refuse constently to compil drivers.
 	## This is a stupid nvidia's developper issue that wont be fix ever (they apparently
@@ -882,7 +1008,14 @@ sleep $xt_delay"
 	if [ -s /var/lib/dkms/nvidia/$version/build/make.log ]; then
 		cp -f /var/lib/dkms/nvidia/$version/build/make.log dkms-$driver_logfile
 	fi
+	## SOLVED 05.09.19 > nutshell in modeset ko (modset in place of modeset)
+	## case : dkms compilation abort or send errors.
+	## if rebuild for new kernel, check installed modules vermagic for version and kernel.
+	## then chek kernel version before nvidia module version.
+#	compil_k=$($d_modinfo -F vermagic nvidia |grep -c "$KERNEL")
+#	compil_v=$($d_modinfo -F version nvidia |grep -c "$version")
 	if [[ ! -e $kernel_path\nvidia.ko || $upgrade_other = 0 ]]; then 
+#		if [[ $compil_k -eq 0 || $compil_v -eq 0 ]];then
 		if [ $($d_modinfo -F version $kernel_path/nvidia.ko |grep -c "$version") -eq 0 ]; then
 			mod_move(){
 				if [[ -s nvidia.ko ]]; then
@@ -910,11 +1043,18 @@ sleep $xt_delay"
 	fi
 }
 nv_cmd_make_src(){
+#	if [[ $(printf "$new_version") != '' ]]; then version=$new_version; fi
 	if [[ $new_version != '' ]]; then version=$new_version; fi
 	[[ $driver_level != '' ]]|| driver_level=$(printf "$version"|cut -d. -f1)
 	if [ -d /usr/src/nvidia-$version ]; then
 		cd /usr/src/nvidia-$version
 		cc_options
+#		# test driver code compilator version __GNUC__, __GNUC_MINOR__
+#		if [ $gcc_mismatch = 1 ];then
+#			ignore_mismatch=" IGNORE_CC_MISMATCH=1"
+#		else
+#			ignore_mismatch=""
+#		fi
 		if [ $upgrade_other = 1 ]; then
 			make_env='env KERNEL_UNAME='$KERNEL' KERNEL_SOURCES='$kernel_src' '$ignore_mismatch
 		fi
@@ -941,7 +1081,6 @@ nv_cmd_make_src(){
 		fi
 	fi
 }
-# UBUSED / LEGACY
 nv_cmd_uninstall(){	
 	## XXX FIXME Don't use nvidia_installer for driver remove. This restore grub and blacklist. XXX
 	( $tool_dir/bin/nvidia-installer --uninstall -s --no-x-check $temp $logfile \
@@ -950,6 +1089,9 @@ nv_cmd_uninstall(){
 	--text="$v$m_01_70...$end"
 }
 nv_cmd_dkms_conf(){
+	## FIXME __EXCLUDE_MODULES et __IGNORE_CC_MISMATCH sont des option de nvidia-installer
+	## Ils doivent être défini en amon des dkms_conf et build_source.
+	## get gcc options
 	cc_options 
 	if [[ $new_version ]]; then 
 		version=$new_version
@@ -1074,6 +1216,7 @@ nv_cmd_install_libs(){
 	fi
 
 }
+
 ## INSTALL MODULE AND LIBRARIES PROCESS
 # MAIN
 install_drv(){
@@ -1278,7 +1421,8 @@ backup_old_version(){
 		[ -d $orig_dir/$KERNEL ]|| mkdir -p $orig_dir/$KERNEL
 		[[ $mod_ver ]]|| cp -f /lib/modules/$KERNEL/extra/nvidia* $orig_dir/$KERNEL/
 
-		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc/ld.so.conf.d}}
+#		mkdir -p $bak_dir/{etc,usr/src,var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64,etc/ld.so.conf.d}}
+		mkdir -p $bak_dir/{etc/ld.so.conf.d,usr/{src,lib},var/lib/dkms/nvidia,usr/local/{bin,share,$master$ELF_32,$master$ELF_64}}
 		if [[ $new_version ]];then
 			mv -f $orig_dir/ $bak_dir/
 		else
@@ -1287,14 +1431,20 @@ backup_old_version(){
 		fi
 		cp -Rf /var/lib/dkms/nvidia/$bak_version $bak_dir/var/lib/dkms/nvidia/
 		cp -Rf /usr/src/nvidia-$bak_version $bak_dir/usr/src/
+#		cp -Rf /usr/lib/nvidia $bak_dir/usr/lib/
 		cp -Rf /etc/{OpenCL,zenvidia} $bak_dir/etc/
+#		cp -Rf /etc/ld.so.conf.d/nvidia-* $bak_dir/etc/ld.so.conf.d/
 		cp -Rf /usr/local/bin/nvidia-* $bak_dir/usr/local/bin/
 		cp -Rf /usr/local/$master$ELF_64/libnvidia-{{cfg,fbc,gtk2,gtk3}.{so,so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_64/
 		cp -Rf /usr/local/$master$ELF_32/libnvidia-{fbc{.so,.so.1},*.$bak_version} $bak_dir/usr/local/$master$ELF_32/
 		cp -Rf /usr/local/share/nvidia $bak_dir/usr/local/share/
-		if [ $(ls /etc/ld.so.conf.d/| grep -c "nvidia") -gt 0 ]; then
+		if [ $(ls -1 /etc/ld.so.conf.d/| grep -c "nvidia") -gt 0 ]; then
 			mkdir -p $bak_dir/etc/ld.so.conf.d
 			cp -Rf /etc/ld.so.conf.d/nvidia-* $bak_dir/etc/ld.so.conf.d/
+		fi
+		if [ $(ls -1D /usr/lib/ | grep -c "nvidia") -gt 0 ]; then
+			mkdir -p $bak_dir/usr/lib
+			cp -Rf /usr/lib/nvidia $bak_dir/usr/lib/
 		fi
 		printf "$bak_version\n" > $bak_dir/version.txt
 		
@@ -1326,7 +1476,8 @@ upgrade_new_kernel(){
 	fi
 }
 upgrade_kernel(){
-	install_sel
+	[ $install_type = 1 ]&& if_optimus
+	[ $install_type = 0 ]&& if_single
 	if [[ $NEW_KERNEL ]];then
 		KERNEL=$NEW_KERNEL
 	fi
@@ -1349,6 +1500,15 @@ upgrade_kernel(){
 		--text="$j INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')$end."
 		exit 0
 	fi
+	if [ $install_type = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			echo "# $m_02_03."; sleep 1
+			sys_service='bumblebeed'
+			dis_service=''
+			service_check
+		fi
+		echo "# $m_02_06" ; sleep 1
+	fi
 	new_version=$version
 	backup_driver
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close
@@ -1366,6 +1526,7 @@ extract_build(){
 		sleep 1
 	) | zenity --width=450 --title="Zenvidia" --progress --pulsate --auto-close \
 	--text="$v$m_02_10...$end"
+#	if [ -s NVIDIA-Linux-$ARCH-*/nvidia-installer ] ; then
 	old_version=$(cat $nvdir/version.txt)
 	if [[ $LAST_PACK ]]; then
 	new_version=$LAST_PACK
@@ -1373,9 +1534,13 @@ extract_build(){
 	new_version=$(echo "$driverun" | sed -n 's/^.*-//p')
 	fi
 	if [[ -n $new_version && $new_version != $old_version ]]; then
+#	if [ -d NVIDIA-Linux-$ARCH-/ ] ; then
 		cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer .
+#		new_version=$(cat NVIDIA-Linux-$ARCH-*/.manifest | sed -n '2p')
 		printf "$new_version\n" > $nvdir/new_version.txt		
+#		if [[ $(cat $nvdir/version.txt) ]]&&[[ $(cat $nvdir/version.txt) != $new_version ]]; then
 		if [[ -n $old_version ]]; then
+#			old_version=$(cat $nvdir/version.txt)
 			printf "$old_version\n" > $nvdir/old_version.txt
 		else
 			old_version='none'
@@ -1411,9 +1576,68 @@ shared_vars(){
 	kernel_root=/lib/modules/$kernel
 	kernel_path=$kernel_root/extra
 }
-install_sel(){
+# OPTIMUS PRESENCE CONTROL
+if_optimus(){
 	shared_vars
-	# remove install_type from conf
+	predifine=3
+	[ $install_type = 1 ]|| sed -i "s/install_type=[0-9]/install_type=1/" $script_conf
+	drv_install_msg="$v$m_02_13.$end"
+	export install_type=$install_type
+}
+# PROPRIATARY DRIVER CUSTOM INSTALL
+if_single(){
+	shared_vars
+	predifine=1
+	[ $install_type = 0 ]|| sed -i "s/install_type=[0-9]/install_type=0/" $script_conf
+	drv_install_msg="$v$m_02_15.$end"
+	export install_type=$install_type
+}
+
+#install_type_sel(){
+#	A1="$m_01_22"
+#	A2="$m_01_24"
+#	dir_cmd=$(zenity --width=450 --height=300 --title="Zenvidia" --list --radiolist \
+#	--text="$v$m_01_25 :$end\n" \
+#	--hide-header --column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+#	false 1 "$A1" false 2 "$A2" false 3 "$MM")
+#	if [ $? = 1 ]; then exit 0; fi
+#	case $dir_cmd in
+#		"1") if_single ;;
+#		"2") from_menu_install=1
+#			menu_optimus
+#			if [ $use_bumblebee = 1 ]; then
+#				opti_exec=$install_dir/bin/optirun
+#				opti_ctrl=local_src_ctrl
+#				msg=$m_01_31
+#			else
+#				opti_exec=/usr/sbin/nvidia-prime-select
+#				opti_ctrl=prime_src_ctrl
+#				msg=$m_01_32
+#			fi
+#			if [ -x $opti_exec ]; then
+#				install_msg="$m_01_27a ($msg $m_01_27b)$end"
+#			else
+#				install_msg="$j\ATTENTION$end$v : $msg $m_01_28$end"
+#			fi
+#			if_optimus
+#		;;
+#		"4") base_menu ;;
+#	esac
+#	install_drv
+#}
+## forbid primus install
+install_type_sel(){
+	A1="$m_01_22"
+	A2="$m_01_24"
+	dir_cmd=$(zenity --width=450 --height=300 --title="Zenvidia" --list --radiolist \
+	--text="$v$m_01_25 :$end\n" \
+	--hide-header --column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	true 1 "$A1" false 2 "$MM")
+	if [ $? = 1 ]; then exit 0; fi
+	case $dir_cmd in
+		"1") if_single ;;
+		"2") base_menu ;;
+	esac
 	install_drv
 }
 ### FROM A USER DIRECTORY INSTALL FUNCTION.
@@ -1452,13 +1676,13 @@ from_directory(){
 	$table_opts false 1 "$A" false 2 "$B" false 3 "$PM" )
 	if [ $? = 1 ]; then base_menu; fi
 	case $from_cmd in
-		"1") nv_dir; install_sel ;;
-		"2") home_dir; install_sel ;;
+		"1") nv_dir; install_type_sel ;;
+		"2") home_dir; install_type_sel ;;
 		"3") menu_install ;;
 	esac
 }
 
-# check avialable updates
+# check avialable updates XXX
 check_update(){
 	( 	wget -q -O $nvtmp/drvlist_0 https://$nvidia_ftp-$ARCH/
 		cat $nvtmp/drvlist_0 | sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $nvtmp/drvlist
@@ -1514,14 +1738,19 @@ check_update(){
 			## eval text to display in window message.
 			if [[ -n $DEV_filter ]]; then
 				if [ $VDPAU != '' ]; then 
+#					COMP_V=0
 					comp_v="(VDPAU class $VDPAU)"
 				else
+#					COMP_V=1
 					comp_v=""	
 				fi
+#				COMP_B=0
 				comp_b="$m_01_10. $comp_v"
 				comp_c="$v$m_01_11$end"
 				comp_check=0
 			else
+#				COMP_B=1
+#				COMP_V=1
 				comp_b="$vB$m_01_09$end"
 				comp_c="$rB$m_01_12$end"
 				comp_check=1
@@ -1537,6 +1766,7 @@ check_update(){
 		done
 		if [ $downloadable = 0 ];then
 			COMP_L+=("$rB\Driver $DRV, $dl_warn$end")
+#			dl_warn_msg="\n$rB$DRV $dl_warn$end"
 		fi
 		if [ $if_update = 0 ]; then
 			dl_warn_msg="\n$vB\Remote packages list available in next window.$end"	
@@ -1576,7 +1806,9 @@ win_update(){
 					1) more_msg+=( "\n$j$_drive$end$vB $m_01_14a $m_01_16.$end$v$set_in$end" ) ;;
 				esac
 			done
+#			start_msg="$j$LAST_DRV$end$vB $m_01_14a $m_01_16.$end$v$set_in$end"
 			start_msg="${more_msg[@]}"
+#			more_msg=''
 			end_msg="\n$m_01_13"
 		;;
 		## set ui_mod to 0 if offi and beta exist or are the same.
@@ -1595,6 +1827,7 @@ win_update(){
 		;;
 	esac
 	if [ $ui_mod = 1 ]; then w_height=$(($w_height+65)); fi
+#			extra_msg="\n$start_msg$more_msg\n$v$end_msg$end"
 	extra_msg="\n$start_msg\n$v$end_msg$end"
 	case $ui_mod in
 		0)	w_height=300
@@ -1709,6 +1942,7 @@ download_only(){
 		--text="$v $m_01_46$end $j$LAST_PACK$end $v$m_01_48.\n $m_01_50$end $j$run_pack$end $v$m_01_51.\n$MM.$end"	
 		base_menu
 	fi
+#		# TODO install from GIT, then back to download
 }
 ### UPDATE FUNCTION, FROM INTERNET. XXX
 package_list(){
@@ -1808,6 +2042,7 @@ fix_broken_install(){
 	win_confirm
 	unset elf_lib_list msg
 	elf_lib=("$ELF_64" "$ELF_32")
+	if [ $install_type = 0 ]; then
 		if [ ! -e /etc/ld.so.conf.d/nvidia-$master$ELF_TYPE.conf ]; then
 			for nv_lib in "${elf_lib[@]}"; do
 				ld_conf=$croot/nvidia/$master$nv_lib
@@ -1818,13 +2053,18 @@ fix_broken_install(){
 			done
 			ldconfig
 		fi
+	fi
 	if [ ! -e /etc/X11/xorg.conf.nvidia.$version ]; then
 		new_version=$version
 		xorg_conf
 		msg+=("$v\Restored:$end NVIDIA Xorg conf for $version driver re-installed in /etc/X11.\n")
 	fi
 	if [ ! -e /etc/OpenCL/vendors/nvidia.icd ]; then
-		opencl="libnvidia-opencl.so.1"
+		if [ $install_type = 0 ]; then
+			opencl="libnvidia-opencl.so.1"
+		else
+			opencl="$croot/nvidia/$master$ELF_64/libnvidia-opencl.so.1"
+		fi
 		printf "$opencl\n" > /etc/OpenCL/vendors/nvidia.icd
 		msg+=("$v\Restored:$end NVIDIA OpenCL relink to system /etc.\n")
 	fi
@@ -1922,10 +2162,12 @@ remove_pcks(){
 backup_restore(){
 	# list package in release directory
 	unset drive_list
+#	croot_repo=$(ls -1 $nvbackup| grep "nvidia.[[:digit:]]" | grep -v ".bak")
 	[ -d $nvbackup ]|| mkdir -p $nvbackup
 	if [ $b_type = 0 ]; then
 		croot_repo=$(ls -1 $croot | grep "nvidia.")
 	else
+#		croot_repo=$(ls -1 $nvbackup | grep "nvidia.")
 		croot_repo=$(ls -1 $nvbackup | grep "nvidia."| sed -n "s/.tar.gz//p")
 	fi
 	for drive in $croot_repo; do
@@ -1975,10 +2217,13 @@ restore_pcks(){
 	b_msg="$_6c\n$v$m_01_75 $b_mod.$end"
 	b_type=1
 	backup_restore
+#	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//p")
 	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\([0-9]*\)/\1/p")
 	ver_res=$(printf "$res_version"| sed -n "s/\.//p")
+#	res_version=$(printf "$drive_packs"|sed -n "s/nvidia.//;s/.bak$//p")
 	if [ ! -d $croot/$drive_packs ]; then
 		unset bk_list
+#		mkdir -p $croot/nvidia.$res_version
 		bk_list=(
 			"nvidia.$res_version/$(uname -r)/*,/lib/modules/$(uname -r)/extra/,-f,depmod -a"
 			"version.txt,$nvdir/,-f"
@@ -1999,6 +2244,7 @@ restore_pcks(){
 				output=$(printf "$restor"| cut -d, -f2)
 				c_opt=$(printf "$restor"| cut -d, -f3)
 				c_ext=$(printf "$restor"| cut -d, -f4)
+#				cp $c_opt $nvbackup/$drive_packs/$input $output
 				cp $c_opt $nvtmp/$drive_packs/$input $output
 				$c_ext
 			done
@@ -2046,12 +2292,14 @@ restore_pcks(){
 			val_exit="manage_pcks"
 			win_confirm
 			( version=$res_version 
+#				upgrade_kernel
 			if [ $use_dkms = 1 ]; then
 				force=0
 				nv_build_dkms 
 			else
 				nv_cmd_make_src
 			fi
+#			KERNEL=
 			croot_all=$croot/nvidia.$res_version
 			kernel_path=/lib/modules/$KERNEL/extra
 			backup_driver
@@ -2075,19 +2323,34 @@ edit_script_conf(){
 	edit_script=$(zenity --width=500 --height=400 --title="Zenvidia" --text-info \
 	--editable --text="$v$m_01_58$end" --filename="$basic_conf" \
 	--checkbox="$m_01_59" )
+#	exit_stat=$?
 	if [[ $(printf "$edit_script"| sed -n '1p') != '' ]]; then
 		printf "$edit_script\n" > $basic_conf
 	fi
+#	if [ $exit_stat = 0 ]; then menu_manage
+#	elif [ $exit_stat = 1 ]; then exit 0
+#	fi
 	menu_modif
 }
 edit_xorg_conf(){
-	xorg_cfg=/etc/X11/xorg.conf
+	if [ $install_type = 1 ]; then
+		if [ $use_bumblebee = 1 ]; then
+			xorg_cfg=$tool_dir/etc/bumblebee/xorg.conf.nvidia
+		elif [ $use_bumblebee = 0 ]; then
+			xorg_cfg=/etc/nvidia-prime/xorg.nvidia.conf
+		fi
+	else
+		xorg_cfg=/etc/X11/xorg.conf
+	fi
 	edit_xorg=$(zenity --width=500 --height=400 --title="Zenvidia" --text-info --editable \
 	--text="$v\Edit xorg config file$end" --filename="$xorg_cfg" \
 	--checkbox="Confirm to overwrite" )
 	if [[ $(printf "$edit_xorg"| sed -n '1p') != '' ]]; then
 		printf "$edit_xorg\n" > $xorg_cfg
 	fi
+#	if [ $? = 0 ]; then menu_manage
+#	elif [ $? = 1 ]; then exit 0
+#	fi
 	if [ $from_install = 1 ]; then base_menu; else menu_modif; fi
 }
 read_help(){
@@ -2162,6 +2425,18 @@ zen_notif_setup(){
 	esac
 	setup_validation
 }
+# XXX replace by nvidia-prime-select UI
+prime_setup(){
+	if [ -x /usr/sbin/nvidia-prime-select ]; then
+		w_text='Will you setup Prime now ?'
+		zenity --height=100 --title="Zenvidia prime setup" --question --no-wrap \
+		--icon-name=swiss_knife --text="$vB$w_text$end" \
+		--ok-loabal="Yes, setup." --cancel-label="Not yet"
+		if [ $? = 0 ]; then
+			/usr/bin/nvidia-prime-ui
+		fi
+	fi
+}
 ## Define language at script init
 lang_define(){
 	## language pack
@@ -2200,6 +2475,7 @@ glx_test(){
 	"${test_list[@]}" false $nt "$MM")
 	if [ $? = 1 ]; then exit 0; fi
 	g='\e[1;32m'
+#	x_opt="-sb -b 5 -bg black -bd green -bw 0 -title Zenvidia_Gears"
 	if [ $use_bumblebee = 1 ]; then
 		if [[ $menu_test = 1 || $menu_test = 2 ]]; then test_x="$test_v"
 		elif [[ $menu_test = 3 || $menu_test = 4 ]]; then test_x="$test_p"
@@ -2222,18 +2498,58 @@ glx_test(){
 			"$nt") base_menu ;;
 		esac
 	fi
+#"1") xterm $x_opt -e "printf \"$g$m_01_64.\n\n\"; glxgears"; glx_test ;;
+}
+menu_optimus(){
+## FIXME TODO CLEAN BUMBLEBEE
+#	opti_msg="\n$vB\Two solutions:$end$v
+#\t- Application intergrated with Bumblebee.
+#\t- One GPU at a time with Prime.$end"
+	opti_msg=$msg_3_03
+	menu_opti=$(zenity --width=400 --height=300 --list \
+	--radiolist --hide-header --title="Zenvidia" \
+	--text "$rBB\Optimus$end\n$opti_msg" \
+	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	false 1 " Bumblebee" false 2 " Prime" false 5 "$PM" )
+	if [ $? = 1 ]; then exit 0; fi
+	if [ $from_menu_install = 1 ]; then
+		case $menu_opti in
+			"1") menu_msg="$vB$msg_3_01$end" 
+			if [ $use_bumblebee != 1 ]; then
+				sed -i "s/use_bumblebee=[0-9]/use_bumblebee=1/" $script_conf 
+				use_bumblebee=1
+			fi
+			;;
+			"2") menu_msg="$vB$msg_3_02$end"
+			if [ $use_bumblebee != 0 ]; then
+				sed -i "s/use_bumblebee=[0-9]/use_bumblebee=0/" $script_conf 
+				use_bumblebee=0
+			fi
+			;;
+		esac
+	else  # from_menu_install = 0
+		case $menu_opti in
+			"1") menu_msg="$vB$msg_3_01$end"; build_all; base_menu ;; #  use_bumblebee=1;
+			"2") menu_msg="$vB$msg_3_02$end"; prime_build; base_menu ;; #  use_bumblebee=0;
+	#		"3") menu_install ;;
+			"3") exit 1 ;;
+		esac
+	fi
 }
 ### SUB MENU
 menu_install(){
 	unset install_list ins_cmd ins_list
 	if [ $hlp_txt = 1 ]; then
-		hlp_tip="\n$hlp_01b"
+		if [ $install_type = 0 ]; then hlp_tip="\n$hlp_01b"
+		else hlp_tip="\n$hlp_01b\n$hlp_01c"; fi
+		w_height='--height=300'
+	else
 		hlp_tip="\n$hlp_01a"
 		w_height='--height=200'
-	else
-		w_height='--height=100'
 	fi
+	if [ $install_type = 0 ]; then
 		install_list=("$_1a" "$_1b")
+	else install_list=("$_1a" "$_1b" "$_1c"); fi
 	n=1
 	for ins_cmd in "${install_list[@]}"; do
 		ins_list+=("false")
@@ -2248,12 +2564,23 @@ menu_install(){
 	"${ins_list[@]}" false $n "$MM" )
 #	false 1 "$_1a" false 2 "$_1b" false 3 "$_1c" false 4 "$_1d" false 5 "$MM" )
 	if [ $? = 1 ]; then base_menu; fi
+	if [ $install_type = 0 ]; then
 		case $menu_inst in
 			"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
 			"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
 	#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
 			"$n") base_menu ;;
 		esac
+	else
+		case $menu_inst in
+			"1") menu_msg="$vB$msg_1_01$end"; force=0; from_directory ;;
+			"2") menu_msg="$vB$msg_1_02$end"; ui_mod=2; force=0; check_update ;;
+	#		"3") menu_msg="$vB$msg_1_03$end"; build_all; base_menu	;;
+			"3") menu_msg="$vB$msg_1_03$end"; force=0; menu_optimus; base_menu ;;
+	#		"4") menu_msg="$vB$msg_1_04$end"; nv_cmd_uninstall; base_menu ;;
+			"$n") base_menu ;;
+		esac
+	fi
 }
 menu_update(){
 	if [ $hlp_txt = 1 ]; then
@@ -2263,14 +2590,44 @@ menu_update(){
 		w_height='--height=300'
 	fi
 	nu=1
+#	if [ $use_dkms = 1 ]; then up_cmd_list="$_2a (dkms)","$_2a (force)","$_2b (dkms)",$_2c,$_2d,$_2e
+#	else up_cmd_list=$_2a,$_2b,$_2c,$_2e
+#	if [ $use_dkms = 1 ]; then
+#		if [ $install_type = 0 ]; then
+#			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f")
+#		else
+#			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f" "$_2c" "$_2d")
+#		fi
+#		if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02a"
+#		else hlp_tip="\n$hlp_02b\n$hlp_02e$hlp_02a\n$hlp_02c"; fi
+#	else
+#		if [ $install_type = 0 ]; then
+#			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f")
+#		else
+#			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f" "$_2c" "$_2d")
+#		fi
+#		if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02a"
+#		else hlp_tip="\n$hlp_02b\n$hlp_02e$hlp_02b\n$hlp_02c"; fi
+#	fi
 	if [ $hlp_txt = 0 ]; then hlp_tip="\n$hlp_02A"; fi
-	if [ $use_dkms = 1 ]; then
-		up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f")	
-		if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02a\n$hlp_02c"; fi
+	if [ $install_type = 0 ]; then
+		if [ $use_dkms = 1 ]; then
+			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f")	
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02a\n$hlp_02c"; fi
+		else
+			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02b\n$hlp_02c"; fi
+		fi
 	else
-		up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f")
-		if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02b\n$hlp_02c"; fi
+		if [ $use_dkms = 1 ]; then
+			up_cmd_list=("$_2e" "$_2a (dkms)" "$_2a (force)" "$_2b (dkms)" "$_2f" "$_2c" "$_2d")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02a\n$hlp_02c\n$hlp_02d"; fi
+		else
+			up_cmd_list=("$_2e" "$_2a" "$_2b" "$_2f" "$_2c" "$_2d")
+			if [ $hlp_txt = 1 ]; then hlp_tip="\n$hlp_02B\n$hlp_02b\n$hlp_02c\n$hlp_02d"; fi
+		fi
 	fi
+	
 	unset up_list
 #	for up_cmd in "$_2a" "$_2b" "$_2a (dkms)" "$_2b (dkms)" "$_2c" "$_2d"; do
 #	ifs=$IFS
@@ -2288,10 +2645,24 @@ menu_update(){
 	--text "$rBB$_02$end$v$hlp_tip$end" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${up_list[@]}" false $nu "$MM" )
+#	if [ $? = 1 ]; then exit 0; fi
 	if [ $? = 1 ]; then base_menu; fi
+	
+#	case $menu_upd in
+#		"1") menu_msg="$v$msg_2_01$end"; upgrade_other=0; upgrade_kernel; base_menu ;;
+#		"2") menu_msg="$v$msg_2_02$end"; upgrade_other=1; upgrade_new_kernel; base_menu ;;
+#		"3") menu_msg="$v$msg_2_01 (dkms)$end"; upgrade_other=0
+#			 use_dkms=0; upgrade_kernel; base_menu ;;
+#		"4") menu_msg="$v$msg_2_02 (dkms)$end"; upgrade_other=1
+#			 use_dkms=0; upgrade_new_kernel; base_menu ;;
+#		"5") menu_msg="$v$msg_2_03$end"; local_src_ctrl; base_menu ;;
+#		"6") menu_msg="$v$msg_2_04$end"; ui_mod=1; check_update  ;;
+#		"7") base_menu ;;
 		git_tmp=$(mktemp --tmpdir nv_git.XXXX)
 		home=/home/$def_user
+#		def_user=$(ls -l "$(pwd)"| cut -d' ' -f3 | sed -n "2p")
 		if [ $use_dkms = 1 ]; then
+			if [ $install_type = 0 ]; then
 				case $menu_upd in
 					"1") menu_msg="$v$msg_2_06$end"; ui_mod=1; check_update ;;
 					"2") menu_msg="$v$msg_2_01 (dkms)$end"
@@ -2303,25 +2674,63 @@ menu_update(){
 					"5") menu_msg="$v$msg_2_05$end"; zenvidia_update; base_menu ;;
 					"$nu") base_menu ;;
 				esac
+			else
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"
+						 ui_mod=1; check_update ;;
+					"2") menu_msg="$v$msg_2_01 (dkms)$end"
+						 upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_01 (force)$end" 
+						 upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_02 (dkms)$end"
+						 upgrade_other=1; use_dkms=1; upgrade_new_kernel; base_menu ;;
+					"5") menu_msg="$v$msg_2_05$end"; zenvidia_update; base_menu ;;
+					"6") menu_msg="$v$msg_2_03$end"; local_src_ctrl; base_menu ;;
+					"7") menu_msg="$v$msg_2_04$end"; prime_src_ctrl; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			fi
 		else # use_dkms = 0
-			case $menu_upd in
-				"1") menu_msg="$v$msg_2_06$end"; ui_mod=1; check_update  ;;
-				"2") menu_msg="$v$msg_2_01$end"; upgrade_other=0; upgrade_kernel; base_menu ;;
-				"3") menu_msg="$v$msg_2_02$end"; upgrade_other=1; upgrade_new_kernel; base_menu ;;
-				"4") menu_msg="$v$msg_2_05$end"; zenvidia_update; base_menu ;;
-				"$nu") base_menu ;;
-			esac
+			if [ $install_type = 0 ];then
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"; ui_mod=1; check_update  ;;
+					"2") menu_msg="$v$msg_2_01$end"; upgrade_other=0; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_02$end"; upgrade_other=1; upgrade_new_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_05$end"; zenvidia_update; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			else
+				case $menu_upd in
+					"1") menu_msg="$v$msg_2_06$end"; ui_mod=1; check_update  ;;
+					"2") menu_msg="$v$msg_2_01$end"; upgrade_other=0; upgrade_kernel; base_menu ;;
+					"3") menu_msg="$v$msg_2_02$end"; upgrade_other=1; upgrade_new_kernel; base_menu ;;
+					"4") menu_msg="$v$msg_2_05$end"; zenvidia_update; base_menu ;;
+					"5") menu_msg="$v$msg_2_03$end"; local_src_ctrl; base_menu ;;
+					"6") menu_msg="$v$msg_2_04$end"; prime_src_ctrl; base_menu ;;
+					"$nu") base_menu ;;
+				esac
+			fi
 		fi
+#	esac
 }
 menu_modif(){
+	## XXX TODO Avoid bumblebee
 	if [ $hlp_txt = 1 ]; then
-		hlp_tip="\n$hlp_03b"
+		if [ $install_type = 0 ]; then hlp_tip="\n$hlp_03b"
+		else hlp_tip="\n$hlp_03b\n$hlp_03c"; fi
 		w_height='--height=750'
 	else
 		hlp_tip="\n$hlp_03a"
 		w_height='--height=300'
 	fi
 	nd=1
+	## XXX TODO to remove after all bumblebee cleaning 
+#	if [ $install_type = 0 ] ;then
+#		mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g")
+#	else
+#		mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3e" "$_3f" "$_3g" "$_3h")
+#	fi
+	install_type=0
 	mod_menu_list=("$_3a" "$_3b" "$_3c" "$_3d" "$_3f" "$_3g")
 	unset mod_list
 	for mod_cmd in "${mod_menu_list[@]}" ; do
@@ -2336,15 +2745,38 @@ menu_modif(){
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${mod_list[@]}" false $nd "$MM")
 	if [ $? = 1 ]; then base_menu; fi
-	case $menu_mod in
-			"1") edit_xorg_conf ;;
+	case $install_type in
+		0) case $menu_mod in
+			"1") from_install=0; edit_xorg_conf ;;
 			"2") edit_script_conf ;;
 			"3") nv_config ;;
 			"4") manage_pcks ;;
 			"5") fix_broken_install ;;
 			"6") zen_notif_setup ;;
 			"$nd") base_menu ;;
+			esac ;;
+		1) case $menu_mod in
+			"1") from_install=0; edit_xorg_conf ;;
+			"2") edit_script_conf ;;
+			"3") nv_config ;;
+			"4") manage_pcks ;;
+			"5") optimus_source_rebuild ;;
+			"6") fix_broken_install ;;
+			"7") zen_notif_setup ;;
+			"8") from_menu_install=0; prime_setup ;;
+			"$nd") base_menu ;;
+			esac ;;
 	esac
+#	0) case $menu_mod in
+#	"1") from_install=0; edit_xorg_conf ;;
+#	"2") edit_script_conf ;;
+#	"3") nv_config ;;
+#	"4") manage_pcks ;;
+#	"5") optimus_source_rebuild ;;
+#	"6") fix_broken_install ;;
+#	"7") zen_notif_setup ;;
+#	"$nd") base_menu ;;
+#	esac ;;
 }
 menu_manage(){
 	if [ $hlp_txt = 1 ]; then
@@ -2457,6 +2889,7 @@ start_cmd(){
 }
 
 ### SCRIPT INTRO
+#if [[ $(cat $locale/script.conf| grep "LG=$LG") == '' ]]; then
 if [[ $(cat $basic_conf| grep "LG=$LG") == '' ]]; then
 	echo -e "$r no language pack chosen\n EN = english\n FR = Français.$t"
 	exit 0
@@ -2467,6 +2900,7 @@ fi
 # INITIALS checks
 compil_vars
 libclass
+#root_id # << distro_id < distro
 distro_id
 distro
 version_id
