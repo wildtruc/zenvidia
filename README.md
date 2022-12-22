@@ -4,7 +4,7 @@ Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
 ## ATTENTION ** 12/19/2022 **
-**NEW 2.0 VERSION ON RAIL, DO NOT DOWNLOAD UNTIL THIS MESSAGE WILL BE REOMOVE.**
+**NEW 2.0 VERSION ON RAIL, DO NOT DOWNLOAD UNTIL THIS MESSAGE WILL BE REMOVE.**
 ---------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------
@@ -20,6 +20,8 @@ Project not maintained. No waranty support. Just as it is.
 Dicussion is still open in Zenvidia's git **Discussion** section.
 Wiki is out of date.
 Language is English only.
+**All commands needed by default user when in administrator mode are made by** ```sudo -u```.
+**If your distro need a special su command, tell me, I will patch the code for you.**
 
 ---------------------------------------------------------------------------------------------------
 ## History
@@ -27,13 +29,13 @@ I started Zenvidia several years ago in a background of non existent Nvidia driv
 I finally brought it to the community, with all my knowledge gaps, and maintained it for a couples of years until my health prevent me to go on.
 I throw the sponge, hoping someone somewhere one day will continue or make a new one.
 
-Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, Zenvidia was still more flexible and cool.
+Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, Zenvidia was still more flexible.
 
-Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools, event not a posibility to test and switch back.
+Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys!:joy:), event not a possibility to test and switch back.
 And as always, I decided to put that in Zenvidia.
 Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me at least 2 month to understand the clean way to make a fast switch and even wash the code of all the useless things.
 
-Now it's done and tested in almost all weirdest way ( I do very strange things some time).
+Now it's done and tested in almost all weirdest way ( I do very strange things some time) and there is still some [issues](#Known Issues).
 The code wont be maintain, just because of me, I just hope people will enjoy using it, because I don't think there's any equals in the whole linux community.
 
 Note that the script even if it does less than before is doing more.
@@ -92,11 +94,14 @@ From **end user interface menu > settings > others menu**.
 
 ### Command line
 Desktop manager have to be shutdown with ```systemcl disable [desktop-manager]``` command.
-```zenvidia [command] [version]```
-command are : _restore, rebuild, rescue_.
-version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
----------------------------------------------------------------------------------------------------
 
+```zenvidia [command] [version]```
+
+command are : _restore, rebuild, rescue_.
+
+version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
+
+---------------------------------------------------------------------------------------------------
 ## Features
 ### Driver install
  - from local package.
@@ -125,6 +130,18 @@ No administrator priviledge required.
 Most part of Zenvidia is configurable.
 Script automaticaly update many of them during execution and game of Q&A.
 Options could be manage through Zenvidia > Configuration and Tools menu.
+
+---------------------------------------------------------------------------------------------------
+## Know issues
+On drivers installation, the system will register the license of the installed module (NVIDIA/Dual MIT-GPL).
+When switching between module type, boot loader wont display the license of the switched module but the previous one.
+This not fatal and everything (known) is working flawlessly.
+It could be probably fixed by an initramfs update at switch time, but until users meet real problematic issues, it wont be done.
+
+Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
+
+I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown".
+If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules** menu to fix.
 
 ---------------------------------------------------------------------------------------------------
 ## Licence
