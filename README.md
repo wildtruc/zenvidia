@@ -77,6 +77,7 @@ The GUI will ask you for admin/superuser password.
 ### Zen Notify
 Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
 It is installed at the same time as Zenvidia when launching ```make install``` command.
+
 It comes with 2 options:
  - -z > check zenvidia script and nvidia drivers.
  - -n > check nvidia drivers only.
@@ -87,10 +88,12 @@ Default desktop entry file is set to ```-n```, you can manage options through **
 ## Usage
 ### GUI
 In terminal :
-```zen_start``` (with administrator priviledge)
-```zenvidia``` (with no priviledge)
+ - ```zen_start``` (with administrator priviledge)
+ - ```zenvidia``` (with no priviledge)
+
 From desktop :
-From **end user interface menu > settings > others menu**.
+
+With **end user interface menu > settings > others menu**.
 
 ### Command line
 Desktop manager have to be shutdown with ```systemcl disable [desktop-manager]``` command.
@@ -128,6 +131,7 @@ No administrator priviledge required.
 ---------------------------------------------------------------------------------------------------
 ## Configuration
 Most part of Zenvidia is configurable.
+
 Script automaticaly update many of them during execution and game of Q&A.
 Options could be manage through Zenvidia > Configuration and Tools menu.
 
