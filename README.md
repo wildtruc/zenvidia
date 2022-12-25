@@ -3,11 +3,6 @@ This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
-## ATTENTION ** 12/19/2022 **
-**NEW 2.0 VERSION ON RAIL, DO NOT DOWNLOAD UNTIL THIS MESSAGE WILL BE REMOVE.**
----------------------------------------------------------------------------------------------------
-
----------------------------------------------------------------------------------------------------
 ## WARNINGS
 No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
 
