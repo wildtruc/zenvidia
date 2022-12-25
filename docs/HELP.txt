@@ -1,0 +1,140 @@
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<big><b>Usage</b></big>
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<b>Graphic User Interface</b>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+Through terminal command line for GUI.
+	<b>zen_start</b> <i>(with administrator priviledge)</i>
+	<b>zenvidia</b> <i>(with no priviledge)</i>
+or with desktop file from end user inface menu > settings > others menu.
+	<b>zenvidia</b> (admin) <i>(with administrator priviledge)</i>
+	<b>zenvidia</b> (user)  <i>(with no priviledge)</i>
+
+<b>Command line</b> (administrator priviledge required)
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+In case of a functional Xorg server, desktop manager have to be disabled in supersuer terminal with
+<i>systemcl disable [desktop-manager]</i>, then <i>systemcl stop [desktop-manager]</i> commands.
+<u>Note</u> : If nvidia-drm module option is set to 1 (use_drm=1), changing the Frame Buffer loading
+<b>nvidia-drm.modeset=1</b> to <b>0</b> in grub boot commandline menu (press <b>e</b> to edit, then
+<b>Ctrl+x</b> or <b>F10</b> to launch).
+Without this, you wont access the VT by Ctrl+Alt+F1 or F2.
+<u>Syntax :</u>
+	<b>zenvidia [command] [version]</b>
+<u>Command are :</u>
+	<b>restore</b> : Restore a previously backed up [version].
+	<b>rebuild</b> : Rebuild [version] driver from DKMS tree.
+	<b>rescue</b> : Force [version] driver compilation from source for fast recovery.
+<u>Version is :</u>
+	<b>version</b> : This is the driver version to manage.
+	Backed up and installed versions are displayed with blank zenvidia command line alone.
+
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<big><b>Features</b></big>
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<b>Driver install</b>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+	<b>From local package</b> : Direct installation from any local place.
+	<b>from NVIDIA server</b> : Download directly and isntall.
+
+<b>Updates</b> (administrator priviledge required)
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+	<b>driver updates </b> : check and install, or download only.
+	<b>Update driver only (dkms)</b> : Update driver for current kernel with DKMS (default behaviour).
+	<b>Update driver only (force)</b> : Update driver for current kernel using source dir only (forcing).
+	<b>Update driver for an other kernel</b> : Update driver for an other kernel with DKMS.
+
+<b>Configuration and Tools</b>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+	<b>Open driver switch tool</b> : (administrator priviledge required)
+	Allow to switch from open driver to proprietary and reversly.
+	It appears in menu list exclusibely if <u>open_drv</u> var is set in Zenvidia config file.
+
+	<b>Edit xorg.conf file</b> : (administrator priviledge required)
+	Allow to edit the system Xorg config file in 2 ways:
+	- The whole config in text mode.
+	- Nvidia's config section option only in graphic mode.
+
+	<b>Edit Zenvidia config file</b> : (no administrator priviledge required)
+	Allow to edit Zenvidia general config file in graphic mode.
+	All Zenvida options are settable in differenbt ways, this is the place you can find <u>open driver</u>
+	sets for example.
+	<u>Options are :</u>
+	- hold xterm display instead of delay : <i>Default is none. (xt_hold=0)</i>
+	- extend the delay of xterm display went not hold (in seconds) : <i>Default 4 secondes. (xt_delay=4)</i>
+	- help tip : display help tips in GUI : <i>Default, displayed. (hlp_txt=1)</i>
+	- force use of GL libraries direct or indirect: <i>Default, <u>direct</u>. To set only in certain circonstancies.</i>
+	  <i>(use_indirect=0)</i>
+	- force use of libglvnd: Default use : <i>To unset only in certain circonstancies. (use_glvnd=1)</i>
+	- link wayland lib to system : <i>This is only in test or in case Nvidia did not detect wayland during install.</i>
+	  <i>Default none. (wayland_link=0)</i>
+	- display first time modules build messsage : <i>This is for first time sets of uvm and drm optionals</i>
+	  <i>modules. Default is display. (no_warn=0)</i>
+	- display first time alert open modules build messsage : <i>This is for first time sets of open driver </i>
+	  <i>management. Default is display. (first_open=1)</i>
+	- use PRIME sync (nvidia-uvm) by default : <i>This is for Optimus laptop discret card management.</i>
+	  <i>Default is none. (use_uvm=0)</i>
+	- use CUDA module renderer (nvidia-drm) by default : <i>This is for Direct Rendering Management.</i>
+	  <i>Default is none, but since <u>515 driver series</u>, default is use. (use_drm=1)</i>
+	- prevent GCC compilator version mismatch : <i>In rare case, Nvidia-installer have GCC version mismatch.</i>
+	  <i>and can't compile correctly. To set only in this particular condition. Default is none. (gcc_mismatch=0)</i>
+	- display open modules build messsage : <i>At each installation/update, Zenvidia display an open modules</i>
+	  <i>building warning. You can't unset this behaviour here. (open_wrn=1)</i>
+	- compile open nvidia drivers: <i>Setted to yes, compile only the open driver, but not use it.</i>
+	  <i>Default is none. (open_drv=0)</i>
+	- use open nvidia drivers: <i>If set to "use", when previous var is set to "build", open driver is uses in place</i>
+	  <i>of proprietary. (use_open=0)</i>
+
+	<b>Edit font color config file (Gui with Yad)</b> : (no administrator priviledge required)
+	Allow to edit Zenvidia font colors in 2 ways :
+	- In full text (you need to know color code by your self)
+	- With a graphic UI with Yad. Yad is automacaly install by default at first start.
+
+	<b>Start Nvidia-Settings</b> : (no administrator priviledge required)
+	Start Nvidia-settings with default user priviledges, the same as default user menu does.
+
+	<b>Installed driver management</b> : (administrator priviledge required)
+	Packages manager.
+	- Remove downloaded packages : Remove useless downloaded packages.
+	- Backup tools :
+	  - Make a backup : Perform a whole backup of the driver installation.
+	  - Remove a backup : Remove one or more backed up archives.
+	- Restore a backup : Restore backed up archives (could be also restored by command line when Xorg off).
+
+	<b>Zenvidia notify config</b> (default set to '-n') : (no administrator priviledge required)
+	Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
+	<u>It comes with 2 options</u>:
+	-z > check zenvidia script and nvidia drivers updates.
+	-n > check nvidia drivers updates only.
+
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<b>Help and Documentation</b> (no administrator priviledge required)
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+	<b>Nvidia driver manuel</b> :
+	Installed version driver manual with graphic chaptered index.
+
+	<b>Nvidia driver Changelog</b> :
+	Installed version and general driver changelog with graphic chaptered index.
+
+	<b>Zenvidia help text</b> :
+	Simple Zenvidia help text file display (this text).
+
+	<b>About Zenvidia</b> :
+	Zenvidia README text file display.
+
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<big><b>Licence</b></big>
+<s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
+<b>Zenvidia is published under GNU/GPL</b>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+Copyleft PirateProd - Licence GPL v.3
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU
+Lesser General Public License as published by the Free Software Foundation; either version 2.1 of
+the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY\; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Lesser General Public License for more details.
+You should have received a copy of the GNU Lesser General Public License along with main.c\; if not,
+write to the :
+Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA.
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>

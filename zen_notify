@@ -19,35 +19,34 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
 
 ## basics
-nvdir=/usr/local/NVIDIA
+local_nvdir=/home/$USER/.zenvidia
+nvdir=/usr/local/zenvidia
 script_conf=$nvdir/script.conf
-basic_conf=$nvdir/basic.conf
-[ $script_conf ]|| exit 0
+basic_conf=$local_nvdir/basic.conf
+nvtmp=$local_nvdir/notify
+deficon=swiss_knife
+[ $script_conf ] || exit 0
 . $script_conf
 . $basic_conf
+## script need to sleep during the desktop session boot time.
+# sleep 20
+ifs=$IFS
 
-msg_git="GIT update."
-[ -d $nvtmp ]|| mkdir -p $nvtmp
-nvtmp=/home/$USER/.zenvidia
+[ -d $nvtmp ] || mkdir -p $nvtmp
 ARCH=$(uname -p)
 drv_temp=$(mktemp --tmpdir zen_notif-XXXX)
 drv_list=$nvtmp/drvlist
 last_update=$nvtmp/last_update
 last_beta=$nvtmp/last_beta
-[[ -d $nvtmp ]]|| mkdir -p $nvtmp
-local_src=$nvtmp/src
+local_src=$local_nvdir/src
+[ -d $local_src ] || mkdir -p $local_src
 
 if [[ ! -e home/$USER/.config/autostart/zen_notify.desktop ]]; then
-	if [[ -d $local_src/zenvidia ]]; then
-		zen_git=$local_src/zenvidia
-	else
-		zen_git=$(find -P $HOME -maxdepth 3 -mount -type d -path "*/zenvidia")
-	fi
+	zen_git=$(find -P $HOME -maxdepth 4 -name "zenvidia")
 	if [[ -d $zen_git && ! -e /home/$USER/.config/autostart/zen_notify.desktop ]]; then
 		cp -f $zen_git/desktop_files/zen_notify.desktop /home/$USER/.config/autostart/
 	fi
 fi
-
 driver_ctrl(){
 ## get all driver list.
 wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
@@ -58,97 +57,132 @@ cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
 LAST_DRV=$(cat $last_update | awk '{ print $1 }')
 LAST_BETA=$(cat $last_beta)
 
+## driver version could be in the form xxx.xx.xx or xxx.xx
+## it is needed to short it to max 6 carater to make a real diff between versions.
 if [ -s $nvdir/version.txt ]; then
-	version=$(cat $nvdir/version.txt| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
+	ver_n=$(cat $nvdir/version.txt| wc -m)
+	if [ $ver_n -le 6 ]; then
+		version=$(cat $nvdir/version.txt| sed -n "s|\.||g;p")00
+	else
+		version=$(cat $nvdir/version.txt| sed -n "s|\.||g;p")
+	fi
 else
-	version=$(modinfo -F version nvidia| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
+	version=$(modinfo -F version nvidia)
+	ver_n=$(wc -m <<< $version)
+	if [ $ver_n -le 6 ]; then
+		version=$(modinfo -F version nvidia| sed -n "s|\.||g;p")00
+	else
+		version=$(modinfo -F version nvidia| sed -n "s|\.||g;p")
+	fi
 fi
-offi_short=$(printf "$LAST_DRV"|  sed -En "s|^(.{6}).*$|\1|;s|\.||p")
-beta_short=$(printf "$LAST_BETA"| sed -En "s|^(.{6}).*$|\1|;s|\.||p")
-[[ $beta_short ]]|| beta_short=0
-if [ $beta_short -eq $offi_short ]; then
-	DRV_LIST=( "$LAST_DRV, official and beta drivers" )
+bet_n=$(wc -m <<< "$LAST_DRV")
+off_n=$(wc -m <<< "$LAST_BETA")
+## line is count as caracter, so 6 become 7.
+if [ $off_n -le 7 ]; then
+	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")00
+elif [ $bet_n -le 7 ]; then
+	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")00
 else
-	DRV_LIST=( "$LAST_DRV, official driver" "$LAST_BETA, beta driver" )
+	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
+	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
 fi
-[ $version ]|| version=0
+[ $beta_short -gt 0 ]|| beta_short=0
+[ $version -gt 0 ]|| version=0
+if [ $beta_short -gt 0 ]; then
+	if [ $beta_short -eq $offi_short ]; then
+		DRV_LIST=( "$LAST_DRV, official and beta drivers,$offi_short" )
+	else
+		DRV_LIST=( "$LAST_DRV, official driver,$offi_short" "$LAST_BETA, beta driver,$beta_short" )
+	fi
+else
+	DRV_LIST=( "$LAST_DRV, official drivers,$offi_short" )
+fi
 if [ ${#DRV_LIST[@]} -gt 0 ]; then
-	ifs=$IFS
 	IFS=$(echo -en "\n\b")
-	for driver in ${DRV_LIST[@]}; do
-		drv_short=$(printf "$driver"|cut -d',' -f1 |sed -n "s/\.//p")
-		release=$(printf "$driver"|cut -d',' -f2)
-		driver=$(printf "$driver"|cut -d',' -f1)
+	cnt=0
+	for drv_line in ${DRV_LIST[@]}; do
+		driver=$(printf "$drv_line"|cut -d',' -f1)
+		release=$(printf "$drv_line"|cut -d',' -f2)
+		drv_short=$(printf "$drv_line"|cut -d',' -f3)
 		if [ $drv_short -gt $version ]; then
-			if [ ${#DRV_LIST[@]} -gt 1 ]; then sol=' ';eol='\n'; else sol='';eol=''; fi
-			if [[ $(cat $drv_list) =~ $driver ]]; then
-				icon_set=swiss_knife
-				_driver_notif+=( "$driver $release update.$eol" )
+			if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
+			if [[ $(egrep -c "$driver" $drv_list) -gt 0 ]]; then
+				_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
 			else
-				icon_set=swiss_knife
-#				icon_set=bad_thing
-				_driver_notif+=( "$driver $release update.\n(NOT DOWNLAODABLE YET)$eol" )
+				_driver_notif+=( "$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
 			fi
+			((cnt++))
 		fi
 	done
-	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $version ]]; then
-		notif_msg+='Nvidia driver'
+	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
+		notif_msg+='Nvidia driver '
+		driver_up=1
+	else
+		driver_up=0
 	fi
-	driver_up=1
 	IFS=$ifs
 else
 	driver_up=0
 fi
 }
 source_ctrl(){
-if [ $driver_up -gt 0 ]; then notif_txt=' and Zenvidia'; line='\n'; else notif_txt='Zenvidia'; line=''; fi
-if [ ${#local_git_list[@]} -gt 0 ]; then
-	for local_git in "${local_git_list[@]}"; do
-		if [[ -d $local_src ]]; then 
-			if [ $(ls $local_src| grep -c "$local_git") -gt 0 ]; then
-				local_git_repo=$local_src/$local_git
-			else
-				local_git_repo=$(find -P $HOME -maxdepth 3 -mount -type d -path "*/$local_git")
+	if [ $driver_up -gt 0 ]; then notif_txt='and Zenvidia'; line='\n'; else notif_txt='Zenvidia'; line=''; fi
+	tmp_git_src=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
+	CHECK_GIT_REPO(){
+		local_date=$(env LANG=En_en date +%Y''%m''%d)
+		git_rm_log=$(git whatchanged origin -n 1)
+		git_rm_msg=$(git log origin -n 1| sed -n '$p')
+		# extract date from log
+		git_rm_fetch_date=$(echo "$git_rm_log" | grep -i "date" | awk '{print $3" "$4" "$6}')
+		# convert date to comparable number.
+		git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
+		# extract log change from remote
+		git_rm_fetch_pull=$(echo "$git_rm_log" | grep "^:[0-9]")
+		if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
+			echo -e "$git_rm_fetch_date :$git_rm_msg\n$git_rm_fetch_pull" &>>$local_src/zen_git.log
+		fi
+		if [[ $git_rm_date -le $local_date ]]; then
+			notif_msg+="$notif_txt "
+			_driver_notif+=("$line\zenvidia git repo update.\n($git_rm_fetch_date)")
+		fi
+	}
+		# check for a diff in origin.
+		pushd $tmp_git_src
+		git fetch --dry-run origin &>$local_src/git_fetch.log
+		# if yes, fetch local with headers
+		if [ $(grep -c "master" $local_src/git_fetch.log ) -gt 0 ]; then
+ 		#	git fetch -n origin # no tags
+			git fetch origin
+			CHECK_GIT_REPO
+		else
+		# if fetch is empty, check if git data are recently 'pull', else, do nothing.
+			if [ $(cat .git/logs/HEAD|sed -n '$p'|grep -c "pull\|clone") -eq 0 ]; then
+				CHECK_GIT_REPO
 			fi
 		fi
-		if [[ -d $local_git_repo ]]; then
-			cd $local_git_repo
-			git fetch --dry-run &>/tmp/zen_git.log	
-			if [[ $(cat /tmp/zen_git.log|grep -c "master") -eq 1 ]]; then
-				local_git_name=$(printf "$local_git"| sed -n "s/^.*\///g;p")
-				notif_msg+="$notif_txt "
-				_driver_notif+=("$line$local_git repo update.")
-			fi
-		fi
-	done
-fi
+		popd
 }
 notifying(){
-	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo -e "$sol${_driver_notif[*]}")"
+	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "$sol${_driver_notif[@]}")"
 }
-sleep 30
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"
-	printf "\t -a : check all.\n"
 	printf "\t -z : check nvidia & zenvidia.\n"
 	printf "\t -n : check nvidia only.\n"
 	printf "\t -h : this help.\n"
 }
+icon_set=$deficon
 while [ $# -gt 0 ]
-#	getopts "z-n-h" OPT; do
-	getopts "a-z-n-h" OPT; do
+	getopts "z-n-h" OPT; do
 	case $OPT in
-		a)	local_git_list=( 'bbswitch' 'Bumblebee' 'primus' 'nvidia-prime-select' 'zenvidia' )
+		z)
 		driver_ctrl
 		source_ctrl
 		notifying
 		;;
-		z) local_git_list=( "zenvidia" )
-		driver_ctrl
-		source_ctrl
-		notifying
+		n) driver_ctrl
+		if [ $driver_up -gt 0 ]; then notifying; fi
 		;;
-		n) driver_ctrl;;
-		h) usage_help ;;
+		*|h) usage_help ;;
 	esac
 done

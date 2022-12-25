@@ -1,8 +1,10 @@
 [Desktop Entry]
 Type=Application
 Encoding=UTF-8
-Name=Zenvidia
-Comment=Manage NVIDIA drivers
+Name=Zenvidia (admin)
+Comment=Manage NVIDIA drivers with admin priviledge
+Name[fr_FR]=Zenvidia (administrateur)
+Comment[fr_FR]=Gérer les pilotes Nvidia en mode administrateur
 Exec=zen_start
 Icon=swiss_knife.png
 Categories=Application;Settings;
