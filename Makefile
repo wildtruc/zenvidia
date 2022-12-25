@@ -1,10 +1,10 @@
 # DEFINE FIRST THE CURRENT USER NAME
-C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
+# C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
+C_USER = $(shell who | cut -d' ' -f1 | sed -n "1p")
 PREFIX = /usr/local
-DRIVER_DIR = /opt
 USER_DIR = /home/$(C_USER)
 CONF_DIR = $(USER_DIR)/.zenvidia
-INSTALL_DIR = $(PREFIX)/NVIDIA
+INSTALL_DIR = $(PREFIX)/zenvidia
 BIN_DIR = $(PREFIX)/bin
 NVIDIA_BAK = $(PREFIX)/NVIDIA_DRIVERS
 
@@ -12,52 +12,48 @@ NVIDIA_BAK = $(PREFIX)/NVIDIA_DRIVERS
 
 all: install
 
-install: install
-	mkdir -p $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
-	mkdir -p $(PREFIX)/share/{applications,pixmaps}
+install:
+	mkdir -p $(INSTALL_DIR) $(CONF_DIR)
+	mkdir -p $(PREFIX)/share/{applications,pixmaps,doc/zenvidia}
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
-	install -Dm644 -t $(INSTALL_DIR)/ *.conf 
+	install -Dm644 -t $(INSTALL_DIR)/ *.conf
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
-	install -Dm644 -t $(INSTALL_DIR)/ README.md
-	install -Dm644 -t $(INSTALL_DIR)/translations/ translations/*
+	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
+	install -Dm644 -t $(INSTALL_DIR)/ OLD-README.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
-	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/zenvidia.desktop
-	install -Dm644 -t $(PREFIX)/share/pixmaps/ swiss_knife.png
-	install -Dm644 -t $(PREFIX)/share/pixmaps/ xkill.png
+	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
+	install -Dm644 -t $(PREFIX)/share/pixmaps/ *.png
+	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-#	sudo -u $(C_USER) cp -Rf ./.git $(CONF_DIR)/
-	
+	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
+
 uninstall:
-	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
+	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
-	rm -f $(PREFIX)/share/applications/zenvidia.desktop
+	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
+	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
+	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill}.png
+	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
-	
+
 safeuninstall:
-	mkdir $(NVIDIA_BAK)
-	cp -Rf $(INSTALL_DIR)/release/ $(NVIDIA_BAK)/
-	rm -Rf $(INSTALL_DIR) $(DRIVER_DIR) $(CONF_DIR)
+	mkdir -p $(NVIDIA_BAK)
+	mv -Rf $(INSTALL_DIR)/release/ $(NVIDIA_BAK)/
+	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
-	rm -f $(PREFIX)/share/applications/zenvidia.desktop
+	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
+	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
+	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill}.png
+	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
-	
+
 update:
 	sudo -u $(C_USER) git pull
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
-	install -Dm644 -t $(INSTALL_DIR)/ README.md
-	install -Dm644 -t $(INSTALL_DIR)/translations/ translations/*
+	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
-	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/zenvidia.desktop
-	install -Dm644 -t $(PREFIX)/share/pixmaps/ swiss_knife.png
-	install -Dm644 -t $(PREFIX)/share/pixmaps/ xkill.png
+	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
+	install -Dm644 -t $(PREFIX)/share/pixmaps/ *.png
+	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-#	cp -Rf ./translations $(INSTALL_DIR)/
-#	cp -Rf ./distro $(INSTALL_DIR)/
-#	cp -f ./README.md $(INSTALL_DIR)/
-#	cp -f ./desktop_files/zenvidia.desktop $(PREFIX)/share/applications/
-#	cp -f ./swiss_knife.png $(PREFIX)/share/pixmaps/
-#	cp -f ./xkill.png $(PREFIX)/share/pixmaps/
-#	sudo -u $(C_USER) cp -Rf ./.git $(CONF_DIR)/
-	./update.sh
-
