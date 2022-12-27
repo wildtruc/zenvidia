@@ -1,5 +1,6 @@
 # Zenvidia
 This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
+
 Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
@@ -8,15 +9,17 @@ No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildt
 
 **The Distro Configuration file has been testeed under Fedora only. Users working with other distros have to check distro conf manually.**
 
-**This version brought many changes. Saved your confs, if any, and make a fresh isntall**. Default install directory has been changed to /usr/local/zenvidia.
+**This version brought many changes. Saved your confs, if any, and make a fresh install**. Default install directory has been changed to /usr/local/zenvidia.
 
 ## Notice
 Project not maintained. No waranty support. Just as it is.
-Dicussion is still open in Zenvidia's git **Discussion** section.
+Update will be made only on my own bugs discovery or from fatal error send by users in **Discussion** threads.
+
+Exchange are still open in thgis ssame Zenvidia's git **Discussion** section.
+
 Wiki is out of date.
+
 Language is English only.
-**All commands needed by default user when in administrator mode are made by** ```sudo -u```.
-**If your distro need a special su command, tell me, I will patch the code for you.**
 
 ---------------------------------------------------------------------------------------------------
 ## History
@@ -39,7 +42,9 @@ Note that the script even if it does less than before is doing more.
 ## Install
 ### Zenvidia
 This will install in default behaviour.
+
 Choose a directory to clone repo and :
+
 As normal user :
 ```sh
   git clone https://github.com/wildtruc/zenvidia.git
@@ -71,7 +76,7 @@ The GUI will ask you for admin/superuser password.
 
 ### Zen Notify
 Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
-It is installed at the same time as Zenvidia when launching ```make install``` command.
+It is installed at the same time as Zenvidia when launching `make install` command.
 
 It comes with 2 options:
  - -z > check zenvidia script and nvidia drivers.
@@ -91,7 +96,9 @@ From desktop :
 With **end user interface menu > settings > others menu**.
 
 ### Command line
-Desktop manager have to be shutdown with ```systemcl disable [desktop-manager]``` command.
+Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command.
+
+Note : Grub option `nvidia-drm.modeset=1` activate the plymouth splash screen and prevent switching to VT Console With Ctrl+Alt+F(x). If set, it is mandatory to change this option to `0` and have access to Terminal.
 
 ```zenvidia [command] [version]```
 
@@ -111,10 +118,13 @@ version is the desired driver version _(displayed with zenvidia command alone wi
  - New kernel update (with dkms).
 
 ### Configuration & Tools
+ - Open driver switch tool (available when open_drv set to 1)
  - Edit xorg.conf file.
  - Edit Zenvidia config file.
- - Start Nvidia-Settings.
+ - Edit font color config file.
+ - Start Nvidia-Settings for default user.
  - Installed driver mangagement (remove, backups).
+ - Zenvidia notification config.
 
 ### Help & Documentation
 No administrator priviledge required.

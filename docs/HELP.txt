@@ -98,7 +98,7 @@ Without this, you wont access the VT by Ctrl+Alt+F1 or F2.
 	- Backup tools :
 	  - Make a backup : Perform a whole backup of the driver installation.
 	  - Remove a backup : Remove one or more backed up archives.
-	- Restore a backup : Restore backed up archives (could be also restored by command line when Xorg off).
+	- Restore a backup : Restore backed up archives (could be also restored by command line).
 
 	<b>Zenvidia notify config</b> (default set to '-n') : (no administrator priviledge required)
 	Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.

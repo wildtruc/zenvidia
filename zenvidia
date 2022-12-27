@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 
 #  Zenvidia
 #  Sat Feb  6 16:58:20 2010
@@ -23,7 +23,7 @@ install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
 conf_dir=$nvdir
 script_conf=$nvdir/script.conf				# Zenvidia conf file
-croot=/opt											# Nvidia main driver directory
+nv_root=/opt											# Nvidia main driver directory
 nvtmp="$nvdir/temp"								# extract temp directory
 buildtmp="$nvdir/build"							# build temp directory
 nvlog="$nvdir/log"								# logs directory
@@ -47,7 +47,7 @@ unset deplist
 ## multi distro system bianries compatibilities.
 d_lspci=$(find /usr/{bin,sbin,local/bin,local/sbin} -name lspci)
 d_modinfo=$(find /usr/{bin,sbin,local/bin,local/sbin} -name modinfo)
-d_sys_c=$(find /usr/{bin,sbin,local/bin,local/sbin} -name systemctl)
+d_sys=$(find /usr/{bin,sbin,local/bin,local/sbin} -name systemctl)
 p_xterm=$(find /usr/{bin,sbin,local/bin,local/sbin} -name xterm) || deplist+=("xterm")
 p_git=$(find /usr/{bin,sbin,local/bin,local/sbin} -name git) || deplist+=("git")
 p_wget=$(find /usr/{bin,sbin,local/bin,local/sbin} -name wget) || deplist+=("wget")
@@ -58,8 +58,7 @@ d_yad=$(find /usr/{bin,local/bin} -name yad) || deplist+=("yad")
 d_zen=$(find /usr/{bin,local/bin} -name zenity) || deplist+=("zenity")
 d_nv_installer=$(find /usr/{bin,local/bin} -name "nvidia-installer")
 d_nv_settings=$(find /usr/{bin,local/bin} -name "nvidia-settings")
-d_grub=$(find /usr/{sbin,local/sbin} -name grub* | sed -n "s/-.*$//g;1p")
-
+d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
 E="Download"
 PM="Back to previous menu"
 MM="Back to main menu"
@@ -99,29 +98,11 @@ def_user(){ echo "$(who | awk '{print $1}')" | sed -n "1p"; }  # var
 if [ $x_alive -eq 0 ]; then
 	if [[ $(whoami) == "root" ]]; then
 	user_DL_DIR(){
-# 		echo "$($SU_u "$(def_user)" xdg-user-dir DOWNLOAD)"
 		echo "$($su_cmd "$(def_user)" xdg-user-dir DOWNLOAD)"
 	}
 	user_CF_DIR(){
-# 		echo "$($SU_u "$(def_user)" xdg-user-dir)/.zenvidia"
 		echo "$($su_cmd "$(def_user)" xdg-user-dir)/.zenvidia"
 	}
-# 	else
-# 	user_DL_DIR(){
-# 		echo "$(xdg-user-dir DOWNLOAD)"
-# 	}
-# 	user_CF_DIR(){
-# 		echo "$(xdg-user-dir)/.zenvidia"
-# 	}
-# 	fi
-# 	if [[ $UID = 0 ]]; then
-# 	user_DL_DIR(){
-# 		echo "$($SU_u "$USER" xdg-user-dir DOWNLOAD)"
-# 	}
-# 	user_CF_DIR(){
-# # 		echo "$($SU_u "$USER" xdg-user-dir)/.zenvidia"
-# 		echo "/home/$USER/.zenvidia"
-# 	}
 	else
 	user_DL_DIR(){
 		echo "$(xdg-user-dir DOWNLOAD)"
@@ -166,14 +147,55 @@ distro_version(){ # var # OK
 		;;
 	esac
 }
-distro(){ # OK, but TODO check if default su command is the right one.
+set_su(){ # new # OK
+	w_text=$(cat <<-WRN
+	<b><big>Zenvida didn't find any Distro config file for $plug_version</big></b>
+
+	Next window will ask for distribution <b>name</b> and/or <b>sudo</b> command line
+	options for default user admin priviledge.
+	<i>( ex: sudo -l, sudo -u, etc )</i>
+	WRN
+	)
+	zenity --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --warning --no-wrap \
+	--text="$w_text" --icon-name=important --ok-label="Go it!"
+	if [ "$plug_version" == "unknown" ]; then
+		w_text=$( cat <<-MSG
+			Enter name and <b>sudo</b> type command line arguments.
+		MSG
+		)
+		zen_entry='--add-entry=Distribution'
+	else
+		w_text=$( cat <<-MSG
+			Enter <b>sudo</b> type command line and option
+		MSG
+		)
+	fi
+	set_args=$(zenity --height=100 --width=100 --title="Zenvidia" --window-icon=$img_zen_desktop --forms \
+	--text="$w_text" --separator=';' $zen_entry --add-entry="sudo command")
+	if [ $? = 0 ]; then
+		[ "$set_args" != '' ] || exit 0
+		if [[ "$set_args" =~ ';' ]]; then
+			plug_version=$(echo "$set_args"|cut -d';' -f1)
+			plug_conf=$plug_version.conf
+			su_cmd=$(echo "$set_args"|cut -d';' -f2)
+		else
+			su_cmd="$set_args"
+		fi
+		if [ $(grep -c "su_cmd=" $script_conf ) -eq 0 ]; then echo -e 'su_cmd="'$su_cmd'"' >> $script_conf; fi
+	else
+		exit 0
+	fi
+}
+distro(){ # OK
 	plug_version=$(distro_version)
 	plug_conf=$plug_version.conf
-	case $plug_version in
-# 		arch|sles|mageia|mandriva) su_cmd='su -l';;
-		rhel|fedora|ubuntu|mint|debian) su_cmd='sudo -u';;
-		*) su_cmd='su';;
-	esac
+	if [ "$plug_version" != "unknown" ]; then
+		case $plug_version in
+	# 		arch|sles|mageia|mandriva) su_cmd='su -l';;
+			rhel|fedora|ubuntu|mint|debian) su_cmd='sudo -u';;
+			*) su_cmd='su';;
+		esac
+	fi
 
 	if [ "$(def_user)" != "root" ]; then
 		if [[ ! -e $conf_dir/distro/$plug_conf ]]; then
@@ -182,10 +204,12 @@ distro(){ # OK, but TODO check if default su command is the right one.
 				dest_conf=$(user_CF_DIR)/$(ls -1 $conf_dir/distro | grep -i "$plug_conf")
 			else
 			## conf doesn't exist and need to be created
+				## check first if name is unknown and ask default su commabnd for user admin priv.
+				set_su
 				cat <<-CONF > $(user_CF_DIR)/$plug_conf
 					## examples between [...] have to be remove by real texts, vars, commands.
-					## friendly name to display in Zenvidia.
-					DISTRO="[DISTRO_NAME]"
+					## You can reset detected or set name to friendly one to display in Zenvidia.
+					DISTRO="$plug_version"
 					kernel=\$( uname -r | cut -d '-' -f 1 )
 					## optional kernel devel package extension sometime needed (see ex. below in p_kernel)
 					d_version=[ex: \$( uname -r | cut -d '-' -f 1,2 )]
@@ -225,9 +249,12 @@ distro(){ # OK, but TODO check if default su command is the right one.
 				CONF
 				## warn about no config file
 				w_text=$(cat <<-WRN
-				<b>Distro config file for $plug_version doesn't exist in Zenvidia's distro list</b>
+				<b>Main $plug_version distro variables are now setted</b>
 
-				You need to create a new one based on your distro environment variables.
+				You need to create a <u>new configuration</u> based on your distro environment variables.
+
+				<i>Note : Even in case you are not sure of what you are doing, new configuratin file will be saved anyway.
+				You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>
 				WRN
 				)
 				$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --warning --no-wrap \
@@ -245,10 +272,11 @@ distro(){ # OK, but TODO check if default su command is the right one.
 					w_text=$(cat <<-WRN
 					<b>Zenvida can't work without Distro config file for $plug_version</b>
 
-					Don't ask the dev, if didn't create one, it's probably he doesn't know how to.
+					<u>Don't ask the dev, if didn't create one, it's probably he doesn't know how to.</u>
 
 					You can try having a look at your distro's community forum and ask for help
 					or see Zenvidia's git discussion feed.
+					Then going back to the saved config file in $(user_CF_DIR)
 					WRN
 					)
 					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
@@ -262,6 +290,7 @@ distro(){ # OK, but TODO check if default su command is the right one.
 		test -f $(user_CF_DIR)/$plug_conf || cp -f $conf_dir/distro/$plug_conf $dest_conf
 		. $(user_CF_DIR)/$plug_conf
 	else
+		## this is here add to get compatibility in terminal only mode and isn't used in graphic mode.
 		plug_conf=$(ls -1 $conf_dir/distro |grep -i "$plug_version")
 		if test -f $conf_dir/distro/$plug_conf; then
 		    . $conf_dir/distro/$plug_conf
@@ -285,6 +314,16 @@ module_dest_location(){ # OK
 		arch*) echo "updates/dkms" && return ;;
 		*) echo "extra" && return ;;
 	esac
+}
+dm_serv(){
+	for dm in {gdm,kdm,xdm,lightdm,lxdm,slim,sddm}; do
+		if test -f /usr/lib/systemd/system/$dm.service; then echo "$dm" ; break; else dm=0; fi
+	done
+	if [ $dm = 0 ]; then
+		## if DM is not found, try to dig in display manager service status.
+		## wont work if DM service already disable, but will in case of x server crash.
+		echo "$($d_sys show display-manager.service | sed -En "s/^Docu.*=[\"]?.*:(.*)\(.*\)[\"]?/\1/p")"
+	fi
 }
 zen_colors(){ # OK
 	# pango colors
@@ -326,7 +365,7 @@ PCI_ID(){ # OK
 				pci_bus=$($d_lspci -nn|grep VGA|grep "$pci_list"|awk '{print $1}')
 				pci_id=$($d_lspci -n|grep "$pci_bus"|sed -n 's/^.*:.*://;s/ .*$//p')
 				vnd_nm=$(cat /usr/share/hwdata/pci.ids | sed -n 's/\t/*/g;s/  /#/p'| \
-						grep "$vnd_list"|grep -v '*'| sed -n 's/^.*#//p')
+				grep "$vnd_list"|grep -v '*'| sed -n 's/^.*#//p')
 				vnd_id=$vnd_list
 				detect=$($d_lspci|grep "$pci_bus")
 				if [[ $(printf "$detect"| grep -o "GeForce\|TITAN\|Quadro\|NVS\|Tesla\|GRID") != '' ]]; then
@@ -425,6 +464,8 @@ compil_vars(){ # OK
 		NV_bin_ver='none'
 	fi
 	if [[ $(gcc --version | grep "gcc") ]]; then
+		GCC=$(gcc --version | grep "gcc" | sed -n "s/^.*) //p"| awk '{print $1}')
+	else
 		GCC='none'
 	fi
 	KERNEL=$(uname -r)
@@ -447,14 +488,15 @@ compil_vars(){ # OK
 }
 ## define installed driver version, if any
 version_id(){ # OK
-	version=$(cat $nvdir/version.txt)
-	if [[ ! $version ]]; then
+	if [[ ! $(version) ]]; then
 		version="undefined yet"
+	else
+		echo $(version)
 	fi
 }
 ## If version 'undifined', control if driver is initialy installed.
 check_version(){ # OK
-	if ! [[ $version =~ [0-9]* || $new_version =~ [0-9]* ]]; then
+	if ! [[ $(version) =~ [0-9]* || $(new_version) =~ [0-9]* ]]; then
 		w_text=$( cat <<-ERR
 			${j}${bf}Version text file not found.${end}${end}
 
@@ -478,14 +520,14 @@ xorg_conf(){ # OK
 		fi
 		conf_date=$(date +%D-%T)
 		cat <<-XF > $x_conf_dir/xorg.conf.nvidia
-			## xorg conf originaly created by $new_version nvidia installer.
+			## xorg conf originaly created by $(new_version) nvidia installer.
 			## Edited automaticaly by Zenvidia > $conf_date
 
 		XF
 		if [ $chk_version -lt 430 ]; then
 			cat <<-XF >> $x_conf_dir/xorg.conf.nvidia
 			Section "Files"
-			   ModulePath "$croot/nvidia/xorg/modules"
+			   ModulePath "$nv_root/nvidia/xorg/modules"
 			   ModulePath "/usr/$master$ELF/xorg/modules"
 			EndSection
 			XF
@@ -593,6 +635,8 @@ xorg_conf(){ # OK
 	sec_option_df
 	ln -sfr $x_conf_dir/xorg.conf.nvidia $x_conf_dir/xorg.conf
 }
+# ### INSTALL & COMPIL SECTION ###
+## TOOLS ###
 blacklist_nouveau(){ # OK
 	grub_cfg=$(find /boot -wholename "*/grub.cfg")
 	grub_def=/etc/default/grub
@@ -625,160 +669,14 @@ blacklist_nouveau(){ # OK
 		echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
 	fi
 }
-## ### AFTER INSTALL ###
-post_install(){ # OK
-	echo "# ($n%) - Post install routines"; sleep 2
-	echo "# ($n%) Create XORG config file for Nvidia device"; sleep 2
-	xorg_conf # 8
-	n=$[ $n+2 ]; echo "$n" # 8
-	echo "# ($n%) - DRIVER : Backup new installed drivers"; sleep 2
-	backup_driver # 9
-	n=$[ $n+2 ]; echo "$n" # 9
-	echo "# ($n%) - Linking $croot libs to system"; sleep 2
-	n=$[ $n+2 ]; echo "$n" # 8
-	if [ ! -s /etc/ld.so.conf.d/nvidia-$master$ELF_TYPE ]; then
-		unset elf_lib_list
-		elf_lib_list=("$ELF_64" "$ELF_32")
-		for nv_lib in "${elf_lib_list[@]}"; do
-			ld_conf=$croot/nvidia/$master$nv_lib
-			[[ $nv_lib == 64 ]]|| nv_lib=32
-			nv_lib_file='/etc/ld.so.conf.d/nvidia-'$master$nv_lib'.conf'
-			printf "$ld_conf" > $nv_lib_file
-		done
-		report_log+=("${vB}Post install:\t\t${end}${gB} ldconfig\t\t${end}> ${y}Nvidia librairies linked to system${end}.\n")
-	fi
-	# libnvidia-wfb.so is broken with old version, need to be replace with xorg server libwfb.so. If exist in nvidia's dirs.
-	if [ $chk_version -le 418 ]; then
-		## 418 and above don't need nvidia libwfb.so to be replace anymore
-		if [ -e $croot_all/xorg/modules/libwfb.so ]; then
-			mv -f $croot_all/xorg/modules/libwfb.so $croot_all/xorg/modules/libwfb.so.orig
-			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $croot_all/xorg/modules/libwfb.so
-			report_log+=("\t\t\t${gB} libwfb\t\t${end}> ${y}link to system${end}.\n")
-		fi
-	fi
-# 	fi
-	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
-	echo "# ($n%) - Fixing broken libs and links if needed"; sleep 2
-	elf_lib=( "$master$ELF_64" "$master$ELF_32" )
-	## Remove previous version libs if needed.
-	unset lib_x
-	unset fixed_lib_log
-	for lib_X in "${elf_lib[@]}"; do
-		for old_lib in {allocator,fbc,cfg,gtk2,gtk3,vulkan-producer,wayland-client}; do
-			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$old_version ]; then
-				rm_lib=libnvidia-$old_lib.so.$old_version
-				rm -f $install_dir/$lib_X/$rm_lib
-				if [ -h $install_dir/$lib_X/libnvidia-$old_lib.so ]||[ -h $install_dir/$lib_X/libnvidia-$old_lib.so.1 ]; then
-					rm -f $install_dir/$lib_X/libnvidia-$old_lib.so*
-				fi
-				fixed_lib+=("$old_lib")
-			fi
-		done
-		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
-			if [[ "$lib_X" =~ "64" ]]; then lib_x="x86_64"; else lib_x="i386"; fi
-			fixed_lib_log+=(" cleaned ($lib_x)\n")
-		fi
-	done
-		## send report from previous list before.
-		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
-			for line in ${fixed_lib_log[*]}; do
-				report_log+=("\t\t\t${gB} lib fix\t\t\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\n")
-			done
-		fi
-	## fix gui libraries install if broken
-	if [ -d $nvtmp/$extracted_release ]; then
-		## fix lib32 prefix libs ?
-		if [ $chk_version -lt 520 ]; then
-			if [ -d $nvtmp/$extracted_release/32 ]; then
-				if [ ! -s $install_dir/$master$ELF_32/libnvidia-fbc.so.$new_version ]; then
-					r_dir=$install_dir/$master$ELF_32
-					cp -f $nvtmp/$extracted_release/libnvidia-fbc.so.$new_version $r_dir/
-					ln -sfr $r_dir/libnvidia-fbc.so.1 $r_dir/libnvidia-fbc.so
-					ln -sfr $r_dir/libnvidia-fbc.so.$new_version $r_dir/libnvidia-fbc.so.1
-					report_log+=("\t\t\t${gB} libfbc\t\t\t${end}> ${y}link fixed ($nv_lib)${end}.\n")
-				fi
-			fi
-		fi
-
-		## fix lib64 prefix libs links if needed
-		unset fixed_lib_log
-		r_dir=$install_dir/$master$ELF_64
-		## wayland on vulkan libs do not install by default, this not critical.
-		## then we inquire for any broken link in install dir.
-		## and add any missing libs if needed.
-		## wayland libs can broke some software display, thus this is optional.
-		[ $wayland_link = 1 ] && wayland=',wayland-client'
-		for links in {fbc,cfg,gtk2,gtk3,vulkan-producer$wayland}; do
-			if [ ! -e $r_dir/libnvidia-$links.so.$new_version ]; then
-				cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$new_version $r_dir/
-			fi
-			if [ ! -h $r_dir/libnvidia-$links.so.1 ]; then
-				ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
-				ln -sfr $r_dir/libnvidia-$links.so.$new_version $r_dir/libnvidia-$links.so.1
-				fixed_lib_log+=("$links,")
-			fi
-		done
-		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
-			if [[ $ELF_64 =~ "64" ]]; then elf_x='(x86_64)'; else elf_x='(i386)'; fi
-			fixed_lib_log+=(" links updated $elf_x")
-			report_log+=("\t\t\t${gB} link fix\t\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\n")
-		fi
-	fi
-	## FIXME is updating vdpau links to sys is needed even for old version ?
-	## symlink libvdpau_nvidia to system
-	if [ $chk_version -lt 430 ]; then
-		for lib_V in "${elf_lib[@]}"; do
-			link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$new_version")
-			if [ $link_v -eq 0 ]; then
-				[ -d /usr/$lib_V/vdpau ]|| mkdir -p /usr/$lib_V/vdpau
-				ln -sfr /usr/$lib_V/vdpau/libvdpau_nvidia.so /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
-				ln -sf $croot_all/$lib_V/vdpau/libvdpau_nvidia.so.$new_version /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
-			fi
-		done
-	fi
-	n=$[ $n+2 ]; echo "$n" # 10
-	## link now all new libraries
-	echo "# ($n%) - Validating new librairies (ldconfig)"; sleep 2
-	ldconfig
-	if [ ! -h /usr/share/nvidia ]; then
-		rm -f /usr/share/nvidia
-		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
-	fi
-	## if driver version greater than 430.xx, backup xorg modules content to default libs dirs. Just in case.
-	if [ $chk_version -ge 430 ]; then
-		if [ -s $xorg_def/modules/extensions/libglxserver_nvidia.so ]; then
-			mkdir -p $croot_all/xorg/modules/{extensions,drivers}
-			cp -rf $xorg_def/modules/extensions/libglxserver_* $croot_all/xorg/modules/extensions/
-			cp -f $xorg_def/modules/drivers/nvidia_drv.so $croot_all/xorg/modules/drivers/
-		fi
-	fi
-	n=$[ $n+2 ]; echo "$n" # 11
-	echo "# ($n%) - Blacklisting and other routines"; sleep 1
-	blacklist_nouveau
-	echo "# ($n%) - Updated GRUB conf for nouveau driver blacklist"; sleep 1
-	n=$[ $n+2 ]; echo "$n" # 12
-	nv_blacklist_modules_conf
-	n=$[ $n+2 ]; echo "$n" # 13
-	## clean old install dir
-	if [ -d $croot/nvidia.$new_version ]; then
-		if [ -d $croot/nvidia.$old_version ]; then
-			rm -Rf $croot/nvidia.$old_version
-			report_log+=("\t\t\t${gB} old version\t\t${end}> ${y}$old_version directory cleaned${end}.\n")
-			[ -d /usr/src/nvidia-$old_version ]&& rm -Rf /usr/src/nvidia-$old_version
-			[ -d /usr/src/open-nvidia-$old_version ]&& rm -Rf /usr/src/open-nvidia-$old_version
-			report_log+=("\t\t\t${gB} old source\t\t${end}> ${y}All $old_version version cleaned${end}.\n")
-		fi
-	fi
-}
-# ### INSTALL & COMPIL SECTION ###
 clean_previous(){ # OK
 	echo "# Backing up old kernel driver..."
 	if [ -s /lib/modules/$OLD_KERNEL/$(module_dest_location)/nvidia.*[ko\|ko.xz] ]; then
 		old_driver=$($d_modinfo -F version /lib/modules/$OLD_KERNEL/$(module_dest_location)/nvidia.*[ko\|ko.xz])
 		if [ -s /lib/modules/$OLD_KERNEL/$(module_dest_location)/nvidia.*[ko\|ko.xz] ]; then
-			[ -s $croot/nvidia.$old_driver/$OLD_KERNEL/nvidia.*[ko\|ko.xz] ]|| \
+			[ -s $nv_root/nvidia.$old_driver/$OLD_KERNEL/nvidia.*[ko\|ko.xz] ]|| \
 			cp -f /lib/modules/$OLD_KERNEL/$(module_dest_location)/*.*[ko\|ko.xz] \
-			$croot/$nvname.$old_driver/$OLD_KERNEL/
+			$nv_root/$nvname.$old_driver/$OLD_KERNEL/
 		fi
 	fi
 }
@@ -841,8 +739,8 @@ nv_open_modules_set(){ # OK
 		fi
 	fi
 	## check for open drivers source dir in tree
-	if [ ! -d /usr/src/open-nvidia-$new_version ]; then
-		cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel-open /usr/src/open-nvidia-$new_version
+	if [ ! -d /usr/src/open-nvidia-$(new_version) ]; then
+		cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)/kernel-open /usr/src/open-nvidia-$(new_version)
 	fi
 }
 nv_modules_set(){ # OK
@@ -961,6 +859,86 @@ rt_options(){ # OK
 		fi
 	fi
 }
+nv_drv_list(){
+	unset _drv_list
+	for drv in {nvidia_uvm,nvidia_drm,nvidia_modeset,nvidia}; do
+		if [ $(grep -owc "$drv" /etc/modprobe.d/blacklist.conf) -eq 0 ]; then _drv_list+=("$drv"); fi
+	done
+	echo "${_drv_list[*]}"
+}
+## vars in functions
+## old and new set have to be place as function to be re-used at multi levels.
+version(){
+	test -f $nvdir/version.txt && cat $nvdir/version.txt || echo "0"
+}
+new_version(){
+	if [ $from_install = 1 ]; then
+			if [ "$LAST_PACK" ]; then
+				echo "$LAST_PACK"
+			else
+				echo "$run_pkg" | sed -n 's/^.*-//p'
+			fi
+	else
+		echo "$(version)"
+	fi
+}
+old_version(){
+	if [ $from_install = 1 ]; then
+		if test -f $tmp_old; then
+			cat $tmp_old
+		else
+			$d_modinfo -F version nvidia -k $KERNEL
+		fi
+	else
+		echo "0"
+	fi
+}
+nv_old(){ echo "$(old_version)"| sed -n "s/\.//g;p"; }
+nv_new(){
+	if [ "$(new_version)" ]&&[ "$(new_version)" != "0" ]; then
+		echo "$(new_version)"| sed -n "s/\.//g;p"
+	else
+		echo "$(version)"| sed -n "s/\.//g;p"
+	fi
+}
+exec_depmod(){
+	 if [[ -f /boot/System.map-$1 ]]; then
+        /usr/sbin/depmod -a "$1" -F "/boot/System.map-$1"
+    else
+        /usr/sbin/depmod -a "$1"
+    fi
+}
+exec_mod_load(){
+	## from DKMS script (partly)
+	# ATTENTION modprobe on device only ?
+	nv_pci=$(grep "10de" <<< ${pci_n[*]}|cut -d, -f2 )
+	find /sys/devices -regextype sed -regex ".*$nv_pci.*modalias" -print0 | xargs -0 cat | xargs modprobe -b
+	# or modprobe on all mandatory ?
+	#find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
+	if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
+		$d_sys restart systemd-modules-load.service
+	else
+		## rebuild initramfs if no modules reload service found.
+		# 	echo "# Updating $KERNEL depmod."; sleep 2
+		# 	progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; }
+		# 	m=1 ;
+		## TODO rebuild all or driver only ?
+		progress "$INITRAM --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
+# 		progress "dracut --add-drivers $(nv_drv_list) --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
+	fi
+}
+exec_initramfs(){
+## rebuild initramfs if modules reload service found is uselees in the case.
+	## progress message is place before fuction exec and formated like this :
+	## progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; } for zenity.
+	## progress_msg(){ echo -en "\r# ($m%) - Rebuilding INITRAMFS"; } for terminal.
+	## last 'echo' is for zenity progress bar only. ex:
+	# 	echo "# Updating $KERNEL initramfs."; sleep 2
+	# 	progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; }
+	# 	m=1 ;
+	progress "$INITRAM --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
+# 	progress "dracut --add-drivers $(nv_drv_list) --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
+}
 nv_open_switch(){ # OK # TODO remove blank lines ?
 	probe_open=/etc/modprobe.d/open-NVIDIA.conf
 	kernel_path=/lib/modules/$KERNEL/$(module_dest_location)
@@ -995,6 +973,27 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 			{	echo "# Switching from $drv_off to $drv_on."
 				if [ -d /var/lib/dkms/$drv_on/$version/$KERNEL/$ARCH/module ]; then
 					cp -f /var/lib/dkms/$drv_on/$version/$KERNEL/$ARCH/module/* $kernel_path/
+					echo -e "# Depmod $KERNEL modules ..."
+					sleep 2
+					progress_msg(){ echo -e "# Depmod $KERNEL modules ($m sec.)"; }
+					m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
+				else
+					## in case of a fresh kernel update, only the predifined type is compile and install by dkms
+					## and thus, var/lib/dkms module dir doesn't exist.
+					## It is there need to recompile the all stuff
+					tmp_b=$(mktemp --tmpdir zn_vars.XXX)
+					nv_build_dkms
+				fi
+				if [[ $drv_on == "nvidia" ]]; then
+					license="NVIDIA"
+				else
+					license="Dual MIT/GPL"
+				fi
+				if [[ "$($d_modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "$license" ]]; then
+					echo "# License is $license"
+				else
+					echo "# ERROR!: License is steal $license, reversing all."
+					reverse_conf
 				fi
 				sleep 2
 				## add or remove open-driver kernel options.
@@ -1007,19 +1006,9 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 					echo "# Unset $drv_off kernel options."
 					[ -f $probe_open ]&& rm -f $probe_open
 				fi
-				sleep 2
-				if [[ $drv_on == "nvidia" ]]; then
-					license="NVIDIA"
-				else
-					license="Dual MIT/GPL"
-				fi
-				if [[ "$($d_modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "$license" ]]; then
-					echo "# License is $license"
-				else
-					echo "# ERROR!: License is steal $license, abort."
-					reverse_conf
-					exit 1
-				fi
+				## systemctl restart systemd-modules-load.service
+				progress_msg(){ echo "#  - Exec $KERNEL modules reload ($m sec.)"; echo "$m"; } ; m=1
+				exec_mod_load
 				sleep 2
 				## set DKMS AUTOINSTALL values for each driver type.
 				echo "# Set $drv_on DKMS AUTOINSTALL option to \"yes\"."
@@ -1058,7 +1047,9 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 				cp -f /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module/* $kernel_path/
 				sleep 2
 				echo "# Executing depmod"
-				depmod -a -kver $KERNEL
+# 				depmod -a -kver $KERNEL
+				progress_msg(){ echo -e "# Depmod $KERNEL modules ($m sec.)"; }
+					m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
 				sleep 2
 				if [[ "$($d_modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "NVIDIA" ]]; then
 					echo "# License is back to NVIDIA"
@@ -1125,151 +1116,161 @@ nv_blacklist_modules_conf(){
 			sed -in "/^[[:space:]]*$/d;s/^\ //g" $black_file
 		fi
 }
-nv_cmd_dkms_conf(){ # OK
-	## check if source dir exit
-	chk_dirs(){ [ -d /usr/src/$_src-$version ]||mkdir -p /usr/src/$_src-$version; }
-	## special IGNORE_PREEMPT_RT_PRESENCE script install.
-	## add a pre install script for further kernel update through dkms.
-	chk_RT(){
-		if [ $is_RT -eq 1 ]; then
-			if [ ! -e /usr/src/$_src-$version/nvidia.sh ]; then
-				cat <<-SCP > /usr/src/$_src-$version/nvidia.sh
-				#! /bin/bash
-
-				if [ \$(grep -ic "CONFIG_PREEMPT_RT=y" /boot/config-$(uname -r)) -gt 0 ]; then
-					export IGNORE_PREEMPT_RT_PRESENCE=1
-				fi
-				SCP
-				chown root:root /usr/src/$_src-$version/nvidia.sh
-				chmod 744 /usr/src/$_src-$version/nvidia.sh
-			fi
-		fi
-	}
-	## get gcc options
-	if [[ $new_version ]]; then
-		version=$new_version
-	else
-		version=$version
+## ### AFTER INSTALL ###
+post_install(){ # OK
+	echo "# ($n%) - Post install routines"; sleep 2
+	echo "# ($n%) Create XORG config file for Nvidia device"; sleep 2
+	xorg_conf # 8
+	n=$[ $n+2 ]; echo "$n" # 8
+	echo "# ($n%) - Linking $nv_root libs to system"; sleep 2
+	n=$[ $n+2 ]; echo "$n" # 9
+	if [ ! -s /etc/ld.so.conf.d/nvidia-$master$ELF_TYPE ]; then
+		unset elf_lib_list
+		elf_lib_list=("$ELF_64" "$ELF_32")
+		for nv_lib in "${elf_lib_list[@]}"; do
+			ld_conf=$nv_root/nvidia/$master$nv_lib
+			[[ $nv_lib == 64 ]]|| nv_lib=32
+			nv_lib_file='/etc/ld.so.conf.d/nvidia-'$master$nv_lib'.conf'
+			printf "$ld_conf" > $nv_lib_file
+		done
+		report_log+=("${vB}Post install:\t\t${end}${gB} ldconfig\t\t${end}> ${y}Nvidia librairies linked to system${end}.\n")
 	fi
-		# Create DKMS conf
-		echo "# Create DKMS conf file..."; sleep 1
-		## loop between open and private.
-		if [ $chk_version -le 355 ]; then
-			_src='nvidia'
-			chk_dirs
-			cat <<-EOT > /usr/src/nvidia-$version/dkms.conf
-			PACKAGE_NAME="nvidia"
-			PACKAGE_VERSION="$version"
-			AUTOINSTALL="yes"
-
-			MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' KERNEL_UNAME=\${kernelver} modules"
-			CLEAN="'make' clean"
-
-			BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
-			DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
-			EOT
-			if [ $use_uvm = 1 ]; then
-				cat <<-EOT >> /usr/src/nvidia-$version/dkms.conf
-				BUILT_MODULE_NAME[1]="\${PACKAGE_NAME}-uvm"
-				BUILT_MODULE_LOCATION[1]="uvm/"
-				DEST_MODULE_LOCATION[1]="/$(module_dest_location)"
-				EOT
-			fi
+	# libnvidia-wfb.so is broken with old version, need to be replace with xorg server libwfb.so. If exist in nvidia's dirs.
+	if [ $chk_version -le 418 ]; then
+		## 418 and above don't need nvidia libwfb.so to be replace anymore
+		if [ -e $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so ]; then
+			mv -f $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so.orig
+			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so
+			report_log+=("\t\t\t${gB} libwfb\t\t${end}> ${y}link to system${end}.\n")
 		fi
-		if [ $chk_version -lt 515 ]; then
-			_src='nvidia'
-			chk_dirs
-			## dkms config part.
-			cat <<-EOT > /usr/src/nvidia-$version/dkms.conf
-			PACKAGE_NAME="nvidia"
-			PACKAGE_VERSION="$version"
-			AUTOINSTALL="yes"
-
-			MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' IGNORE_CC_MISMATCH='$gcc_mismatch' KERNEL_UNAME=\${kernelver} modules"
-
-			BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
-			DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
-
-			EOT
-			o=1
-			mods_list+=( "uvm" )\r
-			mods_list+=( "modeset" )
-			mods_list+=( "drm" )
-			for mods in ${mods_list[@]}; do
-				cat <<-EOT >> /usr/src/nvidia-$version/dkms.conf
-				BUILT_MODULE_NAME[$o]="\${PACKAGE_NAME}-$mods"
-				DEST_MODULE_LOCATION[$o]="/$(module_dest_location)"
-				EOT
-				((o++))
+	fi
+	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
+	echo "# ($n%) - Fixing broken libs and links if needed"; sleep 2
+	elf_lib=( "$master$ELF_64" "$master$ELF_32" )
+	## Remove previous version libs if needed.
+	unset lib_x
+	unset fixed_lib_log
+	for lib_X in "${elf_lib[@]}"; do
+		for old_lib in {allocator,fbc,cfg,gtk2,gtk3,vulkan-producer,wayland-client}; do
+			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$(old_version) ]; then
+				rm_lib=libnvidia-$old_lib.so.$(old_version)
+				rm -f $install_dir/$lib_X/$rm_lib
+				if [ -h $install_dir/$lib_X/libnvidia-$old_lib.so ]||[ -h $install_dir/$lib_X/libnvidia-$old_lib.so.1 ]; then
+					rm -f $install_dir/$lib_X/libnvidia-$old_lib.so*
+				fi
+				fixed_lib+=("$old_lib")
+			fi
+		done
+		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
+			if [[ "$lib_X" =~ "64" ]]; then lib_x="x86_64"; else lib_x="i386"; fi
+			fixed_lib_log+=(" cleaned ($lib_x)\n")
+		fi
+	done
+		## send report from previous list before.
+		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
+			for line in ${fixed_lib_log[*]}; do
+				report_log+=("\t\t\t${gB} lib fix\t\t\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\n")
 			done
 		fi
-		## test if version support open driver version.
-		if [ $chk_version -ge 515 ]; then
-			unset drv_src
-			if [ $open_drv = 1 ]; then
-				drv_src=( open-nvidia nvidia )
-			else
-				drv_src=( nvidia )
-# 				yes_no='yes'
-				AUTOINSTALL='AUTOINSTALL="yes"'
+	## fix gui libraries install if broken
+	if [ -d $nvtmp/$extracted_release ]; then
+		## fix lib32 prefix libs ?
+		if [ $chk_version -lt 520 ]; then
+			if [ -d $nvtmp/$extracted_release/32 ]; then
+				if [ ! -s $install_dir/$master$ELF_32/libnvidia-fbc.so.$(new_version) ]; then
+					r_dir=$install_dir/$master$ELF_32
+					cp -f $nvtmp/$extracted_release/libnvidia-fbc.so.$(new_version) $r_dir/
+					ln -sfr $r_dir/libnvidia-fbc.so.1 $r_dir/libnvidia-fbc.so
+					ln -sfr $r_dir/libnvidia-fbc.so.$(new_version) $r_dir/libnvidia-fbc.so.1
+					report_log+=("\t\t\t${gB} libfbc\t\t\t${end}> ${y}link fixed ($nv_lib)${end}.\n")
+				fi
 			fi
-			for _src in ${drv_src[@]}; do
-				chk_dirs
-				chk_RT
-# 				if [ $open_drv = 1 ]; then
-# 					if [ $use_open = 1 ]; then
-# 						if [[ $_src == "nvidia" ]]; then yes_no='no'; else yes_no='yes'; fi
-# 					else
-# 						if [[ $_src == "nvidia" ]]; then yes_no='yes'; else yes_no='no'; fi
-# 					fi
-# 				fi
-				if [ $open_drv = 1 ]; then
-					if [ $use_open = 1 ]; then
-						if [[ $_src == "nvidia" ]]; then AUTOINSTALL=''; else AUTOINSTALL='AUTOINSTALL="yes"'; fi
-					else
-						if [[ $_src == "nvidia" ]]; then AUTOINSTALL='AUTOINSTALL="yes"'; else AUTOINSTALL=''; fi
-					fi
-				fi
-				unset mods_list
-				if [ $is_RT -eq 1 ]; then
-					PRE_BUILD='PRE_BUILD="nvidia.sh"'
-				fi
-				cat <<-EOT > /usr/src/$_src-$version/dkms.conf
-				PACKAGE_NAME="nvidia"
-				PACKAGE_VERSION="$version"
-				$PRE_BUILD
-				$AUTOINSTALL
-				MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' \\
-				IGNORE_CC_MISMATCH='$gcc_mismatch' \\
-				KERNEL_UNAME=\${kernelver} modules $POST_BUILD"
-
-				BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
-				DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
-
-				EOT
-				o=1
-				mods_list+=( "uvm" )
-				mods_list+=( "modeset" )
-				mods_list+=( "drm" )
-				for mods in ${mods_list[@]}; do
-					cat <<-EOT >> /usr/src/$_src-$version/dkms.conf
-					BUILT_MODULE_NAME[$o]="\${PACKAGE_NAME}-$mods"
-					DEST_MODULE_LOCATION[$o]="/$(module_dest_location)"
-
-					EOT
-					((o++))
-				done
-			done
 		fi
-# 	fi
+
+		## fix lib64 prefix libs links if needed
+		unset fixed_lib_log
+		r_dir=$install_dir/$master$ELF_64
+		## wayland on vulkan libs do not install by default, this not critical.
+		## then we inquire for any broken link in install dir.
+		## and add any missing libs if needed.
+		## wayland libs can broke some software display, thus this is optional.
+		[ $wayland_link = 1 ] && wayland=',wayland-client'
+		for links in {fbc,cfg,gtk2,gtk3,vulkan-producer$wayland}; do
+			if [ ! -e $r_dir/libnvidia-$links.so.$(new_version) ]; then
+				cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$(new_version) $r_dir/
+			fi
+			if [ ! -h $r_dir/libnvidia-$links.so.1 ]; then
+				ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
+				ln -sfr $r_dir/libnvidia-$links.so.$(new_version) $r_dir/libnvidia-$links.so.1
+				fixed_lib_log+=("$links,")
+			fi
+		done
+		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
+			if [[ $ELF_64 =~ "64" ]]; then elf_x='(x86_64)'; else elf_x='(i386)'; fi
+			fixed_lib_log+=(" links updated $elf_x")
+			report_log+=("\t\t\t${gB} link fix\t\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\n")
+		fi
+	fi
+	## FIXME is updating vdpau links to sys is needed even for old version ?
+	## symlink libvdpau_nvidia to system
+	if [ $chk_version -lt 430 ]; then
+		for lib_V in "${elf_lib[@]}"; do
+			link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$(new_version)")
+			if [ $link_v -eq 0 ]; then
+				[ -d /usr/$lib_V/vdpau ]|| mkdir -p /usr/$lib_V/vdpau
+				ln -sfr /usr/$lib_V/vdpau/libvdpau_nvidia.so /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
+				ln -sf $nv_root/nvidia.$(new_version)/$lib_V/vdpau/libvdpau_nvidia.so.$(new_version) /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
+			fi
+		done
+	fi
+	n=$[ $n+2 ]; echo "$n" # 10
+	## link now all new libraries
+	echo "# ($n%) - Validating new librairies (ldconfig)"; sleep 2
+	if [ ! -h /usr/share/nvidia ]; then
+		rm -f /usr/share/nvidia
+		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
+	fi
+	ldconfig
+	## if driver version greater than 430.xx, backup xorg modules content to default libs dirs. Just in case.
+	if [ $chk_version -ge 430 ]; then
+		if [ -s $xorg_def/modules/extensions/libglxserver_nvidia.so ]; then
+			mkdir -p $nv_root/nvidia.$(new_version)/xorg/modules/{extensions,drivers}
+			cp -rf $xorg_def/modules/extensions/libglxserver_* $nv_root/nvidia.$(new_version)/xorg/modules/extensions/
+			cp -f $xorg_def/modules/drivers/nvidia_drv.so $nv_root/nvidia.$(new_version)/xorg/modules/drivers/
+		fi
+	fi
+	n=$[ $n+2 ]; echo "$n" # 11
+	echo "# ($n%) - Blacklisting and other routines"; sleep 1
+	blacklist_nouveau
+	echo "# ($n%) - Updated GRUB conf for nouveau driver blacklist"; sleep 1
+	n=$[ $n+2 ]; echo "$n" # 12
+	nv_blacklist_modules_conf
+	n=$[ $n+2 ]; echo "$n" # 13
+	## clean old install dir
+	if [ -d $nv_root/nvidia.$(new_version) ]; then
+		if [ -d $nv_root/nvidia.$(old_version) ]; then
+			rm -rf $nv_root/nvidia.$(old_version)
+			report_log+=("\t\t\t${gB} old version\t\t${end}> ${y}$(old_version) directory cleaned${end}.\n")
+			[ -d /var/lib/dkms/nvidia/$(old_version) ] && $p_dkms remove -m nvidia/$(old_version) --all
+			[ -d /var/lib/dkms/open-nvidia/$(old_version) ] && $p_dkms remove -m open-nvidia/$(old_version) --all
+			[ -d /usr/src/nvidia-$(old_version) ] && rm -rf /usr/src/nvidia-$(old_version)
+			[ -d /usr/src/open-nvidia-$(old_version) ] && rm -rf /usr/src/open-nvidia-$(old_version)
+			report_log+=("\t\t\t${gB} old source\t\t${end}> ${y}All $(old_version) version cleaned${end}.\n")
+		fi
+	fi
 }
+## COMPIL & COMPIL CONF TOOLS ###
 ## check for for patch in new version.
 nv_build_options(){ # OK
 	## nvidia build evolve in time, there need to set different options
 	## along side versions.
+	# define driver file locations
+	nv_xorg_dir=$nv_root/nvidia.$(new_version)/xorg
+	xorg_def=/usr/$master$ELF_64/xorg
+	kernel_path=/lib/modules/$KERNEL/$(module_dest_location)
 	no_check='--no-check-for-alternate-installs'
 	no_net='-N'
-	chk_version=$(echo "$new_version"| cut -d'.' -f1)
+	chk_version=$(echo "$(new_version)"| cut -d'.' -f1)
 	[ $use_indirect = 0 ]|| force_glvnd='--force-libglx-indirect'
 	[ $use_glvnd = 0 ]|| add_glvnd='--install-libglvnd'
 	## since 515 series, open drivers are available. Default is none.
@@ -1285,220 +1286,325 @@ nv_build_options(){ # OK
 		gl_headers=''
 	fi
 	if [ $chk_version -ge 430 ]; then
-		xorg_dir=$xorg_def
+		nv_xorg_dir=$xorg_def
 	fi
 	if [ $chk_version -ge 515 ]; then
 		extract_open=1; ask_open_build=1
 	fi
 }
-nv_cmd_install_driver(){ # OK
-		## prevent installer to doing think for 'upgrade an other kernel'.
-		upgrade_other=0
-		if [[ $($d_modinfo -F version nvidia) != $new_version ]]; then
-			[ -d /usr/src/nvidia-$new_version ]||mkdir -p /usr/src/nvidia-$new_version
-			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel/* /usr/src/nvidia-$new_version
-			if [ $extract_open = 1 ]; then
-				test $ask_open_build -eq 1 && nv_open_modules_set
+nv_cmd_dkms_conf(){ # OK
+	## check if source dir exit
+	chk_dirs(){ [ -d /usr/src/$_src-$(new_version) ]||mkdir -p /usr/src/$_src-$(new_version); }
+	## special IGNORE_PREEMPT_RT_PRESENCE script install.
+	## add a pre install script for further kernel update through dkms.
+	chk_RT(){
+		if [ $is_RT -eq 1 ]; then
+			if [ ! -e /usr/src/$_src-$(new_version)/nvidia.sh ]; then
+				cat <<-SCP > /usr/src/$_src-$(new_version)/nvidia.sh
+				#! /bin/bash
+
+				if [ \$(grep -ic "CONFIG_PREEMPT_RT=y" /boot/config-$(uname -r)) -gt 0 ]; then
+					export IGNORE_PREEMPT_RT_PRESENCE=1
+				fi
+				SCP
+				chown root:root /usr/src/$_src-$(new_version)/nvidia.sh
+				chmod 744 /usr/src/$_src-$(new_version)/nvidia.sh
 			fi
-			if [ $use_dkms = 1 ]; then
-				if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version/kernel ]; then
-					nv_cmd_dkms_conf
-					if [ ! $old_version ]; then old_version=$version; fi
-					version=$new_version
-					# Compil and install DKMS modules				
-					nv_build_dkms
-					. $tmp_b
-					if [ $pass -eq 1 ]; then
-						echo "# DKMS compilation ERROR !!"; sleep 2
-					fi
+		fi
+	}
+	# Create DKMS conf
+	echo "# Create DKMS conf file..."; sleep 1
+	## loop between open and private.
+	if [ $chk_version -le 355 ]; then
+		_src='nvidia'
+		chk_dirs
+		cat <<-EOT > /usr/src/nvidia-$(new_version)/dkms.conf
+		PACKAGE_NAME="nvidia"
+		PACKAGE_VERSION="$(new_version)"
+		AUTOINSTALL="yes"
+
+		MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' KERNEL_UNAME=\${kernelver} modules"
+		CLEAN="'make' clean"
+
+		BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
+		DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
+		EOT
+		if [ $use_uvm = 1 ]; then
+			cat <<-EOT >> /usr/src/nvidia-$(new_version)/dkms.conf
+			BUILT_MODULE_NAME[1]="\${PACKAGE_NAME}-uvm"
+			BUILT_MODULE_LOCATION[1]="uvm/"
+			DEST_MODULE_LOCATION[1]="/$(module_dest_location)"
+			EOT
+		fi
+	fi
+	if [ $chk_version -lt 515 ]; then
+		_src='nvidia'
+		chk_dirs
+		## dkms config part.
+		cat <<-EOT > /usr/src/nvidia-$(new_version)/dkms.conf
+		PACKAGE_NAME="nvidia"
+		PACKAGE_VERSION="$(new_version)"
+		AUTOINSTALL="yes"
+
+		MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' IGNORE_CC_MISMATCH='$gcc_mismatch' KERNEL_UNAME=\${kernelver} modules"
+
+		BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
+		DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
+
+		EOT
+		o=1
+		mods_list+=( "uvm" )\r
+		mods_list+=( "modeset" )
+		mods_list+=( "drm" )
+		for mods in ${mods_list[@]}; do
+			cat <<-EOT >> /usr/src/nvidia-$(new_version)/dkms.conf
+			BUILT_MODULE_NAME[$o]="\${PACKAGE_NAME}-$mods"
+			DEST_MODULE_LOCATION[$o]="/$(module_dest_location)"
+			EOT
+			((o++))
+		done
+	fi
+	## test if version support open driver version.
+	if [ $chk_version -ge 515 ]; then
+		unset drv_src
+		if [ $open_drv = 1 ]; then
+			drv_src=( open-nvidia nvidia )
+		else
+			drv_src=( nvidia )
+			AUTOINSTALL='AUTOINSTALL="yes"'
+		fi
+		for _src in ${drv_src[@]}; do
+			chk_dirs
+			chk_RT
+			if [ $open_drv = 1 ]; then
+				if [ $use_open = 1 ]; then
+					if [[ $_src == "nvidia" ]]; then AUTOINSTALL=''; else AUTOINSTALL='AUTOINSTALL="yes"'; fi
+				else
+					if [[ $_src == "nvidia" ]]; then AUTOINSTALL='AUTOINSTALL="yes"'; else AUTOINSTALL=''; fi
 				fi
 			fi
-			if [ $use_dkms = 0 ]; then
-				echo "# Nvidia MODULES compilation from source..."; sleep 1
-				nv_cmd_make_src
+			unset mods_list
+			if [ $is_RT -eq 1 ]; then
+				PRE_BUILD='PRE_BUILD="nvidia.sh"'
 			fi
-		else
-			[ -f $tmp_b ] && echo -e "pass=1" >> $tmp_b
-		fi
-}
-nv_cmd_update(){ # OK
-	driver_logfile=$nvlog/$version-$KERNEL.log
-	tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-	## check for for patch in new version.
-	shared_vars
-	rt_options
-	nv_build_options
-	if [ $extract_open = 1 ]; then
-		if [ ! -d /usr/src/open-nvidia-$new_version ]; then
-			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$version/kernel-open/* /usr/src/open-nvidia-$version
-		fi
+			cat <<-EOT > /usr/src/$_src-$(new_version)/dkms.conf
+			PACKAGE_NAME="nvidia"
+			PACKAGE_VERSION="$(new_version)"
+			$PRE_BUILD
+			$AUTOINSTALL
+			MAKE[0]="'make' -j\`nproc\` NV_EXCLUDE_BUILD_MODULES='' \\
+			IGNORE_CC_MISMATCH='$gcc_mismatch' \\
+			KERNEL_UNAME=\${kernelver} modules $POST_BUILD"
+
+			BUILT_MODULE_NAME[0]="\${PACKAGE_NAME}"
+			DEST_MODULE_LOCATION[0]="/$(module_dest_location)"
+
+			EOT
+			o=1
+			mods_list+=( "uvm" )
+			mods_list+=( "modeset" )
+			mods_list+=( "drm" )
+			for mods in ${mods_list[@]}; do
+				cat <<-EOT >> /usr/src/$_src-$(new_version)/dkms.conf
+				BUILT_MODULE_NAME[$o]="\${PACKAGE_NAME}-$mods"
+				DEST_MODULE_LOCATION[$o]="/$(module_dest_location)"
+
+				EOT
+				((o++))
+			done
+		done
 	fi
-	## check for open modules presence.
-	test $ask_open_build -eq 1 && nv_open_modules_set
-	if [ $use_dkms = 1 ]; then
-		nv_cmd_dkms_conf
-		nv_build_dkms
-		. $tmp_b
-		make_log=$dkms_log_file
-		if [ $pass -eq 1 ]; then
-			echo "# DKMS compilation ERROR !!"; sleep 2
-		fi
-	else
-		if [ $use_dkms = 0 ]; then
-			echo "# Nvidia MODULES compilation from source..."; sleep 1
-			nv_cmd_make_src
-			. $tmp_b
-			make_log=$src_log_file
-		fi
-	fi
-	if [ $pass -eq 0 ]; then
-		## rebuild initramfs in case of trouble booting.
-		echo "# Updating $KERNEL initramfs."; sleep 1
-		if test $vermagic; then
-			progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS (required)"; echo "$m"; }
-			m=1 ; progress "$INITRAM --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
-		fi
- 	fi
-	install_error_log
-	nv_blacklist_modules_conf
 }
-nv_build_dkms(){ # OK # TODO CHECK driver remove controls.
+nv_build_dkms(){ # OK
 	unset drv_src
 	## all script here is inserted in xterm for better display of process.
-	## known bug : it appears on unknown reason that DKMS script do not install
-	## modules.
+	## known bug : it appears on unknown reason that DKMS script do not install modules.
+	## exploring some solutions, but not sure of them.
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
 	else
 		drv_src=( nvidia )
 	fi
 	show_dkms=' (dkms)'
-	old=$(sed -n "s/\.//g;p" <<< $old_version)
-	new=$(sed -n "s/\.//g;p" <<< $version)
-	[ -f $tmp_b ]&& echo -e "show_dkms=' (dkms)'" >> $tmp_b
+	[ -f $tmp_b ] && echo -e "show_dkms=' (dkms)'" >> $tmp_b
 		echo "# Build & install DKMS modules..."; sleep 1
 		mod_check(){
-		if [ ! -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
-			if [ "$($d_modinfo -F version $kernel_path/nvidia.*[ko\|ko.xz] |grep "$version")" != '' ]; then
+		## for an unkonw reason, in some rare case, dkms even if build and install retrun succes doesn't install the drivers.
+		## thus, we install those driver manually with cp.
 				mod_move=$(
 				cat <<-CHECK
-					if [ -s nvidia.*[ko\|ko.xz] ]; then
-						printf "${pur}# Copying \$_dkms modules in $kernel_path.\n${nc}"
-						echo -e "moving"
-						cp -f nvidia.ko $kernel_path/nvidia.ko
-						if [[ -s nvidia-uvm.ko ]]; then cp -f nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-						if [[ -s uvm/nvidia-uvm.ko ]]; then cp -f uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-						if [[ -s nvidia-modeset.ko ]]; then cp -f nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
-						if [[ -s nvidia-drm.ko ]]; then cp -f nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
+					if [ -f nvidia.*[ko\\|ko.xz] ]; then
+						printf "${blu}#${red} Error${blu} : No \$_dkms $(new_version) modules found in kernel path $kernel_path.\n${nc}"
+						sleep 2
+						printf "${blu}# Copying \$_dkms modules in $kernel_path from DKMS repository.\n${nc}"
+						#echo -e "moving"
+						cp -vf nvidia.ko $kernel_path/nvidia.ko
+						if [[ -s nvidia-uvm.ko ]]; then cp -vf nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
+						if [[ -s uvm/nvidia-uvm.ko ]]; then cp -vf uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
+						if [[ -s nvidia-modeset.ko ]]; then cp -vf nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
+						if [[ -s nvidia-drm.ko ]]; then cp -vf nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
+						echo -e "${pur}- Compressing \$_dkms modules if needed."
 						test $is_RT -eq 0 || xz -T12 $kernel_path/*.ko
-						[[ -s $kernel_path/$_dkms.*[ko\\|ko.xz] ]] && /usr/sbin/depmod $KERNEL -a
-						vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print \$1}')
-						printf "${blu} All Clear ($version modules moved from dkms dir).  ${nc}.\n"
-						echo -e "\$vermagic"
+						if [[ -s $kernel_path/$_dkms.*[ko\\|ko.xz] ]]; then
+							echo -e "${pur}- Exec $KERNEL modules depmod"
+							sleep 2
+							progress_msg(){ echo -en "\\r- Exec $KERNEL modules depmod (\$m sec.)"; }
+							m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
+						fi
+						$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
+						pass=\$?
+						if [ \$pass = 0 ]; then
+							vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print \$1}')
+							printf "${blu}# All Clear ($(new_version) modules moved from dkms repo)${nc}.\n\n"
+							echo -e "pass=\$pass" >> $tmp_b
+						else
+							printf "${red} ------------- ERROR -------------- ${nc}\n"
+							printf "${red} -------- Version mismatch -------- ${nc}\n"
+							echo -e "pass=1" >> $tmp_b
+						fi
 					else
 						printf "${red} ------------- ERROR -------------- ${nc}\n"
 						printf "${red} ---- Driver not found in path ---- ${nc}\n"
-						echo -e "not moving"
+						echo -e "pass=1" >> $tmp_b
 					fi
+
 				CHECK
 				)
 				cat <<-FILTER
-				if [ -d /var/lib/dkms/\$_dkms/$version/$KERNEL/$ARCH/module ]; then
-					cd /var/lib/dkms/\$_dkms/$version/$KERNEL/$ARCH/module
-					printf "${pur}# Checking $ARCH/module${nc}\n"
-					$mod_move
-				elif [ -d /var/lib/dkms/\$_dkms/$version/build ]; then
-					cd /var/lib/dkms/\$_dkms/$version/build
-					printf "${pur}# Checking $version/build${nc}\n"
-					$mod_move
-				else
-					printf "${pur}# Nothing to do${nc}\n"
-				fi
+					if [ -d /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module ]; then
+						cd /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module
+						printf "${pur}# Checking presence in DKMS /$(new_version)/$KERNEL/$ARCH/module${nc}\n"
+						$mod_move
+					elif [ -d /var/lib/dkms/\$_dkms/$(new_version)/build ]; then
+						cd /var/lib/dkms/\$_dkms/$(new_version)/build
+						printf "${pur}# Checking presence in DKMS /$(new_version)/build${nc}\n"
+						$mod_move
+					else
+						printf "${pur}# Nothing to do${nc}\n"
+					fi
 				FILTER
-			else
-				cat <<-SEQ
-				printf "${red} --------- \$_dkms script ended ---------- \n${nc}"
-				SEQ
-			fi
-		else
-			vermagic=$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\|ko.xz]| awk '{print $1}')
-			cat <<-SEQ
-			printf "${blu}- All Clear for $version \$_dkms in $vermagic kernel.${nc}\n\n"
-			printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
-			SEQ
-		fi
 		}
 		remove_add(){
-			if [ $from_install = 1 ]; then
+			# ATTENTION Remove driver tree only ? or remove all ?
 			remove_seq=$(
 			cat <<-RM
-				$headings
-				printf "${xB}# Removing previous ${red}$old_version \$_dkms${nc}${xB} DKMS modules from DKMS directory.\n${nc}"
+				#$headings
+				printf "${xB}# Removing previous ${red}$(old_version) \$_dkms${nc}${xB} DKMS modules from DKMS tree.\n${nc}"
 				sleep 2
 				printf "${pur}"
 				#echo -e "remove \$_dkms"
-				if [ $old -gt $new ]; then
-					/usr/sbin/dkms remove -m \$_dkms/$old_version --all
+				if [ $(nv_old) -gt $(nv_new) ]; then
+					$p_dkms remove -m \$_dkms/$(old_version) --all
 				else
-					/usr/sbin/dkms remove -m \$_dkms/$old_version -k $KERNEL
+					$p_dkms remove -m \$_dkms/$(old_version) -k $KERNEL
 				fi
 				printf "${nc}"
 				sleep 2
-				clear
+# 				clear
 				RM
 			)
 			add_seq=$(
 			cat <<-ADD
-				$headings
-				printf "${xB}# Add ${red}$version \$_dkms${nc}${xB} modules to DKMS directory.\n${nc}"
+				#$headings
+				printf "${xB}# Add ${red}$(new_version) \$_dkms${nc}${xB} modules to DKMS tree.\n${nc}"
 				sleep 2
 				printf "${pur}"
 				#echo -e "add \$_dkms"
-				/usr/sbin/dkms add -m \$_dkms/$old_version -k $KERNEL
+				$p_dkms add -m \$_dkms/$(new_version) -k $KERNEL
 				printf "${nc}"
 				sleep 2
-				clear
+# 				clear
 				ADD
 			)
-			## remove previous version if any before installing new one.
+			## remove previous known and unknown version if any before installing new one.
 			cat <<-SEQ
-			if [[ $old_version ]]&&[[ $old_version != $version ]]; then
-				$remove_seq
+			#mod_installed=\$(find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version)
+			mod_installed(){ # used by nv_build_dkms only
+				test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version
+			}
+			old_inst=\$(sed -n "s/\\.//g;p" <<< \$(mod_installed))
+			if [ $(nv_old) -gt 0 ]; then
+				if [ $(nv_old) = \$old_inst ]; then
+					if [ $(nv_old) -ne $(nv_new) ]; then
+						$remove_seq
+					fi
+				fi
+			else
+				## is the modules version present in dkms tree ?
+				if [ "\$old_inst" ]; then
+					if [ \$($p_dkms status -m \$_dkms/\$(mod_installed) -k $KERNEL| egrep -c "built|installed") -gt 0 ]; then
+						if [[ \$old_inst != $(nv_new) ]]; then
+							$remove_seq
+						fi
+					else
+					## if not, just remove them, and make a depmod to clear things.
+						if [ \$old_inst -ne $(nv_new) ]; then
+							printf "${pur}- Removing out of DKMS tree \$(mod_installed) \$_dkms from kernel modules path.\n${nc}"
+							sleep 2
+							#echo -e "rm mods"
+							rm -f $kernel_path/*
+							printf "${pur}- Executing clean depmod before next step.${nc}\n"
+							sleep 2
+							/usr/sbin/depmod -a $KERNEL
+							printf "${pur}- Done.${nc}\n"
+							sleep 2
+						fi
+					fi
+				else
+					printf "${pur}- No previous driver found. Installing $(new_version) \$_dkms.\n${nc}"
+					sleep 2
+				fi
 			fi
-			if [ ! -d /var/lib/dkms/\$_dkms/$version/$KERNEL ]; then
+			if [ \$($p_dkms status -m \$_dkms/$(new_version) -k $KERNEL| egrep -c "added|built|installed") -eq 0 ]; then
 				$add_seq
 			fi
 			SEQ
-			fi
 		}
 		build_seq(){
 			build_seq_1=$(
 			cat <<-BLD
-			$headings
-			printf "${xB}# Building ${red}$version \$_dkms${nc}${xB} DKMS modules:\n${nc}"
+			#$headings
+			printf "${xB}# Building ${red}$(new_version) \$_dkms${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
 			sleep 2
 			printf "${pur}"
 			#echo -e "build \$_dkms"
-			/usr/sbin/dkms build -m \$_dkms/$version -k $KERNEL --force
+			$p_dkms build -m \$_dkms/$(new_version) -k $KERNEL --force
 			printf "${nc}"
+			printf "${blu}# All Clear for $(new_version) \$_dkms build.${nc}\n"
+			printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
 			sleep 2
-			clear
+# 			clear
 			BLD
 			)
 			build_seq_2=$(
 			cat <<-BLD
-			$headings
-			printf "${xB}# Build & Install ${red}$version \$_dkms${nc}${xB} DKMS modules:\n${nc}"
+			#$headings
+			printf "${xB}# Build & Install ${red}$(new_version) \$_dkms${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
 			sleep 2
 			printf "${pur}"
 			#echo -e "install classic \$_dkms"
-			/usr/sbin/dkms install -m \$_dkms/$version -k $KERNEL --force
+			$p_dkms install -m \$_dkms/$(new_version) -k $KERNEL --force
 			printf "${nc}"
 			sleep 2
-			$d_modinfo -F version nvidia -k $KERNEL | grep "$version" &>/dev/null
+			$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
 			pass=\$?
-			[ -f $tmp_b ]&& echo -e "pass=\$pass" >> $tmp_b
-			clear
+			echo -e "pass=\$pass" >> $tmp_b
+			printf "${xB}# Checking ${red}$(new_version) \$_dkms${nc}${xB} modules in $kernel_path:\n${nc}"
+			if [ \$pass = 0 ]; then
+				echo -e "Check validated (pass=\$pass)\n"
+			else
+				echo -e "Check unvalidated (pass=\$pass)\n"
+			fi
+			sleep 2
+			if [ \$pass = 1 ]; then
+				$(mod_check)
+			else
+				vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print $1}')
+				printf "${blu}# All Clear for $(new_version) \$_dkms in $KERNEL kernel.${nc}\n\n"
+				printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
+				sleep 2
+			fi
+# 			clear
 			BLD
 			)
 			cat <<-SEQ
@@ -1523,37 +1629,31 @@ nv_build_dkms(){ # OK # TODO CHECK driver remove controls.
 		}
 		post_treatment(){
 			cat <<-MSG
-			printf "${xB}# Checking ${red}$version \$_dkms${nc}${xB} build log presence.\n${nc}"
-			if [ -s /var/lib/dkms/\$_dkms/$version/$KERNEL/$ARCH/log/make.log ]; then
+			printf "${xB}# Checking ${red}$(new_version) \$_dkms${nc}${xB} build log presence.\n${nc}"
+			if [ -s /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log ]; then
 				test -d $nvlog/dkms/\$_dkms/ || mkdir -p $nvlog/dkms/\$_dkms/
-				cp -f /var/lib/dkms/\$_dkms/$version/$KERNEL/$ARCH/log/make.log $nvlog/dkms/\$_dkms/
+				cp -f /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log $nvlog/dkms/\$_dkms/
 				dkms_log_file=$nvlog/dkms/\$_dkms/make.log
-				[ -f $tmp_b ] && echo -e "dkms_log_file=\$dkms_log_file" >> $tmp_b
-				printf "${pur}* \$_dkms $version log found.\n${nc}"
+				echo -e "dkms_log_file=\$dkms_log_file" >> $tmp_b
+				printf "${pur}* \$_dkms $(new_version) log found.\n${nc}"
 				printf "${pur}* \$_dkms make log copied to \$dkms_log_file.\n${nc}"
 			else
-				printf "${pur}# No $version \$_dkms build log found.\n${nc}"
+				printf "${pur}# No $(new_version) \$_dkms build log found.\n${nc}"
 			fi
 			if [[ \$_dkms =~ ^open ]]; then sleep 4; else sleep 2; fi
 			MSG
 		}
-		headings="printf \"${xB}# Installing $version \$_dkms DKMS modules:\n\n${nc}\""
+		headings="printf \"${xB}# Installing $(new_version) \$_dkms DKMS modules:\n\n${nc}\""
 		xt_content=$( cat <<-XT
-		#clear
-		#printf "${xB}# Installing DKMS modules:\n\n${nc}"
-
+		#set -x
 		for _dkms in ${drv_src[@]} ; do
-			#printf "${xB}# Installing ${red}\$_dkms${xB} DKMS modules:\n\n${nc}"
+			#printf "${xB}# Installing ${red}\$_dkms${xB} DKMS modules for $KERNEL :\n\n${nc}"
 			$headings
 			printf "${red} --------- \$_dkms script start ---------- \n\n${nc}"
 			sleep 2
 			$(remove_add)
 			$(build_seq)
 			$headings
-			printf "${xB}# Checking ${red}$version \$_dkms${nc}${xB} modules in $kernel_path:\n${nc}"
-			sleep 2
-			$(mod_check)
-			sleep 2
 			$(post_treatment)
 			[[ \$_dkms =~ ^open ]]&& clear
 		done
@@ -1590,8 +1690,12 @@ nv_cmd_make_src(){ # OK
 					echo -e "* Compressing $version \$module for $KERNEL compatibility."
 					xz -T12 $kernel_path/*.ko
 				fi
-				echo -e "* depmod ..."
-				/usr/sbin/depmod $KERNEL -a
+				printf "${pur}* Executing depmod.${nc}\n"
+				#/usr/sbin/depmod -a -kver $KERNEL
+				sleep 2
+				#progress_msg(){ echo -en "\\r* Exec $KERNEL modules reload (\$m sec.)"; }
+				#m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
+				$( exec_depmod "$KERNEL" )
 				$d_modinfo -F version nvidia -k $KERNEL | grep "$version" &>/dev/null
 				pass=\$?
 				[ -f $tmp_b ]&& echo -e "pass=\$pass" >> $tmp_b
@@ -1626,15 +1730,17 @@ nv_cmd_make_src(){ # OK
 			fi
 		SEQ
 	}
-	initram(){
-		cat <<-INI
-			printf "\n${xB}# Nvidia UDEV requirement : Rebuilding INITRAMFS image.${nc}\n"
-			printf "${pur}"
-			echo -e "* Making $KERNEL initramfs image."
-			$INITRAM --kver $KERNEL
-			printf "${nc}"
-		INI
-	}
+# 	initram(){
+# 		cat <<-INI
+# 			progress_msg(){ echo "# (\$m%) - Rebuilding INITRAMFS (required)"; echo "\$m"; }; m=1
+# 			printf "\n${xB}# Rebuilding INITRAMFS image.${nc}\n"
+# 			printf "${pur}"
+# 			echo -e "* Making $KERNEL initramfs image."
+# 			#$INITRAM --kver $KERNEL
+# 			exec_mod_load
+# 			printf "${nc}"
+# 		INI
+# 	}
 	post_treatment(){
 		cat <<-MSG
 		printf "\n${xB}# Checking ${red}$version \$_dkms${nc}${xB} build log presence.\n${nc}"
@@ -1664,6 +1770,7 @@ nv_cmd_make_src(){ # OK
 			$headings
 			if [ -d /usr/src/\$module-$version ]; then
 				cd /usr/src/\$module-$version
+				printf "${xB}# Build ${red}$version \$module${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
 				printf "${red} ------- \$module compilation start ------- \n${nc}"
 				sleep 2
 				make clean
@@ -1682,12 +1789,86 @@ nv_cmd_make_src(){ # OK
 			fi
 			[[ \$module =~ ^open ]]&& clear
 		done
-		$(initram)
 		printf "$esc_message"
 		$x_sleep
 	XT
 	)
 	xterm $xt_options -title Zenvidia_source_compilation -e "$xt_content"
+}
+nv_cmd_install_driver(){ # OK
+		## prevent installer to doing think for 'upgrade an other kernel'.
+		upgrade_other=0
+		if [[ $($d_modinfo -F version nvidia) != $(new_version) ]]; then
+			[ -d /usr/src/nvidia-$(new_version) ] ||mkdir -p /usr/src/nvidia-$(new_version)
+			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)/kernel/* /usr/src/nvidia-$(new_version)
+			if [ $extract_open = 1 ]; then
+				test $ask_open_build -eq 1 && nv_open_modules_set
+			fi
+			if [ $use_dkms = 1 ]; then
+				if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)/kernel ]; then
+					nv_cmd_dkms_conf
+					# Compil and install DKMS modules
+					nv_build_dkms
+					. $tmp_b
+					if [ $pass -eq 1 ]; then
+						echo "# DKMS compilation ERROR !!"; sleep 2
+					fi
+				fi
+			fi
+			if [ $use_dkms = 0 ]; then
+				echo "# Nvidia MODULES compilation from source..."; sleep 1
+				nv_cmd_make_src
+			fi
+		else
+			[ -f $tmp_b ] && echo -e "pass=1" >> $tmp_b
+		fi
+}
+nv_cmd_update(){ # OK
+	driver_logfile=$nvlog/$(new_version)-$KERNEL.log
+	tmp_b=$(mktemp --tmpdir zn_vars.XXX)
+	## check for for patch in new version.
+	rt_options
+	nv_build_options
+	if [ $extract_open = 1 ]; then
+		if [ ! -d /usr/src/open-nvidia-$(new_version) ]; then
+			cp -Rf $nvtmp/NVIDIA-Linux-$ARCH-$version/kernel-open/* /usr/src/open-nvidia-$version
+		fi
+	fi
+	## check for open modules presence.
+	test $ask_open_build -eq 1 && nv_open_modules_set
+	if [ $use_dkms = 1 ]; then
+		[ $from_install = 1 ] && nv_cmd_dkms_conf
+		nv_build_dkms
+		. $tmp_b
+		make_log=$dkms_log_file
+		if [ $pass -eq 1 ]; then
+			echo "# DKMS compilation ERROR !!"; sleep 2
+		fi
+	else
+		if [ $use_dkms = 0 ]; then
+			echo "# Nvidia MODULES compilation from source..."; sleep 1
+			nv_cmd_make_src
+			. $tmp_b
+			make_log=$src_log_file
+		fi
+	fi
+	if [ $pass -eq 0 ]; then
+		## rebuild initramfs in case of trouble booting.
+		echo "# Updating $KERNEL modules."; sleep 1
+		$d_modinfo -F version nvidia -k $KERNEL | grep "$version" &>/dev/null
+		if [ $? = 0 ] ; then
+			if [ $upgrade_other = 1 ]; then
+				progress_msg(){ echo "# - Rebuilding $KERNEL INITRAMFS ($m sec.)"; echo "$m"; }; m=1
+				exec_initramfs
+			else
+				progress_msg(){ echo "# - Exec $KERNEL modules reload ($m sec.)"; echo "$m"; }; m=1
+				exec_mod_load
+			fi
+		else
+			echo "# ERROR ! $KERNEL modules do not match $(new_version). Abort."; sleep 3; exit 0
+		fi
+ 	fi
+	install_error_log
 }
 nv_cmd_install_libs(){ # OK # TODO CHECK REGULARY AT DRIVER UPGRADE
 ## INFOS ABOUT NVIDIA-INSTALLER OPTIONS :
@@ -1715,19 +1896,21 @@ nv_cmd_install_libs(){ # OK # TODO CHECK REGULARY AT DRIVER UPGRADE
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect  --opengl-libdir=$master$ELF_64 \
 #	--utility-prefix=$install_dir --utility-libdir=$install_dir/$master$ELF_64 \
 # 	temp="--tmpdir=$buildtmp"
-	cd $nvtmp/NVIDIA-Linux-$ARCH-$new_version
+
+	cd $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)
+
 	xterm $xt_options -title Zenvidia_install_libs -e "
 	$install_bin -s -z $no_net --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion $gl_headers \
 	$add_glvnd $force_glvnd --install-compat32-libs \
-	--compat32-prefix=$croot_all $compat32 $compat64 \
-	--x-prefix=/usr --x-library-path=$croot_all --x-module-path=$xorg_dir/modules \
-	--opengl-prefix=$croot_all --wine-prefix=$croot_all --utility-prefix=$install_dir \
+	--compat32-prefix=$nv_root/nvidia.$(new_version) $compat32 $compat64 \
+	--x-prefix=/usr --x-library-path=$nv_root/nvidia.$(new_version) --x-module-path=$nv_xorg_dir/modules \
+	--opengl-prefix=$nv_root/nvidia.$(new_version) --wine-prefix=$nv_root/nvidia.$(new_version) --utility-prefix=$install_dir \
 	$docs $profile --tmpdir=$buildtmp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
 	## link to sys.
-	cd $croot
-	ln -sfr -T $croot/nvidia.$new_version $croot/nvidia
+	cd $nv_root
+	ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia
 }
 ## ### INSTALL MODULE AND LIBRARIES PROCESS ###
 ## ### MAIN SECTION ###
@@ -1751,7 +1934,6 @@ install_log_messages(){ # OK
 	fi
 }
 install_error_log(){ # OK
-# 	if [[ $($d_modinfo -F version nvidia -k $KERNEL) =~ "ERROR" ]]; then
 	if [ $(grep -c "ERROR" $dkms_log_file) -gt 0 ]; then
 		# on driver complation break, abort and go back to main menu.
 		w_text=$( cat <<-ERR
@@ -1779,91 +1961,33 @@ install_report_log(){ # OK
 	--ok-label="edit now" --cancel-label="edit later"
 	if [ $? = 0 ]; then edit_xorg_conf; fi
 }
-hardware_compat(){ # OK
-	echo "# ($n%) - Checking compatibility data files"; sleep 2
-	## extract supported hardware per version.
-	unset COMPAT
-	[ -d $nvcompat ]|| mkdir -p $nvcompat
-	[ $new_version ]|| new_version=$version
-	rdme_file=$nvtmp/$extracted_release/README.txt
-	if [ -f $rdme_file ]; then
-		IFS=$(echo -en "\n\b")
-		COMPAT+=("A1. CURRENT NVIDIA GPUS")
-		COMPAT+=("$(egrep "The /*[0-9]{2,4}((.xx)|(..*[0-9]{2,3}.xx))" $rdme_file)")
-		for line in ${COMPAT[@]}; do
-			if [[ $line =~ ".xx" ]]; then
-				drv_class=$(echo -e "$line"| sed -En "s/The (.*).xx .*$/\1/p")
-			else
-				drv_class="$new_version"
-			fi
-			unset sed_output
-			sed_output=( $( sed -En "/$line/,/The *[0-9]{2,4}/p" $rdme_file |\
-			sed -n "/------/,/^\ $/p" |\
-			sed -n "s/^ /#/g;{s/^#\|^#---.*$//p}") )
-			if [[ $drv_class =~ "71.86" ]]; then
-				sed -n "/^RIVA/,/Quadro.*$/p" <<< ${sed_output[@]} > $nvcompat/$drv_class
-			else
-				cat <<< ${sed_output[*]} > $nvcompat/$drv_class
-			fi
-			class_list+=("$drv_class")
-		done
-		IFS=$ifs
-		## control if device is compatible with new driver
-		# vendor is here clearly identified (10de).
-		device=$(cat <<< ${pci_n[@]}| grep -i "10de"|cut -d, -f3|sed -n "s/.*/\U&/g;p")
-		for comp_file in ${class_list[@]}; do
-			if [ $(grep -ic "$device" $nvcompat/$comp_file) -gt 0 ]; then
-				if [[ $comp_file =~ "$new_version" ]]; then
-					if [ $(printf "$comp_file"| sed -n "s/\..*$//p") -gt 304 ]; then
-						compat_sup=$(grep -im1 "$device" $nvcompat/$comp_file |\
-						sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device) .*([A-Z])$/\1;\3;\4/p")
-					else
-						compat_sup=$(grep -im1 "$device" $nvcompat/$comp_file |\
-						sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device)$/\1;\3/g;p")
-					fi
-					echo "# ($n%) - Compatiblity found in $comp_file, proceed to install"; sleep 2
-				else
-					compat_sup=$(grep -i "$device" $nvcompat/$comp_file |\
-					sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device).*$/\1 (\3)/p")
-					error_log=$(cat <<-ERR
-						${rB}${bf}<i>COMPATIBILITY ISSUE</i>${end}${end}
-						${v}The ${j}$compat_sup${end} is not compatible with ${j}$version${end} driver.
-						Look for ${j}$comp_file${end} serie instead.${end}
-					ERR
-					)
-					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
-					--text="$error_log" \
-					--icon-name=xkill --ok-label="Got it"
-					base_menu
-				fi
-			fi
-		done
-	fi
-}
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ###
 install_drv(){ # OK
+	## tell script that all post_install process came from global install.
+	from_install=1
 	## vars for auto confirmation window sets below 'win_confirm'
-	confirm_msg="$menu_msg\n${v}Installing driver${end} ${j}$new_version${end} ${v}for hardware :${end} ${j}$board${end}."
+	confirm_msg="$menu_msg\n${v}Installing driver${end} ${j}$(new_version)${end} ${v}for hardware :${end} ${j}$board${end}."
 	val_confirm="Install"
 	val_back="$MM"
 	val_exit="menu_install"
 	val_cancel="base_menu" #TEXT
 	val_title="Zenvidia"
-	shared_vars
 	## check for for patch in new version.
 	nv_build_options
 	rt_options
 	## define modules to build at compil/dkms time.
 	nv_modules_set
 	win_confirm
-	if [[ -s $run_pkg ]] ; then
-	{	# child process doesn't send back install check result, it need to be
+	# child process doesn't send back install check result, it need to be
 		# set in a temp file.
-		tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-		## tell script that all post_install process came from global install.
-		from_install=1
-		## set start count
-		n=5
+		tmp_b=$(mktemp --tmpdir zn_vars.XXXX)
+		# set a second temp file for old-version backup when new modules installed
+		tmp_old=$(mktemp --tmpdir zn_vars.XXXX)
+		# then push version var in second temp to be used as old-version var during installation.
+		echo "$($d_modinfo -F version nvidia -k $KERNEL)" > $tmp_old
+	if [[ -s $run_pkg ]] ; then
+	{	## set start count
+		n=1
 		## extract .run package for install processes (22)
 		extract_build
 		test $tmp_c && . $tmp_c
@@ -1876,8 +2000,8 @@ install_drv(){ # OK
 		echo "# ($n%) - Backing up old driver version, if any"; sleep 2
 		# backup driver repository (shits happens!)
 		unset report_log
-		if [ -d $croot/nvidia.$old_version ]; then
-			bak_version=$old_version
+		if [ -d $nv_root/nvidia.$(old_version) ]; then
+			bak_version=$(old_version)
 			if [[ -s $nvbackup/nvidia.$bak_version.tar.gz ]]; then
 				report_log+=("${vB}Previous version:\t${end}${gB} passed\t\t${end}> ${y}previously backed up${end}\n")
 			else
@@ -1888,31 +2012,40 @@ install_drv(){ # OK
 			report_log+=("${vB}Previous version:\t${end}${jB} warning\t\t${end}> ${y}no directory to archive.${end}\n")
 		fi
 
-		n=$[ $n+6 ] ; echo "$n" # 2
+		n=$[ $n+6 ] ; echo "$n" # 2 ### ?
+		## temp value to n
+		p=$n
 		echo "# ($n%) - Starting install"; sleep 1
 		## create base libs install directories
-		for d in "$croot/$predifined_dir $croot_32 $croot_64 $xorg_dir"; do
+		for d in "$nv_root/$predifined_dir $nv_root/nvidia.$(new_version)/$master$ELF_32 $nv_root/nvidia.$(new_version)/$master$ELF_64 $nv_xorg_dir"; do
 			mkdir -p $d
 		done
-		cd $croot
+		cd $nv_root
 		# nv_cmd processes (install without X crash )
 		echo "# ($n%) - Package compil and install"; sleep 1
 		# install driver first, then control if everything ok (14 Initramfs)
 		( nv_cmd_install_driver ) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" \
 		--progress --pulsate --auto-close --text="${v}DRIVER${end} : Install driver and/or dkms modules."
 		. $tmp_b
-		n=$[ $n+6 ]; echo "$n" # 3
+# 		n=$[ $p+$n ]; echo "$n" # 3 # n=$[ $n+6 ]
+		n=$[ $n+6 ]; echo "$n" # 3 # n=$[ $n+6 ]
 		if [ $pass -eq 0 ]; then
-		## rebuild initramfs in case of trouble booting.
-			progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS (required)"; echo "$m"; }
-			m=$n ; progress "$INITRAM --kver $KERNEL"
+		## rebuild initramfs or modprobe reload.
+			## TODO looking for simpler process ? exec_mod_load to test
+			progress_msg(){ echo "# ($m%) - Exec $KERNEL modules init/reload"; echo "$m"; }; m=$n
+			# m=$n ; progress "$INITRAM --kver $KERNEL"
+			if [ $(nv_new) -gt $(nv_old) ]; then
+				exec_initramfs
+			else
+				exec_mod_load
+			fi
 		fi
 		. $tmp_c
 		echo "$n"
 		install_log_messages
 		install_error_log
 		# nvidia-installer librairies log file
-		lib_logfile=$nvlog/libinstall-$new_version.log
+		lib_logfile=$nvlog/libinstall-$(new_version).log
 		## install default libs with nvidia-installer
 		echo "# ($n%) - Install Nvidia default librairies"; sleep 1
 		( nv_cmd_install_libs ) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --progress \
@@ -1926,8 +2059,8 @@ install_drv(){ # OK
 			fi
 		fi
 		## control if libraries are properly installed
-		if [[ $(ls -1 $croot_64| grep -c ".*") -lt 40 ]]|| \
-		[[ $(ls -1 $croot_32| grep -c ".*") -lt 40 ]]; then
+		if [[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -lt 40 ]]|| \
+		[[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -lt 40 ]]; then
 			$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --error --no-wrap \
 			--text="${vB}LIBS INSTALL CONTROL RETURN ERRORS.${end}$v.\nCheck $lib_logfile for more details.${end}"
 			if [ $? = 0 ]; then base_menu; fi
@@ -1938,35 +2071,35 @@ install_drv(){ # OK
 		cd $nvtmp
 		if [[ -s $nvtmp/$extracted_release/nvidia-installer ]]; then
 			echo "# ($n%) - Backup new Nvidia-Installer to $nvdir"; sleep 1
-			cp -f NVIDIA-Linux-$ARCH-$new_version/nvidia-installer $nvdir
+			cp -f NVIDIA-Linux-$ARCH-$(new_version)/nvidia-installer $nvdir
 			n=$[ $n+1 ]; echo "$n" # 5
 		fi
 		echo "# ($n%) - Update new driver version"; sleep 1
-		printf "$new_version" > $nvdir/version.txt
+		printf "$(new_version)" > $nvdir/version.txt
 		n=$[ $n+1 ]; echo "$n" # 6
 		# Backup installed binary from release to release dir archive
-		if [ ! -f $nvdl/nv-update-$new_version ] ; then
-			cp -f $run_pkg $nvdl/nv-update-$new_version
-			if [[ -f $nvdl/nv-update-$new_version ]] ; then
-				echo "# ($n%) - Driver $new_version release package backup success"; sleep 1
+		if [ ! -f $nvdl/nv-update-$(new_version) ] ; then
+			cp -f $run_pkg $nvdl/nv-update-$(new_version)
+			if [[ -f $nvdl/nv-update-$(new_version) ]] ; then
+				echo "# ($n%) - Driver $(new_version) release package backup success"; sleep 1
 			else
 				$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --error --no-wrap \
-				--ok-label="Go it, let's go on."--text="\n${v}Driver ${j}$new_version${end} release repos backup mistake.${end}"
+				--ok-label="Go it, let's go on."--text="\n${v}Driver ${j}$(new_version)${end} release repos backup mistake.${end}"
 			fi
 		else
-			echo "# ($n%) - nv-update-$new_version already present in path, skip"; sleep 1
+			echo "# ($n%) - nv-update-$(new_version) already present in path, skip"; sleep 1
 		fi
 		n=$[ $n+1 ]; echo "$n" # 7
 		post_install
 		echo "99"; sleep 2
 		echo "100"
 		## Install report display.
-		if [[ $inst_mod_version == $new_version ]]; then
-			if [ $(ls -1 $croot_64| grep -c ".*") -gt 40 ]|| \
-			[ $(ls -1 $croot_32| grep -c ".*") -gt 40 ]; then
+		if [[ $inst_mod_version == $(new_version) ]]; then
+			if [ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -gt 40 ]|| \
+			[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -gt 40 ]; then
 			rep_msg=$( cat <<-RPT
 			${vB}${bf}<i>Congratulations !</i>${end}${end}
-			${jB}$new_version${end} ${vB}driver is now succefully installed${end}.
+			${jB}$(new_version)${end} ${vB}driver is now succefully installed${end}.
 
 			${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
 			your computer with the new installed drivers.
@@ -1981,7 +2114,7 @@ install_drv(){ # OK
 			error_log=$(
 			cat <<-RPT
 				${rB}${bf}Unexpected ERROR.${end}${end}
-				${jB}$inst_mod_version isn't $new_version${end}.
+				${jB}$inst_mod_version isn't $(new_version)${end}.
 				Really weird. ${jB}O_o${end} !
 				Some unknown bug pops up during driver installation.
 				Or developper fucked out something ?
@@ -2014,36 +2147,21 @@ extract_build(){ # OK
 	[ -d $nvtmp ]|| mkdir -p $nvtmp
 	[ -d $buildtmp ]|| mkdir -p $buildtmp
 	cd $nvtmp
-	## check version vs. old_version
-	old_version=$(cat $nvdir/version.txt)
-	if [[ $LAST_PACK ]]; then
-		new_version=$LAST_PACK
-	else
-		new_version=$(echo "$run_pkg" | sed -n 's/^.*-//p')
-	fi
-	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$new_version ]; then
-		extracted_release=NVIDIA-Linux-$ARCH-$new_version
-		old_version=$(cat $nvdir/old_version.txt)
-		echo "# ($n%) - $new_version package already extracted"; sleep 2
+	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$(new_version) ]; then
+		extracted_release=NVIDIA-Linux-$ARCH-$(new_version)
+		echo "# ($n%) - $(new_version) package already extracted"; sleep 2
 		n=[ $n+30 ]
 	else
 		[ ! -d NVIDIA-Linux-$ARCH-* ]|| rm -Rf NVIDIA-Linux-$ARCH-*
 		## save dir name for install and post install process.
-		extracted_release=NVIDIA-Linux-$ARCH-$new_version
+		extracted_release=NVIDIA-Linux-$ARCH-$(new_version)
 		echo "# ($n%) - Primary package extraction"; sleep 2
-		progress_msg="("
-		msg_suffix="%) - Extracting $extracted_release"
 		progress_msg(){ echo "# ($m%) - Extracting $extracted_release"; echo "$m"; }
 		m=$n; progress "$run_pkg -x" #; . $tmp_c; rm -f $tmp_c
 		sleep 1
-		if [[ -n $new_version && $new_version != $old_version ]]; then
+		if [ "$(new_version)" ]&&[ "$(new_version)" != "$(old_version)" ]; then
 			cp -f $nvtmp/$extracted_release/nvidia-installer .
-			printf "$new_version\n" > $nvdir/new_version.txt
-			if [[ -n $old_version ]]; then
-				printf "$old_version\n" > $nvdir/old_version.txt
-			else
-				old_version='none'
-			fi
+			echo -e "$(new_version)" > $nvdir/new_version.txt
 		else
 			$d_zen --width=450 --title="Zenvidia" --error \
 			--text="${j}${bf}Nvidia repository not found${end}${end}.${v} Extraction failure.${end}"
@@ -2052,29 +2170,64 @@ extract_build(){ # OK
 	fi
 	cd $nvdir
 }
-backup_driver(){ # OK
-	# link driver for multi driver config
-	if [ -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
-		test -d $croot/nvidia/$KERNEL || mkdir -p $croot/nvidia/$KERNEL
-		cp -f $kernel_path/*.*[ko\|ko.xz] $croot/nvidia/$KERNEL/
-		if [ -e $croot/nvidia/$KERNEL/nvidia.*[ko\|ko.xz] ]; then
-			echo "# ($n%) - DRIVER : Driver backup success"; sleep 2
-		else
-			echo "# ($n%) - DRIVER : Driver was not backup (not critical)"; sleep 2
-		fi
-	else
-		w_text=$( cat <<-ERR
-			${v}${j}Driver $version was not found in kernel path${end}.
-			This is not critical, you can just go on or abort.
-			As you wish.
-
-			Exit to main menu or continue ?${end}
-		ERR
-		)
-		echo "# ($n%) - DRIVER : ERROR "; sleep 1
-		$d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --question \
-		--text="$w_text" --cancel-label="Abort" --ok-label="Continue"
-		if [ $? = 1 ]; then base_menu; fi
+hardware_compat(){ # OK
+	echo "# ($n%) - Checking compatibility data files"; sleep 2
+	## extract supported hardware per version.
+	unset COMPAT
+	[ -d $nvcompat ]|| mkdir -p $nvcompat
+	rdme_file=$nvtmp/$extracted_release/README.txt
+	if [ -f $rdme_file ]; then
+		IFS=$(echo -en "\n\b")
+		COMPAT+=("A1. CURRENT NVIDIA GPUS")
+		COMPAT+=("$(egrep "The /*[0-9]{2,4}((.xx)|(..*[0-9]{2,3}.xx))" $rdme_file)")
+		for line in ${COMPAT[@]}; do
+			if [[ $line =~ ".xx" ]]; then
+				drv_class=$(echo -e "$line"| sed -En "s/The (.*).xx .*$/\1/p")
+			else
+				drv_class="$(new_version)"
+			fi
+			unset sed_output
+			sed_output=( $( sed -En "/$line/,/The *[0-9]{2,4}/p" $rdme_file |\
+			sed -n "/------/,/^\ $/p" |\
+			sed -n "s/^ /#/g;{s/^#\|^#---.*$//p}") )
+			if [[ $drv_class =~ "71.86" ]]; then
+				sed -n "/^RIVA/,/Quadro.*$/p" <<< ${sed_output[@]} > $nvcompat/$drv_class
+			else
+				cat <<< ${sed_output[*]} > $nvcompat/$drv_class
+			fi
+			class_list+=("$drv_class")
+		done
+		IFS=$ifs
+		## control if device is compatible with new driver
+		# vendor is here clearly identified (10de).
+		device=$(cat <<< ${pci_n[@]}| grep -i "10de"|cut -d, -f3|sed -n "s/.*/\U&/g;p")
+		for comp_file in ${class_list[@]}; do
+			if [ $(grep -ic "$device" $nvcompat/$comp_file) -gt 0 ]; then
+				if [[ $comp_file =~ "$(new_version)" ]]; then
+					if [ $(printf "$comp_file"| sed -n "s/\..*$//p") -gt 304 ]; then
+						compat_sup=$(grep -im1 "$device" $nvcompat/$comp_file |\
+						sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device) .*([A-Z])$/\1;\3;\4/p")
+					else
+						compat_sup=$(grep -im1 "$device" $nvcompat/$comp_file |\
+						sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device)$/\1;\3/g;p")
+					fi
+					echo "# ($n%) - Compatiblity found in $comp_file, proceed to install"; sleep 2
+				else
+					compat_sup=$(grep -i "$device" $nvcompat/$comp_file |\
+					sed -En "s/^(.*([a-zA-Z]|[0-9])) .* ($device).*$/\1 (\3)/p")
+					error_log=$(cat <<-ERR
+						${rB}${bf}<i>COMPATIBILITY ISSUE</i>${end}${end}
+						${v}The ${j}$compat_sup${end} is not compatible with ${j}$(version)${end} driver.
+						Look for ${j}$comp_file${end} serie instead.${end}
+					ERR
+					)
+					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+					--text="$error_log" \
+					--icon-name=xkill --ok-label="Got it"
+					base_menu
+				fi
+			fi
+		done
 	fi
 }
 ## BACKUP & PROGRESS COUNT ###
@@ -2116,7 +2269,7 @@ progress(){ # OK
 }
 backup_old_version(){ # OK # TO CLEAN ?
 	[ -d $nvbackup ]|| mkdir -p $nvbackup
-	if [ -d $croot/nvidia.$bak_version ]; then
+	if [ -d $nv_root/nvidia.$bak_version ]; then
 		cd $nvbackup
 		## make the archive.
 		m=1
@@ -2131,13 +2284,13 @@ backup_old_version(){ # OK # TO CLEAN ?
 		## open-NVIDIA.conf file is not enought to tell the right way of use. User's use_open var must be saved too.
 		tar_count "tar uf nvidia.$bak_version.tar /home/$(def_user)/.zenvidia/basic.conf"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/X11/xorg.conf"
-		tar_count "tar uf nvidia.$bak_version.tar /etc/X11/worg.conf.nvidia.$bak_version"
+		tar_count "tar uf nvidia.$bak_version.tar /etc/X11/xorg.conf.nvidia"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/systemd/system/systemd-hibernate.service.wants"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/systemd/system/systemd-suspend.service.wants"
 		tar_count "tar uf nvidia.$bak_version.tar /lib/modules/$KERNEL/$(module_dest_location)/nvidia*"
 		tar_count "tar uf nvidia.$bak_version.tar /lib/firmware/nvidia/$bak_version"
-		tar_count "tar uf nvidia.$bak_version.tar $croot/nvidia"
-		tar_count "tar uf nvidia.$bak_version.tar $croot/nvidia.$bak_version"
+		tar_count "tar uf nvidia.$bak_version.tar $nv_root/nvidia"
+		tar_count "tar uf nvidia.$bak_version.tar $nv_root/nvidia.$bak_version"
 		tar_count "tar uf nvidia.$bak_version.tar /usr/lib/systemd/system/nvidia-*"
 #  		test -d /usr/$master$ELF_32/nvidia && tar_count "tar uf nvidia.$bak_version.tar /usr/$master$ELF_32/nvidia"
 #  		test -d /usr/$master$ELF_64/nvidia && tar_count "tar uf nvidia.$bak_version.tar /usr/$master$ELF_64/nvidia"
@@ -2172,7 +2325,7 @@ backup_old_version(){ # OK # TO CLEAN ?
 ## UPDATE DRIVER SECTION ###
 upgrade_new_kernel(){ # OK
 	unset kern_list
-	up_version=$(cat $nvdir/version.txt)
+	up_version=$(version)
 	ls_kern=$(ls -1 /boot| grep -v "rescue"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
 	for linuz in ${ls_kern}; do
 		kern_list+=("false")
@@ -2192,8 +2345,6 @@ upgrade_new_kernel(){ # OK
 	fi
 }
 upgrade_kernel(){ # OK
-	shared_vars
-	# install_drv ?
 	if [[ $NEW_KERNEL ]];then
 		KERNEL=$NEW_KERNEL
 	fi
@@ -2208,7 +2359,6 @@ upgrade_kernel(){ # OK
 	val_back="$MM"
 	val_cancel="base_menu" #TEXT
 	val_exit="base_menu"
-	rt_options
 	win_confirm
 	( echo "# Kernel update $KERNEL ..."
 	cd $nvdl/
@@ -2219,35 +2369,9 @@ upgrade_kernel(){ # OK
 		exit 0
 	fi
 	new_version=$version
-	backup_driver
 	) | $d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --progress --pulsate --auto-close
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/update-$KERNEL.log; fi
 	base_menu
-}
-## INSTALL OPTIONS ### (COMMON DIRS & VARS)
-shared_vars(){ # OK # FIXME ?
-	if [ ! $run_pkg ]; then
-		if [ $(printf "$LAST_PACK"| grep -c .) -gt 0 ]; then
-			new_version=$LAST_PACK	
-		else
-			new_version=$version
-		fi
-	else
-		if [ $(printf "$run_pkg"| grep -c "$version") -gt 0 ];then
-			new_version=$version
-		else
-			new_version=$(printf "$run_pkg"| sed -n "s/^.*-//p")
-		fi
-	fi
-	predifined_dir=nvidia.$new_version
-	croot_all=$croot/$predifined_dir
-	croot_32=$croot/$predifined_dir/$master$ELF_32
-	croot_64=$croot/$predifined_dir/$master$ELF_64
-	xorg_dir=$croot/$predifined_dir/xorg
-	xorg_def=/usr/$master$ELF_64/xorg
-	kernel=$(uname -r)
-	kernel_root=/lib/modules/$kernel
-	kernel_path=$kernel_root/$(module_dest_location)
 }
 ## FROM A REMOTE/USER DIRECTORY ###
 from_directory(){ # OK
@@ -2273,7 +2397,6 @@ from_directory(){ # OK
 		fi
 	}
 	home_dir(){
-# 		cd /home
 		drv_pick=$($d_zen --width=450 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia" --file-selection \
 		--filename="$(user_DL_DIR)" --file-filter=".run" \
 		--text="${j}${bf}Install from user directory${end}${end}\n${vB}Select a driver from ${j}$(def_user)${end} download directory${end}\n$loaded")
@@ -2762,7 +2885,7 @@ remove_pcks(){ # OK
 						<b>$pack_vers still exist in DKMS tree</b>.
 
 						Remove all associated package and directory ?
-						<i>(All reference in $croot will be also removed if found)</i>
+						<i>(All reference in $nv_root will be also removed if found)</i>
 
 						Please, confirm.
 					INFO
@@ -2783,14 +2906,14 @@ remove_pcks(){ # OK
 							--icon-name=xkill --error --no-wrap --text="${v}$w_text${end}" \
 							--ok-label="I understand my mistake"
 						else
-							test -d $croot/nvidia.$pack_vers && rm -Rf $croot/nvidia.$pack_vers
+							test -d $nv_root/nvidia.$pack_vers && rm -Rf $nv_root/nvidia.$pack_vers
 							rm -f $nvdl/nv-update-$pack_vers
 							$p_dkms remove nvidia/$pack_vers --all
 							test -d /var/lib/dkms/open-nvidia/$pack_vers && $p_dkms remove open-nvidia/$pack_vers --all
 						fi
 					fi
 				else
-					test -d $croot/nvidia.$pack_vers && rm -Rf $croot/nvidia.$pack_vers
+					test -d $nv_root/nvidia.$pack_vers && rm -Rf $nv_root/nvidia.$pack_vers
 					test -f $nvdl/nv-update-$pack_vers && rm -f $nvdl/nv-update-$pack_vers
 				fi
 			done
@@ -2880,7 +3003,7 @@ backup_tools(){ # OK
 	esac
 }
 backup_pcks(){ # OK
-	bak_version=$version
+	bak_version=$(version)
 	if [ -f $nvbackup/nvidia.$bak_version.tar.gz ]; then
 		$d_zen --width=250 --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Backup)" --info \
 		--icon-name=swiss_knife --no-wrap \
@@ -2905,11 +3028,12 @@ backup_pcks(){ # OK
 	fi
 }
 restore_pcks(){ # OK
+	nv_build_options
 	# list package in release directory
 	unset drive_list
 	[ -d $nvbackup ]|| mkdir -p $nvbackup
-	croot_repo=$(ls -1 $nvbackup | grep "nvidia."| sed -n "s/.tar.gz//p")
-	for drive in $croot_repo; do
+	nv_root_repo=$(ls -1 $nvbackup | grep "nvidia."| sed -n "s/.tar.gz//p")
+	for drive in $nv_root_repo; do
 		drive_list+=("false")
 		drive_list+=("$drive")
 	done
@@ -2926,14 +3050,11 @@ restore_pcks(){ # OK
 	# check that list not empty before proceed.
 	if [[ $drive_packs ]]; then
 		res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\([0-9]*\)/\1/p")
-		ver_res=$(printf "$res_version"| sed -n "s/\.//p")
-		ver_mod=$(printf "$version"| sed -n "s/\.//p")
-		old_version=$version
-		## env vars
-		croot_all=$croot/nvidia.$res_version
-		kernel_path=/lib/modules/$KERNEL/$(module_dest_location)
-		if [ ! -d $croot/$drive_packs ]; then
-			confirm_msg="${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$version${end}."
+		ver_res=$(printf "$res_version"| sed -n "s/\.//g;p")
+		ver_mod=$(printf "$(version)"| sed -n "s/\.//g;p")
+		old_version=$(version)
+		if [ ! -d $nv_root/$drive_packs ]; then
+			confirm_msg="${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$(version)${end}."
 			val_title="Zenvidia $b_mod"
 			val_confirm="Yes, restore and replace."
 			val_back="$PM"
@@ -2942,27 +3063,25 @@ restore_pcks(){ # OK
 			win_confirm
 			## $d_zen window open here.
 			{ echo "# Restoring from nvidia.$res_version.tar.gz..."; sleep 2
-			if [[ $res_version != $version ]]; then
-				rm -f /usr/$master$ELF_64/xorg/modules/extensions/libglxserver* | grep "$version"
-				rm -f $install_dir/$master$ELF_32/libnvidia-* | grep "$version"
-				rm -f $install_dir/$master$ELF_64/libnvidia-* | grep "$version"
+			if [ "$res_version" != "$(version)" ]; then
+				rm -f /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so.$(version)
+				rm -f $install_dir/$master$ELF_32/libnvidia-*.so.$(version)
+				rm -f $install_dir/$master$ELF_64/libnvidia-*.so.$(version)
 			fi
 			# p: preserve perm, h: preserve sym, f: file.
 			progress_msg(){ echo "# ($m sec.) - Restoring from nvidia.$res_version.tar.gz"; echo "$m"; }
 			m=1; progress "tar -zxf $nvbackup/nvidia.$res_version.tar.gz -C /"; rm -f $tmp_c
 			ldconfig
 			progress_msg(){ echo "# ($m sec.) - Rebuild modules dependencies (depmod)"; echo "$m"; }
-			m=1; progress "depmod -a"; rm -f $tmp_c
+			m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
 			## restore or rebuild drivers.
 			$d_modinfo -F version nvidia -k $KERNEL | grep "$res_version" &>/dev/null
 			if [ $? -eq 1 ]; then
 				echo "# Rebuilding missing $res_version drivers for $KERNEL kernel.."
 				sleep 2
-				version=$res_version
-				driver_logfile=$nvlog/$version-$KERNEL.log
+				version(){ echo $res_version; restore_msg=" (restored)";}
+				driver_logfile=$nvlog/$(version)-$KERNEL.log
 				tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-				shared_vars
-				nv_build_options
 				rt_options
 				if [ -d /usr/src/nvidia-$res_version ]||[ -d /usr/src/open-nvidia-$res_version ]; then
 					nv_cmd_dkms_conf
@@ -2978,7 +3097,6 @@ restore_pcks(){ # OK
 					echo "# FAILURE : No source directory found for $res_version"; sleep 2
 					manage_pcks
 				fi
-				backup_driver
 			else
 				echo "# Clear : $res_version modules checked in $KERNEL kernel."
 				sleep 2
@@ -2986,10 +3104,10 @@ restore_pcks(){ # OK
 			## rebuild initramfs "in case of"
 			progress_msg="Rebuilding INITRAMFS (required)\t\t\t"
 			msg_suffix=" sec."
-			progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS (required)"; echo "$m"; }
-			m=1 ; progress "$INITRAM --kver $KERNEL"; rm -f $tmp_c
+			progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS (required)"; echo "$m"; }; m=1
+			exec_mod_load
 			## remove /opt/nvidia.prev_version for compatibility future restore purpose
-			rm -Rf $croot/nvidia.$version
+			rm -Rf $nv_root/nvidia.$(version)
 			}| $d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --progress --pulsate --auto-close \
 			--text="${v}Restore driver $res_version and missing modules.${end}"
 		else
@@ -3509,7 +3627,6 @@ zen_notif_setup(){
 		setup_list+=("$st")
 		setup_list+=("$m_set")
 		if [[ $o_set == $c_set_opt ]]; then c_set_cnf=$c_set; fi
-# 		st=$[ $st+1 ]
 	done
 	w_text=$(cat <<-MSG
 		${j}${bf}Notifications config${end}${end}
@@ -3565,7 +3682,7 @@ menu_install(){
 	"${ins_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	case $menu_inst in
-		"1") menu_msg="${vB}NVIDIA package update from local dir. ${end}";  from_directory ;;
+		"1") menu_msg="${vB}NVIDIA package update from local dir. ${end}"; from_directory ;;
 		"2") menu_msg="${vB}NVIDIA package from NVIDIA server.${end}"; ui_mod=2; check_update ;;
 		*) base_menu ;;
 	esac
@@ -3754,7 +3871,35 @@ menu_manage(){
 	esac
 }
 ### RESCUE COMMAND LINE ###
-restore_cmdline(){ # TODO reload drivers and start desktop manager
+dm_serv_restore(){ # TODO Add console pid & kill to prevent double console alive after DM start.
+	unset drv_list
+	for drv in {nvidia_uvm,nvidia_drm,nvidia_modeset,nvidia}; do
+		if [ $(grep -owc "$drv" /etc/modprobe.d/blacklist.conf) -eq 0 ]; then
+		drv_list+=("$drv")
+		fi
+	done
+	echo -e "${nc}# ${yel}Unload $dkms_ins drivers if any${nc}."; sleep 2
+	modprobe -r -a ${drv_list[*]}
+	echo -e "${nc}# ${yel}Load $cmd_ver drivers${nc}."; sleep 2
+	exec_mod_load
+	echo "# Exec $KERNEL modules init/reload."; sleep 2
+	progress_msg(){ echo -en "\r${nc}#${blu} Exec $KERNEL modules initramfs ($m sec.)"; }; m=1
+	#exec_mod_load
+	exec_initramfs
+	echo -e "\n${nc}# ${yel}Done.${nc}"
+	echo -e "# ${yel}License is $license ${nc}."
+	## catch console pid here
+	if [ "$(dm_serv)" != "" ]; then
+		echo -e "# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2
+		$d_sys enable $(dm_serv).service
+		echo -e "# ${yel}Start $(dm_serv) service${nc}."; sleep 2
+		echo -e "${blu}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
+		$d_sys start $(dm_serv).service
+	else
+		echo -e "# ${yel}You can 'enable' and 'start' your Display Manager now.${nc}."
+	fi
+}
+restore_cmdline(){ # OK
 	echec=0
 	echo -e "# ${yel}Restoring $cmd_ver driver for $KERNEL${nc} :\n"
 	sleep 2
@@ -3779,7 +3924,7 @@ restore_cmdline(){ # TODO reload drivers and start desktop manager
 	ldconfig
 	echo -e "# ${blu}- Depmod $cmd_ver modules ..."
 	progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
-	m=1 ; progress "depmod -a"; rm -f $tmp_c
+	m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
 	## check modules
 	echo -e "\n${nc}# ${blu}- Testing $cmd_ver modules availbility${nc} ..."
 	vermagic=$($d_modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
@@ -3787,11 +3932,10 @@ restore_cmdline(){ # TODO reload drivers and start desktop manager
 	test $vermagic && echo -e "# ${yel}Initramfs update${nc}." || \
 	( echo -e "# ${red}Test failed${nc}."; echec=1; rebuild_cmdline )
 	sleep 2
-	progress_msg(){ echo -en "\r${nc}#${blu} - Rebuilding INITRAMFS ($m sec.)"; }
-	m=1 ; progress "$INITRAM --kver $KERNEL"; rm -f $tmp_c
 	if [ $echec = 0 ]; then
 		echo -e "\n${nc}# ${yel}Done.${nc}"
-		echo -e "# ${yel}License is $license ${nc}."
+		echo -e "# ${yel}License is $license ${nc}.\n"
+		dm_serv_restore
 	fi
 }
 rebuild_cmdline(){
@@ -3800,22 +3944,19 @@ rebuild_cmdline(){
 	fi
 	clear
 	echo -e "# ${yel}Build & Install $cmd_ver DKMS $KERNEL modules ($license) :${blu}"; sleep 2
-	if [ $(dkms status -m $module -k $KERNEL| grep -cv "added") -gt 0 ]; then
-		dkms install -m "$module/$cmd_ver" -k $KERNEL --force
+	if [ $($p_dkms status -m $module/$cmd_ver -k $KERNEL| grep -cv "added") -gt 0 ]; then
+		$p_dkms remove -m "$module/$cmd_ver" -k $KERNEL
+		$p_dkms add -m "$module/$cmd_ver" -k $KERNEL
+		$p_dkms install -m "$module/$cmd_ver" -k $KERNEL
 	else
-		dkms remove -m "$module/$cmd_ver" -k $KERNEL
-		dkms add -m "$module/$cmd_ver" -k $KERNEL
-		dkms install -m "$module/$cmd_ver" -k $KERNEL
+		$p_dkms install -m "$module/$cmd_ver" -k $KERNEL --force
 	fi
 	## recheck modules
 	vermagic=$($d_modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
 	license=$($d_modinfo -F license nvidia -k $KERNEL)
 	if [[ $vermagic ]]; then
 		echo -e "\n${nc}# ${yel}Initramfs update.${blu}"; sleep 2
-		progress_msg(){ echo -en "\r# - Rebuilding INITRAMFS ($m sec.)"; }
-		m=1 ; progress "$INITRAM --kver $KERNEL"; rm -f $tmp_c
-		echo -e "\n${nc}# ${yel}Done.${nc}"
-		echo -e "# ${yel}License is $license ${nc}."
+		dm_serv_restore
 	else
 		echo -e "\n# ${red}Failed${nc}."
 	fi
@@ -3825,7 +3966,7 @@ rescue_cmdline(){
 	clear
 	echo -e "# ${yel}Compling $module $cmd_ver sources${nc} :\n" ; sleep 2
 	kernel_module_src=/usr/src/$module-$cmd_ver
-	cd $kernel_module_src; make -j12; depmod -a
+	cd $kernel_module_src; make -j12
 	## check again
 	vermagic=$($d_modinfo -F vermagic $kernel_module_src/nvidia.*[ko\|ko.xz]| awk '{print $1}')
 	license=$($d_modinfo -F license nvidia -k $KERNEL)
@@ -3839,14 +3980,10 @@ rescue_cmdline(){
 			[ $is_RT = 0 ]|| xz -T12 $libmod/*.ko
 			echo -e "# ${blu}- Depmod $cmd_ver modules ..."
 			progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
-			m=1 ; progress "/usr/sbin/depmod $KERNEL -a"; rm -f $tmp_c
+			m=1 ; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
 			## rebuild initramfs in case of trouble booting.
 			clear
-			echo -e "\n${nc}# ${yel}Initramfs update."; sleep 2
-			progress_msg(){ echo -en "\r${nc}#${blu} - Rebuilding INITRAMFS ($m sec.)"; }
-	m=1 ; progress "$INITRAM --kver $KERNEL"; rm -f $tmp_c
-			echo -e "\n${nc}# ${yel}Done${nc}."
-			echo -e "# ${yel}License is $license ${nc}."
+			dm_serv_restore
 		fi
 	else
 		echo -e "${nc}#${red} *** Something went wrong ! ***\n${nc}#${yel} Restoration script can't proceed, exit${nc}."
@@ -3884,7 +4021,7 @@ base_menu(){
 		if [ $UID = 0 ]; then
 			echo "You have root priviledge"
 		else
-			echo "You are not root, install and download unavailable"
+			echo "You are not root (download, install, restore unavailable)"
 		fi
 	}
 	# remove deplist list in case of relaunching first because an update asking to
@@ -3903,10 +4040,10 @@ base_menu(){
 		${vB}\nSystem :\t\t${end} ${j}$DISTRO${end}
 		${vB}Processor type :\t\t${end} ${j}$ARCH${end}
 		$(devices)
-		${vB}Driver version installed : ${end}  ${j}$version${end}
+		${vB}Driver version installed : ${end}  ${j}$(version_id)${end}$restore_msg
 		${vB}Kernel version :\t\t${end} ${j}$KERNEL${end}
 		${vB}GCC version :\t\t${end} ${j}$GCC${end}
-		${vB}NVIDIA binary version :\t${end} ${j}$NV_bin_ver${end}
+		${vB}NVIDIA binary version :\t${end} ${j}$NV_bin_ver${end}$restore_msg
 		$(open_check)
 		${v}Network connection :${end}  ${j}$cnx_msg${end}
 		${v}Rights :${end}  ${j}$(right_check)${end}
@@ -3962,6 +4099,7 @@ start_cmd(){
 				   restore	-> restore driver backup.
 				   rebuild	-> rebuild driver.
 				   rescue	-> force driver build from sources.
+				   reinit	-> Rebuild initramfs and start DM.
 			HT
 			if [ $(ls -1 $nvbackup | grep -c .) -gt 0 ]; then
 				echo -e "Driver version backups :"
@@ -3973,6 +4111,7 @@ start_cmd(){
 			else
 				echo -e "Found dkms driver version : $module » $dkms_ver"
 			fi
+			echo -e "Display Manager : $(dm_serv)"
 		}
 		libmod='/lib/modules/'$KERNEL'/'$(module_dest_location)
 		echo -e "** ${red}X server not runing${nc} **"
@@ -4000,6 +4139,7 @@ start_cmd(){
 				restore) restore_cmdline ;;
 				rebuild) rebuild_cmdline ;;
 				rescue) rescue_cmdline ;;
+				reinit) dm_serv_restore;;
 				*) help_text ;;
 			esac
 		else
@@ -4028,7 +4168,7 @@ open_drv=0
 no_warn=0
 open_wrn=1
 first_open=1
-# from_install=0
+from_install=0
 ARCH=$HOSTTYPE
 
 ## ### SCRIPT INTRO ###

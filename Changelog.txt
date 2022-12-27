@@ -1,0 +1,21 @@
+* 2022-12-26 - v2.0.1
+  - In the particular circonstance of a fresh kernel update (happens to me today), only the defined module type is automaticaly compiled at boot time by DKMS daemon (open or prop). This situation wasn't expected by open driver switch tool. Now the tool have acces to recompile section for this particlar case.
+  - Distro config section at start didn't take care of sudo unknown type over a known or unknown distro. now the sudo type is ask and saved in the main script conf if not in default known distro list.
+  - Add a display manager restart/reenable function when in rescue terminal mode only (bored to type it each time when testing).  Function also reload drivers allowing to emmediatly start the DM. DM is evaluate on systemctl status. If it doesn't work for you, post a thread in discussion with the result of systemctl status [your-dm].
+  - Fix a few nutshells in README.md HELP.txt and other. I will probably find more in future.
+* 2023-01-03 - v2.0.2
+ - Found that "Update driver for an other kernel" was still using old vars and wasn't install driver in the disered kernel path. This is fixed.
+ - Found that Display Manager detection was useless if DM service was manually disable. Reworked with a 'known' dm service list (gdm,kdm,xdm,lightdm,lxdm,slim,sddm) then fall back to previous method in not found. If you have a better idea for fallback, be welcome.
+ - grub command find method was wrong, fixed.
+ - Encapsuled code for xterm process was faulty in many ways. Remove, add/remove wasn't work properly in some condition. This patch try a new process.
+ - Dkms has issues when a kernel host a driver he didn't manage and just not remove it even asked for. It happens some times too when updating a driver for an other kernel. This patch is trying to fix this.
+ - initramfs is not usefull in all circonstances. This is long and boring process to just fixing open/prop value at kernel boot.
+ The issue is that not all install dkms process take over a simple modprobe relaod and initrmafs update is still necessary.
+ For this patch, "Update driver for an other kernel" is using it , other install function use modprpobe and systemd-modules-reload service with a fallback to initrmafs update tool if systemed tool is not found.
+ - removed drive backup in nvidia's directory. It became useless.
+ - reordered shared_var process that only belonged to old script's system.
+ - zen_notify was displaying a use le blank line. This is fix (hopefuly).
+ - add a reinit command to command line rescue process that only taking care of initramfs and DM service restore.
+ - exec_mod_load take care of the installed divice when doing modprobe, could be changed to "all" if reporing issues.
+ - nv_cmd_make_src need probably to be reviewed.
+ - Else : I need a rest v_v ...

@@ -163,7 +163,7 @@ source_ctrl(){
 		popd
 }
 notifying(){
-	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "$sol${_driver_notif[@]}")"
+	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "${_driver_notif[@]}")"
 }
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"

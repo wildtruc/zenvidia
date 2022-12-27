@@ -10,7 +10,7 @@ or with desktop file from end user inface menu > settings > others menu.
 
 ### Command line
 In case of a functional Xorg server, desktop manager have to be disabled in supersuer terminal with ```systemcl disable [desktop-manager]```, then ```systemcl stop [desktop-manager]``` commands.
-Note : If nvidia-drm module option is set to 1 (use_drm=1), changing the Frame Buffer loading **nvidia-drm.modeset=1** to **0**
+Note : If nvidia-drm module option is set to 1 (use_drm=1), changing the Frame Buffer loading `nvidia-drm.modeset=1` to `0`
 in grub boot commandline menu (press **e** to edit, then **Ctrl+x** or **F10** to launch).
 Without this, you wont access the VT by Ctrl+Alt+F1 or F2.
 
@@ -106,17 +106,11 @@ It comes with 2 options:
 
 ### Help & Documentation
 No administrator priviledge required.
-**Nvidia driver manuel**
-Installed version driver manual with graphic chaptered index.
 
-**Nvidia driver Changelog**
-Installed version and general driver changelog with graphic chaptered index.
-
-**Zenvidia help text**
-Simple Zenvidia help text file display.
-
-**Zenvidia about**
-Simple Zenvidia about text file from README display.
+ - **Nvidia driver manuel** Installed version driver manual with graphic chaptered index.
+ - **Nvidia driver Changelog** Installed version and general driver changelog with graphic chaptered index.
+ - **Zenvidia help text** Simple Zenvidia help text file display.
+ - **Zenvidia about** Simple Zenvidia about text file from README display.
 
 ---------------------------------------------------------------------------------------------------
 ## Licence
