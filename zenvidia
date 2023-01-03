@@ -3830,12 +3830,12 @@ menu_modif(){
 	fi
 }
 menu_manage(){
-	check_version
+# 	check_version
 	if [ $hlp_txt = 1 ]; then
 		hlp_tip=$(
 		cat <<-TIP
 
-			${v}README and Help file from Nvidia $version and other.${end}
+			${v}README and Help file from Nvidia $(version) and other.${end}
 
 			- ${vB}Documanetation${end}:\tRead the current Nvidia help file.
 			- ${vB}Change Logs${end}:\tRead the current Nvidia changelog file.
@@ -3845,12 +3845,12 @@ menu_manage(){
 		)
 		w_height='--height=300'
 	else
-		hlp_tip="\n${v}README and Help file from Nvidia $version and other.${end}"
+		hlp_tip="\n${v}README and Help file from Nvidia $(version) and other.${end}"
 		w_height='--height=300'
 	fi
 	nm=1
 	unset mng_list
-	for mng_cmd in "Documention manual ($version)" "Change Logs ($version)" "Zenvidia Help" "About Zenvidia (README)"; do
+	for mng_cmd in "Documention manual ($(version))" "Change Logs ($(version))" "Zenvidia Help" "About Zenvidia (README)"; do
 		mng_list+=("false")
 		mng_list+=("$nm")
 		mng_list+=("$mng_cmd")
