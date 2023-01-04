@@ -19,3 +19,9 @@
  - exec_mod_load take care of the installed divice when doing modprobe, could be changed to "all" if reporing issues.
  - nv_cmd_make_src need probably to be reviewed.
  - Else : I need a rest v_v ...
+* 2023-01-04 - v2.0.3
+ - modprobe modules reload was experimented in last 'push' v2.0.2 for driver upgrade. It definively doesn't work. Initramfs update is now used only until find out a better solution. In case you this issue, just exec 'zenvidia reinit [driver_version]' when locked in terminal at boot.
+ - basic conf has been reorder to diplay important sets first and make it more readable.
+ - fixed little mistakes.
+ - issue : need to get pid when in VT mode and kill it at DM service start because the console is still active and zenvidia doesn't report the right user (root insteand of default user).
+
