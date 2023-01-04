@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 
 #  Zenvidia
 #  Sat Feb  6 16:58:20 2010
@@ -489,7 +489,7 @@ compil_vars(){ # OK
 ## define installed driver version, if any
 version_id(){ # OK
 	if [[ ! $(version) ]]; then
-		version="undefined yet"
+		echo "undefined yet"
 	else
 		echo $(version)
 	fi
@@ -1240,15 +1240,16 @@ post_install(){ # OK
 		fi
 	fi
 	n=$[ $n+2 ]; echo "$n" # 11
-	echo "# ($n%) - Blacklisting and other routines"; sleep 1
+	echo "# ($n%) - Blacklisting and other routines"; sleep 2
 	blacklist_nouveau
-	echo "# ($n%) - Updated GRUB conf for nouveau driver blacklist"; sleep 1
+	echo "# ($n%) - Updated GRUB conf for nouveau driver blacklist"; sleep 2
 	n=$[ $n+2 ]; echo "$n" # 12
 	nv_blacklist_modules_conf
 	n=$[ $n+2 ]; echo "$n" # 13
 	## clean old install dir
 	if [ -d $nv_root/nvidia.$(new_version) ]; then
 		if [ -d $nv_root/nvidia.$(old_version) ]; then
+			echo "# ($n%) - Cleaning old $(old_version) source and DKMS tree if needed."; sleep 2
 			rm -rf $nv_root/nvidia.$(old_version)
 			report_log+=("\t\t\t${gB} old version\t\t${end}> ${y}$(old_version) directory cleaned${end}.\n")
 			[ -d /var/lib/dkms/nvidia/$(old_version) ] && $p_dkms remove -m nvidia/$(old_version) --all
@@ -1256,6 +1257,7 @@ post_install(){ # OK
 			[ -d /usr/src/nvidia-$(old_version) ] && rm -rf /usr/src/nvidia-$(old_version)
 			[ -d /usr/src/open-nvidia-$(old_version) ] && rm -rf /usr/src/open-nvidia-$(old_version)
 			report_log+=("\t\t\t${gB} old source\t\t${end}> ${y}All $(old_version) version cleaned${end}.\n")
+			n=$[ $n+2 ]; echo "$n" # 14
 		fi
 	fi
 }
@@ -2018,7 +2020,7 @@ install_drv(){ # OK
 		echo "# ($n%) - Starting install"; sleep 1
 		## create base libs install directories
 		for d in "$nv_root/$predifined_dir $nv_root/nvidia.$(new_version)/$master$ELF_32 $nv_root/nvidia.$(new_version)/$master$ELF_64 $nv_xorg_dir"; do
-			mkdir -p $d
+			test -d $d || mkdir -p $d
 		done
 		cd $nv_root
 		# nv_cmd processes (install without X crash )
@@ -2029,18 +2031,22 @@ install_drv(){ # OK
 		. $tmp_b
 # 		n=$[ $p+$n ]; echo "$n" # 3 # n=$[ $n+6 ]
 		n=$[ $n+6 ]; echo "$n" # 3 # n=$[ $n+6 ]
+# 		p=$[ $p+$n ]; n=$p; echo "$n"
+
 		if [ $pass -eq 0 ]; then
 		## rebuild initramfs or modprobe reload.
 			## TODO looking for simpler process ? exec_mod_load to test
 			progress_msg(){ echo "# ($m%) - Exec $KERNEL modules init/reload"; echo "$m"; }; m=$n
 			# m=$n ; progress "$INITRAM --kver $KERNEL"
-			if [ $(nv_new) -gt $(nv_old) ]; then
-				exec_initramfs
-			else
-				exec_mod_load
-			fi
+			exec_initramfs
+			. $tmp_c
+# 			if [ $(nv_new) -gt $(nv_old) ]; then
+# 				exec_initramfs
+# 				. $tmp_c
+# 			else
+# 				exec_mod_load ; n=$[ $n+20 ]
+# 			fi
 		fi
-		. $tmp_c
 		echo "$n"
 		install_log_messages
 		install_error_log
@@ -2089,7 +2095,7 @@ install_drv(){ # OK
 		else
 			echo "# ($n%) - nv-update-$(new_version) already present in path, skip"; sleep 1
 		fi
-		n=$[ $n+1 ]; echo "$n" # 7
+		n=$[ $n+2 ]; echo "$n" # 7
 		post_install
 		echo "99"; sleep 2
 		echo "100"
@@ -3882,21 +3888,21 @@ dm_serv_restore(){ # TODO Add console pid & kill to prevent double console alive
 	modprobe -r -a ${drv_list[*]}
 	echo -e "${nc}# ${yel}Load $cmd_ver drivers${nc}."; sleep 2
 	exec_mod_load
-	echo "# Exec $KERNEL modules init/reload."; sleep 2
-	progress_msg(){ echo -en "\r${nc}#${blu} Exec $KERNEL modules initramfs ($m sec.)"; }; m=1
+	echo "${nc}# ${yel}Exec $KERNEL modules init/reload."; sleep 2
+	progress_msg(){ echo -en "\r${nc}#${blu} ($m sec.) Exec $KERNEL modules initramfs."; }; m=1
 	#exec_mod_load
 	exec_initramfs
 	echo -e "\n${nc}# ${yel}Done.${nc}"
 	echo -e "# ${yel}License is $license ${nc}."
 	## catch console pid here
 	if [ "$(dm_serv)" != "" ]; then
-		echo -e "# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2
+		echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2
 		$d_sys enable $(dm_serv).service
-		echo -e "# ${yel}Start $(dm_serv) service${nc}."; sleep 2
+		echo -e "${nc}# ${yel}Start $(dm_serv) service${nc}."; sleep 2
 		echo -e "${blu}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
 		$d_sys start $(dm_serv).service
 	else
-		echo -e "# ${yel}You can 'enable' and 'start' your Display Manager now.${nc}."
+		echo -e "${nc}# ${yel}You can 'enable' and 'start' your Display Manager now.${nc}."
 	fi
 }
 restore_cmdline(){ # OK
@@ -4084,10 +4090,10 @@ install_controls(){
 	fi
 }
 start_cmd(){
-	## check option presenet in "$1"
-	if [[ $cmd_opt != '' ]]; then
-		$($cmd_opt)
-	fi
+## this for function testing only in "$1"
+# 	if [[ $cmd_opt != '' ]]; then
+# 		$($cmd_opt)
+# 	fi
 	## check if X server is off before lauching cmd line tools.
 # 	xprop -root &>/dev/null
 # 	if [ $? -gt 0 ]; then
@@ -4197,7 +4203,6 @@ fi
 zen_colors
 # pick all necessary env Definition
 compil_vars
-version_id
 PCI_ID
 ## pick cmd line options if any (X server off only).
 cmd_opt=$1; cmd_ver=$2
