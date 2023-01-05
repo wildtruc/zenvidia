@@ -971,8 +971,8 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 				switch_txt="DRIVER SWITCH from DKMS $drv_on build"
 			## Switch exec start here
 			{	echo "# Switching from $drv_off to $drv_on."
-				if [ -d /var/lib/dkms/$drv_on/$version/$KERNEL/$ARCH/module ]; then
-					cp -f /var/lib/dkms/$drv_on/$version/$KERNEL/$ARCH/module/* $kernel_path/
+				if [ -d /var/lib/dkms/$drv_on/$(version)/$KERNEL/$ARCH/module ]; then
+					cp -f /var/lib/dkms/$drv_on/$(version)/$KERNEL/$ARCH/module/* $kernel_path/
 					echo -e "# Depmod $KERNEL modules ..."
 					sleep 2
 					progress_msg(){ echo -e "# Depmod $KERNEL modules ($m sec.)"; }
@@ -1012,11 +1012,11 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 				sleep 2
 				## set DKMS AUTOINSTALL values for each driver type.
 				echo "# Set $drv_on DKMS AUTOINSTALL option to \"yes\"."
-				echo -e "AUTOINSTALL=\"yes\"" >> /usr/src/$drv_on-$version/dkms.conf
-				sed -Ei "s/AUTOINSTALL=\".*\"//" /usr/src/$drv_off-$version/dkms.conf
+				echo -e "AUTOINSTALL=\"yes\"" >> /usr/src/$drv_on-$(version)/dkms.conf
+				sed -Ei "s/AUTOINSTALL=\".*\"//" /usr/src/$drv_off-$(version)/dkms.conf
 				## remove blank lines ?
 				#sed -n "/^[[:space:]]*$/d;s/^\ //i;p" /usr/src/nvidia-$version/dkms.conf
-				sed -n "s/AUTOINSTALL.*$/*/i;{/^.*\*$/d;s/^\ //i;p}" /usr/src/$drv_off-$version/dkms.conf
+				sed -n "s/AUTOINSTALL.*$/*/i;{/^.*\*$/d;s/^\ //i;p}" /usr/src/$drv_off-$(version)/dkms.conf
 				## set diplayed license by driver type.
 				sleep 2
 				echo "# Reboot for $drv_on to take effect."
@@ -1041,10 +1041,10 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 			## remove dkms driver tree.
 			{	sleep 2
 				echo "# Remove open source drivers from DKMS tree"
-				/usr/sbin/dkms remove -m "open-nvidia"/$version -all
+				/usr/sbin/dkms remove -m "open-nvidia"/$(version) -all
 				sleep 2
 				echo "# Restoring default Nvidia drivers."
-				cp -f /var/lib/dkms/nvidia/$version/$KERNEL/$ARCH/module/* $kernel_path/
+				cp -f /var/lib/dkms/nvidia/$(version)/$KERNEL/$ARCH/module/* $kernel_path/
 				sleep 2
 				echo "# Executing depmod"
 # 				depmod -a -kver $KERNEL
@@ -1059,11 +1059,11 @@ nv_open_switch(){ # OK # TODO remove blank lines ?
 					exit 1
 				fi
 				echo "# Set Nvidia DKMS AUTOINSTALL option to \"yes\"."
-				echo -e "AUTOINSTALL=\"yes\"" >> /usr/src/nvidia-$version/dkms.conf
-				sed -Ei "s/AUTOINSTALL=\".*\"//" /usr/src/open-nvidia-$version/dkms.conf
+				echo -e "AUTOINSTALL=\"yes\"" >> /usr/src/nvidia-$(version)/dkms.conf
+				sed -Ei "s/AUTOINSTALL=\".*\"//" /usr/src/open-nvidia-$(version)/dkms.conf
 				## remove blank lines ?
-				#sed -n "/^[[:space:]]*$/d;s/^\ //i;p" /usr/src/nvidia-$version/dkms.conf
-				sed -n "s/AUTOINSTALL.*$/*/i;{/^.*\*$/d;s/^\ //i;p}" /usr/src/nvidia-$version/dkms.conf
+				#sed -n "/^[[:space:]]*$/d;s/^\ //i;p" /usr/src/nvidia-$(version)/dkms.conf
+				sed -n "s/AUTOINSTALL.*$/*/i;{/^.*\*$/d;s/^\ //i;p}" /usr/src/nvidia-$(version)/dkms.conf
 				sleep 2
 				echo "# Unset $drv_off kernel options (if any)."
 				[ -f $probe_open ]&& rm -f $probe_open
@@ -2793,7 +2793,8 @@ win_open_switch(){ # OK
 		old_use_open=$use_open
 		_text=$( cat <<-MSG
 			${j}${bf}Driver switch${end}${end}
-			${v}Driver type selection (open source / proprietary).${end}
+			${v}Driver type selection (open source / proprietary).
+			<i>(driver license $($d_modinfo -F license nvidia -k $KERNEL) loaded)</i>${end}
 		MSG
 		)
 		_title="Zenvidia (tools)"
@@ -3877,32 +3878,38 @@ menu_manage(){
 	esac
 }
 ### RESCUE COMMAND LINE ###
-dm_serv_restore(){ # TODO Add console pid & kill to prevent double console alive after DM start.
-	unset drv_list
+dm_serv_restore(){ # OK
 	for drv in {nvidia_uvm,nvidia_drm,nvidia_modeset,nvidia}; do
 		if [ $(grep -owc "$drv" /etc/modprobe.d/blacklist.conf) -eq 0 ]; then
 		drv_list+=("$drv")
 		fi
 	done
+	test $echec = 0 && ( echo -e "${nc}# ${yel}DM and $dkms_ins drivers re-init :${nc}" )
 	echo -e "${nc}# ${yel}Unload $dkms_ins drivers if any${nc}."; sleep 2
 	modprobe -r -a ${drv_list[*]}
 	echo -e "${nc}# ${yel}Load $cmd_ver drivers${nc}."; sleep 2
 	exec_mod_load
-	echo "${nc}# ${yel}Exec $KERNEL modules init/reload."; sleep 2
+	echo -e "${nc}# ${yel}Exec $KERNEL modules init/reload."; sleep 2
 	progress_msg(){ echo -en "\r${nc}#${blu} ($m sec.) Exec $KERNEL modules initramfs."; }; m=1
 	#exec_mod_load
-	exec_initramfs
+	#exec_initramfs
 	echo -e "\n${nc}# ${yel}Done.${nc}"
 	echo -e "# ${yel}License is $license ${nc}."
 	## catch console pid here
 	if [ "$(dm_serv)" != "" ]; then
-		echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2
+		test $($d_sys status $(dm_serv) | grep -c "disabled") -gt 0 && (
+		echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2; )
 		$d_sys enable $(dm_serv).service
 		echo -e "${nc}# ${yel}Start $(dm_serv) service${nc}."; sleep 2
 		echo -e "${blu}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
 		$d_sys start $(dm_serv).service
 	else
 		echo -e "${nc}# ${yel}You can 'enable' and 'start' your Display Manager now.${nc}."
+	fi
+	## trying to kill console root's tty.
+	if [ $(w | grep -c "root.*tty") -gt 0 ]; then
+		sleep 40
+		pkill -9 -t $(w | grep "root.*tty" | awk '{print $2}')
 	fi
 }
 restore_cmdline(){ # OK
