@@ -3210,6 +3210,16 @@ edit_script_conf(){ # OK
 			fi
 		fi
 	done
+	## if open_drv is change, DKMS autoinstall boot time command has to be change by adding the blank file
+	## 'no-autoinstall' in /etc/dkms directory. Method seems to work without issue except for package manager
+	## udpate program that apprently need 'autoinstall all' to be set (fedora here).
+	if [ $open_drv -ne $old_open_drv ]; then
+		if [ $open_drv = 1 ]; then
+			touch /etc/dkms/no-autoinstall
+		else
+			test -f /etc/dkms/no-autoinstall && rm -f /etc/dkms/no-autoinstall
+		fi
+	fi
 	## if use_open is change, then apply open/close source switch.
 	if [ $use_open -ne $old_use_open ]; then
 		w_text=$( cat <<-WRN
@@ -3892,7 +3902,7 @@ dm_serv_restore(){ # OK
 	echo -e "${nc}# ${yel}Exec $KERNEL modules init/reload."; sleep 2
 	progress_msg(){ echo -en "\r${nc}#${blu} ($m sec.) Exec $KERNEL modules initramfs."; }; m=1
 	#exec_mod_load
-	#exec_initramfs
+	exec_initramfs
 	echo -e "\n${nc}# ${yel}Done.${nc}"
 	echo -e "# ${yel}License is $license ${nc}."
 	## catch console pid here
@@ -4173,7 +4183,7 @@ start_cmd(){
 ## configuration file
 if [ ! -s $script_conf ]; then $d_zen --window-icon=$img_zen_desktop --width=250 --error --icon-name=xkill --text="Script's config file missing."; exit 0; fi
 ## set default or null value before conf files reading.
-use_dkms=1
+use_dkms=1	# TODO FIXME make use_dkms default and remove var.
 use_uvm=0
 use_drm=1
 use_open=0
