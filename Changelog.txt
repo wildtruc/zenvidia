@@ -5,14 +5,14 @@
   - Fix a few nutshells in README.md HELP.txt and other. I will probably find more in future.
 * 2023-01-03 - v2.0.2
  - Found that "Update driver for an other kernel" was still using old vars and wasn't install driver in the disered kernel path. This is fixed.
- - Found that Display Manager detection was useless if DM service was manually disable. Reworked with a 'known' dm service list (gdm,kdm,xdm,lightdm,lxdm,slim,sddm) then fall back to previous method in not found. If you have a better idea for fallback, be welcome.
+ - Found that Display Manager detection was useless if DM service was manually disable. Reworked with a 'known' dm service list (gdm,kdm,xdm,lightdm,lxdm,slim,sddm) then fall back to previous method if not found. If you have a better idea for fallback, be welcome.
  - grub command find method was wrong, fixed.
  - Encapsuled code for xterm process was faulty in many ways. Remove, add/remove wasn't work properly in some condition. This patch try a new process.
  - Dkms has issues when a kernel host a driver he didn't manage and just not remove it even asked for. It happens some times too when updating a driver for an other kernel. This patch is trying to fix this.
  - initramfs is not usefull in all circonstances. This is long and boring process to just fixing open/prop value at kernel boot.
  The issue is that not all install dkms process take over a simple modprobe relaod and initrmafs update is still necessary.
  For this patch, "Update driver for an other kernel" is using it , other install function use modprpobe and systemd-modules-reload service with a fallback to initrmafs update tool if systemed tool is not found.
- - removed drive backup in nvidia's directory. It became useless.
+ - removed driver backup in nvidia's directory. It became useless.
  - reordered shared_var process that only belonged to old script's system.
  - zen_notify was displaying a use le blank line. This is fix (hopefuly).
  - add a reinit command to command line rescue process that only taking care of initramfs and DM service restore.
@@ -23,5 +23,10 @@
  - modprobe modules reload was experimented in last 'push' v2.0.2 for driver upgrade. It definively doesn't work. Initramfs update is now used only until find out a better solution. In case you this issue, just exec 'zenvidia reinit [driver_version]' when locked in terminal at boot.
  - basic conf has been reorder to diplay important sets first and make it more readable.
  - fixed little mistakes.
- - issue : need to get pid when in VT mode and kill it at DM service start because the console is still active and zenvidia doesn't report the right user (root insteand of default user).
+ - issue : need to get pid when in VT mode and kill it at DM service start because the console is still active and zenvidia doesn't report the right user (root instead of default user).
+* 2023-01-05 - v2.0.4
+ - Forgot to update "open driver switch" to new 'version' detection function. Fixed ( Yeah, not my best swing...)
+ - Found a way to kill extra root tty when starting from console. Now the pid is auto killed after DM start.
+ - Trying to find a way to prevent wrong driver to be compiled at boot time (case mutli versions present in DKMS /var/lib). DKMS seems to like the higher version even if a lower is installed.
+
 
