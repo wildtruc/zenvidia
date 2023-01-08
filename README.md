@@ -4,6 +4,17 @@ This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
+## FAST NEW
+Driver version 525.78.01 give error at nvidia-drm driver load wirh nvidia.drm-modeset=1.
+Work arround is to unset nvidia.drm-modeset=1 to 0 in `/etc/default/grub` then launch in cmmand line (su) :
+`grub2-mkconfig -o /boot/grub2/grub.cnf` and reboot.
+
+or to unset at boot time by editing grub menu (with 'e') before laucnhing.
+
+You just would prefer to switch back to 525.60.11/13 during the wait for a patch. I will push it as soon as possible. there is change in script I need to test before push it to git.
+
+
+---------------------------------------------------------------------------------------------------
 ## WARNINGS
 No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
 
@@ -96,13 +107,13 @@ From desktop :
 With **end user interface menu > settings > others menu**.
 
 ### Command line
-Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command.
+Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
 
-Note : Grub option `nvidia-drm.modeset=1` activate the plymouth splash screen and prevent switching to VT Console With Ctrl+Alt+F(x). If set, it is mandatory to change this option to `0` and have access to Terminal.
+Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen and prevent switching to TTY console with Ctrl+Alt+F(x). If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.
 
 ```zenvidia [command] [version]```
 
-command are : _restore, rebuild, rescue_.
+command are : _restore, rebuild, rescue, reinit_.
 
 version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
 
@@ -142,15 +153,10 @@ Options could be manage through Zenvidia > Configuration and Tools menu.
 
 ---------------------------------------------------------------------------------------------------
 ## Know issues
-On drivers installation, the system will register the license of the installed module (NVIDIA/Dual MIT-GPL).
-When switching between module type, boot loader wont display the license of the switched module but the previous one.
-This not fatal and everything (known) is working flawlessly.
-It could be probably fixed by an initramfs update at switch time, but until users meet real problematic issues, it wont be done.
-
 Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
 
-I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown".
-If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules** menu to fix.
+I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown". It was hopfully fixed in v2.0.5.
+If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules**. Other method is to restart the PC and use in console mode the rescue command line `zenvida rebuilmd [driver version]` after disabled in grub starting menu the value `nvidia-drm.modeset=1` to `0`.
 
 ---------------------------------------------------------------------------------------------------
 ## Licence
