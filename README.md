@@ -4,15 +4,20 @@ This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
-## FAST NEW
+## FAST ISSUE NEWS
 Driver version 525.78.01 give error at nvidia-drm driver load wirh nvidia.drm-modeset=1.
-Work arround is to unset nvidia.drm-modeset=1 to 0 in `/etc/default/grub` then launch in cmmand line (su) :
-`grub2-mkconfig -o /boot/grub2/grub.cnf` and reboot.
 
-or to unset at boot time by editing grub menu (with 'e') before laucnhing.
+## FIX : 2023-01-08 - v2.0.5
+Add a custom line in basic config file to set, unset nvidia.drm-modeset grub option. I will prevent of this kind of issue.
 
-You just would prefer to switch back to 525.60.11/13 during the wait for a patch. I will push it as soon as possible. there is change in script I need to test before push it to git.
+You can add it by yourself the custom line in your local basic conf at the end of the first section (~/.zenvidia/basic.conf) :
+```
+# Activate plymouth splash screen (nvidia-drm.modeset) : (1) or not (0)
+drm_modset=0
+```
+Then launch **Update driver only (dkms)** in **Update drivers and modules**. Grub will be automaticaly updated.
 
+See Changelog.txt for other changes and issues.
 
 ---------------------------------------------------------------------------------------------------
 ## WARNINGS

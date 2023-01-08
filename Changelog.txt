@@ -25,8 +25,16 @@
  - fixed little mistakes.
  - issue : need to get pid when in VT mode and kill it at DM service start because the console is still active and zenvidia doesn't report the right user (root instead of default user).
 * 2023-01-05 - v2.0.4
- - Forgot to update "open driver switch" to new 'version' detection function. Fixed ( Yeah, not my best swing...)
+ - Forgot to update 'open driver switch' to new 'version' detection function. Fixed ( Yeah, not my best swing...)
  - Found a way to kill extra root tty when starting from console. Now the pid is auto killed after DM start.
  - Trying to find a way to prevent wrong driver to be compiled at boot time (case mutli versions present in DKMS /var/lib). DKMS seems to like the higher version even if a lower is installed.
-
+* 2023-01-08 - v2.0.5 (with 525.78.01 fix)
+ - INCLUDE FAST FIX: Driver version 525.78.01 give error at nvidia-drm driver load with nvidia.drm-modeset=1. This patch look in basic conf for a custom setting of nvidia.drm-modeset to overwrite automation. Read README to how add the custom line in basic file. Or remove local basic conf to get shipped default.
+ This was made in emergency, some issues could appears because of the changes below.
+ - After research and tests, it appears adding the dedicted DKMS blank file 'no-autoinstall' in /etc/dkms allow to build only the authorized dkms.conf file with 'AUTOINSTALL=yes' to be compile at boot time. This is now how zenvidia works.
+ However, the distro package updater (fedora dnf in my case) seems needing the DKMS option 'autoinstall -all' to be set at kernel update, and thus, package install scripts don't compile the driver. This is absolutly not fatal, juste anoying.
+ Note that if you have other drivers to be compile at boot time, you need to add in their dkms.conf file the option 'AUTOINSTALL=yes'; if you don't, they just wont compile at a new kernel update.
+ - Looking for a way to use initramfs divert tools without put it in distro configuration files. Known tools are : dracut, update-initramfs, mkinitcpio. Script now look up to this tools in the describe order then autoconfig it internaly to exec initramfs reload. If none is found, it ask to proceed with modprobe reload only with a warn about consequencies or abort.
+ Because of the fast fix, distro's config files are not update yet.
+ - Devs have change something in version changelog text I didn't look into yet that prevent last changes to be read correctly.
 
