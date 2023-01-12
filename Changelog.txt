@@ -37,4 +37,8 @@
  - Looking for a way to use initramfs divert tools without put it in distro configuration files. Known tools are : dracut, update-initramfs, mkinitcpio. Script now look up to this tools in the describe order then autoconfig it internaly to exec initramfs reload. If none is found, it ask to proceed with modprobe reload only with a warn about consequencies or abort.
  Because of the fast fix, distro's config files are not update yet.
  - Devs have change something in version changelog text I didn't look into yet that prevent last changes to be read correctly.
-
+* 2023-01-12 - v2.0.6
+ - Changelog text file reading is fix (found some mistakes by the way). Hoping my dear lovely trolls wont change something else at next version :).
+ - Fixed base menu display that suddently change for an absolutly unknown reason O_o. If you meet Zenity display issues, please tell it in Discussion section.
+ - Zen Notify git repos part wasn't report and display correcty needed messages. It's hopefuly fixed. Complete change log can be found in default user zenvidia's directory (.zenvidia/src/zen_git.log).
+ - A few moves in script syntax. I keep going deeper into the code until my thought tell me that everything is stable enought.

@@ -127,39 +127,46 @@ fi
 }
 source_ctrl(){
 	if [ $driver_up -gt 0 ]; then notif_txt='and Zenvidia'; line='\n'; else notif_txt='Zenvidia'; line=''; fi
-	tmp_git_src=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
+ 	tmp_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
+	tmp_git_src=$(mktemp -d --tmpdir tmp_git.XXX)
 	CHECK_GIT_REPO(){
 		local_date=$(env LANG=En_en date +%Y''%m''%d)
-		git_rm_log=$(git whatchanged origin -n 1)
-		git_rm_msg=$(git log origin -n 1| sed -n '$p')
 		# extract date from log
-		git_rm_fetch_date=$(echo "$git_rm_log" | grep -i "date" | awk '{print $3" "$4" "$6}')
-		# convert date to comparable number.
+		git_rm_fetch_date=$(git log origin -n 1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
+		# convert date to comparable number
 		git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
+		# extract version line
+		git_rm_version=$(git log origin -n 1 | egrep "v[0-9].[0-9].[0-9]{,2}")
 		# extract log change from remote
-		git_rm_fetch_pull=$(echo "$git_rm_log" | grep "^:[0-9]")
+		git_rm_fetch_log=$(git log origin -n 1 | sed -n "/-/,/-/p")
+
+		if [ -d $tmp_git_local ]; then
+			pushd $tmp_git_local
+			git fetch origin
+			git_local_change=$(git whatchanged origin -n 1 | grep "^:" | awk '{print $6}')
+			popd
+			for change in ${git_local_change[@]}; do
+				git_change_msg+=$(sed -En "s/^(.*)$/* \1\n\t /g;p" <<< $change)
+			done
+		fi
 		if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
-			echo -e "$git_rm_fetch_date :$git_rm_msg\n$git_rm_fetch_pull" &>>$local_src/zen_git.log
+			cat <<-LOG >> $local_src/zen_git.log
+				$git_rm_fetch_date :$git_rm_version
+				$git_rm_fetch_log
+				    Changed remote file(s) :
+				     ${git_change_msg[@]}
+			LOG
 		fi
 		if [[ $git_rm_date -le $local_date ]]; then
 			notif_msg+="$notif_txt "
-			_driver_notif+=("$line\zenvidia git repo update.\n($git_rm_fetch_date)")
+			_driver_notif+=("$line\zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
 		fi
 	}
-		# check for a diff in origin.
+		# clone .git dir only to get changes.
 		pushd $tmp_git_src
-		git fetch --dry-run origin &>$local_src/git_fetch.log
-		# if yes, fetch local with headers
-		if [ $(grep -c "master" $local_src/git_fetch.log ) -gt 0 ]; then
- 		#	git fetch -n origin # no tags
-			git fetch origin
-			CHECK_GIT_REPO
-		else
-		# if fetch is empty, check if git data are recently 'pull', else, do nothing.
-			if [ $(cat .git/logs/HEAD|sed -n '$p'|grep -c "pull\|clone") -eq 0 ]; then
-				CHECK_GIT_REPO
-			fi
-		fi
+		git clone -n --depth=1 $zenvidia_git .
+		# then check diff in date, then in data if local repos exist.
+		CHECK_GIT_REPO
 		popd
 }
 notifying(){
