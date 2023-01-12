@@ -18,6 +18,8 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
 
+# set -E
+
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
@@ -31,7 +33,7 @@ nvdl="$nvdir/release"							# downlaod driver backups directory
 nvbackup="$nvdir/backups"
 nvcompat="$nvdir/compats"
 ### NVIDIA-INSTALLER VARS ###					# nvidia-installer option: install temp dir
-help_pages="$install_dir/share/doc/NVIDIA_GLX-1.0"
+nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
 zen_docs="$install_dir/share/doc/zenvidia"
 docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
@@ -346,6 +348,9 @@ zen_colors(){ # OK
 	jB='<span color="'$log_warn'" weight="bold" font_family="'$font0'">'
 	gB='<span color="'$log_grn'" weight="bold" font_family="'$font0'">'
 	rB='<span color="'$log_err'" weight="bold" font_family="'$font0'">'
+	# grey dash
+	# 	ge='<span color="#68686F" weight="bold">' #68686F
+	ge='<span color="#68686F">'
 	## xterm colors
 	xt_colors='-fg '$fg_xterm' -bg '$bg_xterm
 	xN='\e[0m'
@@ -1305,6 +1310,16 @@ post_install(){ # OK
 	echo "# ($n%) - Blacklist conf update if needed"; sleep 2
 	nv_blacklist_modules_conf
 	n=$[ $n+2 ]; echo "$n" # 13
+	## NVIDIA_GLX-1.0 changelog file is replace even if the file is older than the installed one.
+	## To prevent overwwrite in case of downgrade, file copied in zenvidia doc dir, then update
+	## if changelog file is newer than the previous.
+	if [ -f $zen_docs/NVIDIA_Changelog ]; then
+		if [ $zen_docs/NVIDIA_Changelog -ot $nvi_docs/NVIDIA_Changelog ]; then
+			cp -f $nvi_docs/NVIDIA_Changelog $zen_docs/
+		fi
+	else
+		cp -f $nvi_docs/NVIDIA_Changelog $zen_docs/
+	fi
 	## clean old install dir
 	if [ -d $nv_root/nvidia.$(new_version) ]; then
 		if [ -d $nv_root/nvidia.$(old_version) ]; then
@@ -2575,17 +2590,18 @@ check_update(){ # OK
 			if_prev=$(echo "${COMP_I[*]}"| grep -c "$DEV_nm")
 			## eval text to display in window message.
 			if [[ -n $DEV_filter ]]; then
-				if [ $VDPAU != '' ]; then
-					comp_v="(VDPAU class $VDPAU)"
-				else
-					comp_v=""	
-				fi
-				comp_b="compatible. $comp_v"
-				comp_c="${v}fit your hadrware${end}"
+# 				if [ $VDPAU != '' ]; then
+# 					comp_v="(VDPAU class $VDPAU)"
+# 				else
+# 					comp_v=""
+# 				fi
+# 				comp_b="compatible. $comp_v"
+				comp_b="compatible"
+				comp_c="${v}fit your hadrware${end} ${y}$(echo -e '\u2764')${end}" # or 2714
 				comp_check=0
 			else
-				comp_b="${vB}is compatible${end}"
-				comp_c="${rB}doesn't fit your hadrware anymore${end}"
+				comp_b="${vB}uncompatible${end}"
+				comp_c="${rB}doesn't manage your hadrware anymore${end}"
 				comp_check=1
 				comp_v=""
 			fi
@@ -2636,9 +2652,19 @@ win_update(){ # OK
 				_drive=$(echo "$more_drv"|cut -d',' -f2)
 				case $_exist in
 					0) more_msg+=( "\n${j}$_drive${end}${vB} is not in your repository.${end}" ) ;;
-					1) more_msg+=( "\n${j}$_drive${end}${vB} is in your repository.${end}${v}$set_in${end}" ) ;;
+					1) if [ "$LAST_BETA" == "$LAST_DRV" ]; then
+							if [ ${#more_msg[*]} -eq 0 ]; then
+							more_msg+="\n${j}$_drive${end}${vB} is in your repository.${end}${v}$set_in${end}"
+							fi
+						else
+							more_msg+=( "\n${j}$_drive${end}${vB} is in your repository.${end}${v}$set_in${end}" )
+						fi
+					;;
 				esac
 			done
+# 			if [ "$LAST_BETA" == "$LAST_DRV" ]; then
+#
+# 			fi
 			start_msg=$(cat <<< ${more_msg[@]})
 			end_msg="What do you want to do ?"
 			w_add='+65'
@@ -2676,16 +2702,19 @@ win_update(){ # OK
 			extra_msg="${v}What do you want to do ?${end}";;
 	esac
 	w_text=$(cat <<-MSG
-		${yB}${bf}Available drivers${end}${end}
-		${v}Driver version installed :${end}\t\t${j}$LAST_IN${end}
-		${v}The official version is : ${end}\t\t\t${j}$LAST_DRV${end}
-		${v}The last bêta is :${end}\t\t\t${j}$LAST_BETA${end}
+		${jB}${bf}Available drivers${end}${end}
+
+		${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$LAST_IN${end}
+		${v}The official version is :${end}${ge}  - - - - - - ${end}${y}$LAST_DRV${end}
+		${v}The last beta is :${end}${ge}   - - - - - - - - - - ${end}${y}$LAST_BETA${end}
+
 		$compat_msg
 		$dl_warn_msg
 		$extra_msg
 	MSG
 	)
-	sel_cmd=$($d_zen --width=450 --height=$w_height --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+	w_height=180
+	sel_cmd=$($d_zen --width=300 --height=$w_height --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
 	--text="$w_text" $table_opts $list_opts )
 	if [ $? = 0 ]; then
 		case $ui_mod in
@@ -3561,7 +3590,7 @@ read_nv_help(){ # OK
 	w_height='--height=500'
 	if [[ ${#chapter_index[@]} -le 1 ]]; then
 		unset chapter_index chapters_list
-		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/p" $help_pages/README.txt | sed -n "/^___.*$/,/^___.*$/p"| egrep "^Chapter|^Appendix")
+		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/p" $nvi_docs/README.txt | sed -n "/^___.*$/,/^___.*$/p"| egrep "^Chapter|^Appendix")
 		for chapter in ${chapters_list[@]}; do
 			chapter_index+=("FALSE")
 			chapter_index+=("$chapter")
@@ -3578,7 +3607,7 @@ read_nv_help(){ # OK
 		chap_start=$(printf "$index"| sed -n "s/(.*)//g;p")
 		## then if chapter tag is not empty, dispaly chapter.
 		chap_end=$(egrep -A1 "$chap_start" <<< $chapters_list | sed -n 2p | sed -n "s/(.*)//g;p")
-		chap_brief="$chap_start : "$(sed -En "/^$chap_start/,/^$chap_end/p" $help_pages/README.txt | sed -En "/^____/,/^____/p")
+		chap_brief="$chap_start : "$(sed -En "/^$chap_start/,/^$chap_end/p" $nvi_docs/README.txt | sed -En "/^____/,/^____/p")
 		$d_zen --width=600 --height=400 --title="Zenvidia" --text-info \
 		--ok-label="Back to index" --cancel-label="Exit to main" \
 		cat <<< "$chap_brief"
@@ -3589,21 +3618,28 @@ read_nv_help(){ # OK
 		menu_manage
  	fi
 }
-read_changelog(){ # OK
+read_changelog(){ # FIXME changelog writer is anoying.
 	unset entry_list entrylog_list
 	IFS=$(echo -en "\n\b")
 	w_height='--height=500'
-	relist_title=''
+	relist_title=''; catch_title=''; txt_val=0
 	brief(){
 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
 			log_brief=$( cat <<-BRIEF
 			Nvidia changelog ( $entrylog ) :
-			$(cat $help_pages/NVIDIA_Changelog | \
-			sed -En "/$entrylog/,/$log_end/p"| \
-			sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
+			$log_brief
 			BRIEF
 			)
 		else
+# 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
+# 			log_brief=$( cat <<-BRIEF
+# 			Nvidia changelog ( $entrylog ) :
+# 			$(cat $zen_docs/NVIDIA_Changelog | \
+# 			sed -En "/$entrylog/,/$log_end/p"| \
+# 			sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
+# 			BRIEF
+# 			)
+# 		else
 			log_brief=$(echo -e "Nvidia changelog ( $entrylog ) :\n\nNothing to display here.\n\nLog file empty.")
 		fi
 			$d_zen --width=600 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop --text-info \
@@ -3644,13 +3680,26 @@ read_changelog(){ # OK
 				menu_manage
 			fi
 		else
-			if [ "$entrylog" != '' ]; then
-			log_end=$(egrep -A1 "$entrylog" <<< $entry_list| sed -n 2p)
-			log_list=$(cat $help_pages/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
-			sed -n "s/^===.*$//g;p")
+			if [[ $entrylog != '' ]]; then
+				if [ $txt_val = 1 ]&&[ $(egrep -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
+					log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
+					log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
+					sed -n "s/^===.*$//g;p")
+				else
+					log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
+					[ "$log_end" != "" ] || log_end="====.*$"
+					log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
+					sed -n "s/^===.*$//g;p")
+				fi
+
 				if [[ $relist_title != '' ]]; then
-					log_brief=$(cat $help_pages/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
-					sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
+					if [ $txt_val = 1 ]&&[ $(egrep -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
+						log_brief=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
+						sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
+					else
+						log_brief=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
+						sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
+					fi
 					brief
 				else
 					log_brief=$(cat <<< $log_list | sed -En "s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}" )
@@ -3660,15 +3709,23 @@ read_changelog(){ # OK
 			fi
 		fi
 	}
-	entry_list=$(egrep -e "=====" $help_pages/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
+	entry_list=$(egrep -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
 	relist
 	if [[ $log_list =~ .*[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-		unset entry_list entrylog_list
-		entry_list=$(cat <<< $log_list | egrep ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"|sed -En "s/ ([0-9]{4})/\n\1/g;p" )
-		relist_title=": ${y}$entrylog${end}"
+		unset entry_list entrylog_list entry_catch
+		if [ $(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$") -gt 0 ]; then
+			txt_key="$(cat <<< $log_brief | sed -n '1p' | grep "\* [A-Z].*$"|sed -n "s/\* //g;p")"
+			txt_val=$(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$")
+			entry_list+=("First $entrylog Log")
+		fi
+		entry_catch=$(cat <<< $log_list | egrep ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"|sed -En "s/ ([0-9]{4})/\1/g;p")
+		for catch in ${entry_catch[*]}; do
+			entry_list+=("$catch")
+		done
+		relist_title=": ${y}$entrylog${end}"; catch_title=$entrylog
 		relist
 	else
-		relist_title=''
+		relist_title=''; catch_title=''
 		brief
 	fi
 	IFS=$ifs
@@ -3682,7 +3739,7 @@ nv_config(){ # OK
 zen_notif_setup(){
 	setup_validation(){
 		notif=$($d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia notification" --question --no-wrap \
-		--text="${vB}Autostart launcher set to ${j}$_notif${end}${end}" \
+		--text="${vB}Autostart launcher will be set to :\n<b>></b>${end} ${j}$_notif${end}" \
 		--ok-label="Ok" --cancel-label="$PM")
 		if [ $? = 1 ]; then menu_modif; fi
 		sed -Ei "s/(Exec=zen_notify) -[a-z]/\1 $_set/" $desk_file
@@ -3716,9 +3773,11 @@ zen_notif_setup(){
 		setup_list+=("$st")
 		setup_list+=("$m_set")
 		if [[ $o_set == $c_set_opt ]]; then c_set_cnf=$c_set; fi
+		((st++))
 	done
 	w_text=$(cat <<-MSG
 		${j}${bf}Notifications config${end}${end}
+
 		${vB}Notification is currently set to:
 		> ${j}$c_set_cnf${end}${end}
 	MSG
@@ -3828,11 +3887,11 @@ menu_update(){
 		case $menu_upd in
 			"1") menu_msg="${v}Check driver updates list${end}"; ui_mod=1; check_update ;;
 			"2") menu_msg="${v}Build module for current kernel (dkms)${end}"
-					upgrade_other=0; use_dkms=1; upgrade_kernel; base_menu ;;
+					upgrade_other=0; upgrade_kernel; base_menu ;;
 			"3") menu_msg="${v}Build module for current kernel (force)${end}"
 					upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
 			"4") menu_msg="${v}Build module for the selected kernel (dkms)${end}"
-					upgrade_other=1; use_dkms=1; upgrade_new_kernel; base_menu ;;
+					upgrade_other=1; upgrade_new_kernel; base_menu ;;
 			*) base_menu ;;
 		esac
 	fi
@@ -3895,24 +3954,24 @@ menu_modif(){
 	if [ $? = 1 ]; then base_menu; fi
 	if [ $open_drv -gt 0 ]; then
 		case $menu_mod in
-			"1") test $UID = 0 && win_open_switch || is_SU; menu_modif;;
-			"2") from_install=0; test $UID = 0 && edit_xorg_conf || is_SU; menu_modif;;
+			"1") if [ $UID = 0 ]; then win_open_switch; else  is_SU; menu_modif; fi;;
+			"2") from_install=0; if [ $UID = 0 ]; then edit_xorg_conf; else is_SU; menu_modif; fi;;
 			"3") edit_script_conf ;;
 			"4") edit_color_conf ;;
 			"5") nv_config ;;
-			"6") test $UID = 0 && edit_distro_conf || is_SU; menu_modif;;
-			"7") test $UID = 0 && manage_pcks || is_SU; menu_modif;;
+			"6") if [ $UID = 0 ]; then edit_distro_conf; else is_SU; menu_modif; fi;;
+			"7") if [ $UID = 0 ]; then manage_pcks; else is_SU; menu_modif; fi;;
 			"8") zen_notif_setup ;;
 			*) base_menu ;;
 		esac
 	else
 		case $menu_mod in
-			"1") from_install=0; test $UID = 0 && edit_xorg_conf || is_SU; menu_modif;;
+			"1") from_install=0; if [ $UID = 0 ]; then edit_xorg_conf; else is_SU; menu_modif; fi;;
 			"2") edit_script_conf ;;
 			"3") edit_color_conf ;;
 			"4") nv_config ;;
-			"5") test $UID = 0 && edit_distro_conf || is_SU; menu_modif;;
-			"6") test $UID = 0 && manage_pcks || is_SU; menu_modif;;
+			"5") if [ $UID = 0 ]; then edit_distro_conf; else is_SU; menu_modif; fi;;
+			"6") if [ $UID = 0 ]; then manage_pcks; else is_SU; menu_modif; fi;;
 			"7") zen_notif_setup ;;
 			*) base_menu ;;
 		esac
@@ -4099,7 +4158,7 @@ is_SU(){
 base_menu(){
 	devices(){
 	for e in $pci_dev_nb; do
-		printf "${vB}Card %s :\t\t\t${end} ${j}${dev[$e]}\t($(printf "${vnd[$e]}"|awk '{print $1}'))${end}\n" $((${dev_n[$e]}+1))
+		printf "${vB}Card %s :${end}${ge} - - - - - - - - - ${end}${j}${dev[$e]} ($(printf "${vnd[$e]}"|awk '{print $1}'))${end}\n" $((${dev_n[$e]}+1))
 	done
 	}
 	open_check(){
@@ -4107,53 +4166,75 @@ base_menu(){
 		if [ $use_open ]; then
 			if [ $use_open = 1 ]; then open_used=" and in use\n"; else open_used=", but unused\n"; fi
 		else
-			open_used=", closed source used\n"priviledge_msg
+			open_used=", closed source used\n"
 		fi
-		printf "${vB}Open Source modules :\t ${end}${j} installed$open_used${end}"
+		printf "${vB}Open Source modules :${end}${ge}     ${end}${j}installed$open_used${end}"
 	fi
 	}
 	right_check(){
 		if [ $UID = 0 ]; then
 			echo "You have root priviledge"
 		else
-			echo "You are not root (download, install, restore unavailable)"
+			echo "You are not root\n(download, install, restore unavailable)"
 		fi
 	}
 	# remove deplist list in case of relaunching first because an update asking to
 	unset deplist
-	w_height=450
+	w_height=300
 	hlp_tip_txt=$( cat <<-HLP
 		Help tips text is currently set. You can unset it at any
 		moment in: ${j}Configuration and Tools${end} menu » ${j}Edit script config${end}.\n\n"
 	HLP
 	)
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
+# 	window_text=$( cat <<-MSG
+# 		                            ${rBB}ZENVIDIA${end}
+# 		                         ${y}${nf}Close and Open Source
+# 		                         Nvidia drivers manager${end}${end}
+# 		${vB}\nSystem :${end}${ge}  - - - - - - - ${end}${j}$DISTRO${end}
+# 		${vB}Processor type :${end}${ge} - - ${end}${j}$ARCH${end}
+# 		$(devices)
+#
+# 		${vB}Driver version installed :${end} ${j}$(version_id)${end}$restore_msg
+# 		${vB}Kernel version :${end}${ge}  - - - - - - ${end}${j}$KERNEL${end}
+# 		${vB}GCC version :${end}${ge} - - - - - - - - ${end}${j}$GCC${end}
+# 		${vB}NVIDIA binary version :${end}${ge} - ${end}${j}$NV_bin_ver${end}$restore_msg
+# 		$(open_check)
+# 		${v}Network connection :${end} ${j}$cnx_msg${end}
+# 		${v}Rights :${end} ${j}$(right_check)${end}
+#
+# 		${v}$hlp_wrn$ansWN${end}
+# 	MSG
+# 	)
 	window_text=$( cat <<-MSG
-		${rBB}\t\t   ZENVIDIA${end}
-		${y}${nf}\t\t   Close and Open Source
-		\t\t   Nvidia drivers manager${end}${end}
-		${vB}\nSystem :\t\t${end} ${j}$DISTRO${end}
-		${vB}Processor type :\t\t${end} ${j}$ARCH${end}
+		                            ${rBB}ZENVIDIA${end}
+		                         ${y}${nf}Close and Open Source
+		                         Nvidia drivers manager${end}${end}
+		${vB}\nSystem :${end}${ge}  - - - - - - - - ${end}${j}$DISTRO${end}
+		${vB}Processor type :${end}${ge} - - ${end}${j}$ARCH${end}
 		$(devices)
-		${vB}Driver version installed : ${end}  ${j}$(version_id)${end}$restore_msg
-		${vB}Kernel version :\t\t${end} ${j}$KERNEL${end}
-		${vB}GCC version :\t\t${end} ${j}$GCC${end}
-		${vB}NVIDIA binary version :\t${end} ${j}$NV_bin_ver${end}$restore_msg
+
+		${vB}Driver version installed :${end} ${j}$(version_id)${end}$restore_msg
+		${vB}Kernel version :${end}${ge}  - - - - - - -  ${end}${j}$KERNEL${end}
+		${vB}GCC version :${end}${ge}  - - - - - - - - -  ${end}${j}$GCC${end}
+		${vB}NVIDIA binary version :${end}${ge}    ${end}${j}$NV_bin_ver${end}$restore_msg
 		$(open_check)
-		${v}Network connection :${end}  ${j}$cnx_msg${end}
-		${v}Rights :${end}  ${j}$(right_check)${end}
+		${v}Network connection :${end} ${j}$cnx_msg${end}
+		${v}Rights :${end} ${j}$(right_check)${end}
 
 		${v}$hlp_wrn$ansWN${end}
 	MSG
 	)
-	menu_cmd=$($d_zen --width=400 --height=$w_height --title="Zenvidia" --list --window-icon=$img_zen_desktop \
+	menu_cmd=$($d_zen --width=380 --height=$w_height --title="Zenvidia" --list --window-icon=$img_zen_desktop \
 	--radiolist --hide-header --column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	--text="$window_text" \
 	false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
 	if [ $? = 1 ]; then exit 0; fi
 	case $menu_cmd in
-		"1") if_update=0; test $UID = 0 && initramfs_warn; menu_install || is_SU; base_menu;;
-		"2") if_update=1; test $UID = 0 && initramfs_warn; menu_update || is_SU; base_menu;;
+# 		"1") if_update=0; test $UID = 0 && initramfs_warn; menu_install || is_SU; base_menu;;
+# 		"2") if_update=1; test $UID = 0 && initramfs_warn; menu_update || is_SU; base_menu;;
+		"1") if_update=0; if [ $UID = 0 ]; then initramfs_warn; menu_install; else is_SU; base_menu; fi;;
+		"2") if_update=1; if [ $UID = 0 ]; then initramfs_warn; menu_update; else is_SU; base_menu; fi;;
 		"3") if_update=1; menu_modif ;;
 		"4") if_update=1; menu_manage ;;
 		*) exit 0 ;;
