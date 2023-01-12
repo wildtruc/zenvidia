@@ -5,26 +5,6 @@ This is a bash/zenity script for managing NVIDIA© propriatary drivers.
 Actual version pretty name : 2.0
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
- <b># WARNINGS</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-No Bumblebee/Prime support, see nvidia-prime-select for this. If it's not out of date.
-( <i>https://github.com/wildtruc/nvidia-prime-select</i> )
-
-The Distro Configuration file has been tested under Fedora only. Users working with other distros have to
-check distro conf manually. See <b>Configurtaion and Tools</b> for special distro config edit.
-
-This version brought many changes. Saved your confs, if any, and make a fresh isntall. Default install
-directory has been changed to <i>/usr/local/zenvidia</i>.
-
-oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
- <b># Notice</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Project not maintained. No warranty support. Just as it is.
-Dicussion is still open in Zenvidia's git <b>Discussion</b> section.
-Wiki is out of date.
-Language is English only (translations removed).
-
-oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># History</b>
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 I started Zenvidia several years ago in a background of non existent Nvidia drivers managed by distros.
@@ -52,6 +32,46 @@ there's any equals in the whole linux community.
 Note that the script even if it does less than before is doing more.
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ <b># Features</b>
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ <b>Driver install</b>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	- from local package.
+	- from a dowloaded package.
+	- from NVIDIA server.
+
+ <b>Updates</b>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	- driver updates check.
+	- New kernel update (with dkms).
+
+ <b>Configuration & Tools</b>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	- Edit xorg.conf file.
+	- Edit Zenvidia config file.
+	- Start Nvidia-Settings.
+	- Installed driver mangagement (remove, backups).
+
+ <b>Help & Documentation</b>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	No administrator priviledge required.
+	- Nvidia driver manuel
+	  Installed version driver manual with graphic chaptered index.
+	- Nvidia driver Changelog
+	  Installed version and general driver changelog with graphic chaptered index.
+	- Zenvidia help text
+	  Simple Zenvidia help text file display.
+	- Zenvidia About text
+	  About Zenvidia text file display.
+
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ <b>Configuration</b>
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Most part of Zenvidia is configurable.
+Script automaticaly update many of them during execution and game of Q&A.
+Options could be manage through Zenvidia > Configuration and Tools menu.
+
+oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Install</b>
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>Zenvidia</b>
@@ -69,6 +89,8 @@ superuser terminal window :
 	  <i>make uninstall</i>
 	# to remove safely (doesn't remove downloaded driver packages)
 	  <i>make safeuninstall</i>
+	# to update :
+	  <i>make update</i>
 And :
 	<b>zen_start</b> (in a superuser terminal window)
 Or by the desktop menu entry in Setting menu.
@@ -102,46 +124,6 @@ Desktop manager have to be shutdown with systemcl disable <b>desktop-manager</b>
 	<b>zenvidia [command] [version]</b>
 command are : _restore, rebuild, rescue_.
 version is the desired driver version <i>(displayed with zenvidia command alone with X server off)</i>.
-
-oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
- <b># Features</b>
-oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
- <b>Driver install</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	- from local package.
-	- from a dowloaded package.
-	- from NVIDIA server.
- 
- <b>Updates</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	- driver updates check.
-	- New kernel update (with dkms).
-
- <b>Configuration & Tools</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	- Edit xorg.conf file.
-	- Edit Zenvidia config file.
-	- Start Nvidia-Settings.
-	- Installed driver mangagement (remove, backups).
-
- <b>Help & Documentation</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	No administrator priviledge required.
-	- Nvidia driver manuel
-	  Installed version driver manual with graphic chaptered index.
-	- Nvidia driver Changelog
-	  Installed version and general driver changelog with graphic chaptered index.
-	- Zenvidia help text
-	  Simple Zenvidia help text file display.
-	- Zenvidia About text
-	  About Zenvidia text file display.
-
-oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
- <b>Configuration</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Most part of Zenvidia is configurable.
-Script automaticaly update many of them during execution and game of Q&A.
-Options could be manage through Zenvidia > Configuration and Tools menu.
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Licence</b>

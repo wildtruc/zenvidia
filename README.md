@@ -4,22 +4,6 @@ This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
 Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
-## FAST ISSUE NEWS
-Driver version 525.78.01 give error at nvidia-drm driver load wirh nvidia.drm-modeset=1.
-
-## FIX : 2023-01-08 - v2.0.5
-Add a custom line in basic config file to set, unset nvidia.drm-modeset grub option. I will prevent of this kind of issue.
-
-You can add it by yourself the custom line in your local basic conf at the end of the first section (~/.zenvidia/basic.conf) :
-```
-# Activate plymouth splash screen (nvidia-drm.modeset) : (1) or not (0)
-drm_modset=0
-```
-Then launch **Update driver only (dkms)** in **Update drivers and modules**. Grub will be automaticaly updated.
-
-See Changelog.txt for other changes and issues.
-
----------------------------------------------------------------------------------------------------
 ## WARNINGS
 No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
 
@@ -31,28 +15,58 @@ No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildt
 Project not maintained. No waranty support. Just as it is.
 Update will be made only on my own bugs discovery or from fatal error send by users in **Discussion** threads.
 
-Exchange are still open in thgis ssame Zenvidia's git **Discussion** section.
+Exchange are still open in this ssame Zenvidia's git **Discussion** section.
 
 Wiki is out of date.
 
 Language is English only.
 
 ---------------------------------------------------------------------------------------------------
-## History
-I started Zenvidia several years ago in a background of non existent Nvidia drivers managed by distros. I builded it with a light knowledge of bash code I was learning on the scratch and with the only goal of my own use.
-I finally brought it to the community, with all my knowledge gaps, and maintained it for a couples of years until my health prevent me to go on.
-I throw the sponge, hoping someone somewhere one day will continue or make a new one.
+## Know issues
+Driver version 525.78.01 give error at nvidia-drm driver load wirh nvidia.drm-modeset=1 (fix in v2.0.5).
 
-Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, Zenvidia was still more flexible.
+Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
 
-Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys!:joy:), event not a possibility to test and switch back.
-And as always, I decided to put that in Zenvidia.
-Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me at least 2 month to understand the clean way to make a fast switch and even wash the code of all the useless things.
+I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown". It was hopfully fixed in v2.0.5.
+If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules**.
 
-Now it's done and tested in almost all weirdest way ( I do very strange things some time) and there is still some [issues](#Known Issues).
-The code wont be maintain, just because of me, I just hope people will enjoy using it, because I don't think there's any equals in the whole linux community.
+Other method is to restart the PC and use in console TTY mode the rescue command line `zenvida rebuild [driver version]` after disabled in grub starting menu the value `nvidia-drm.modeset=1` to `0`.
 
-Note that the script even if it does less than before is doing more.
+See Changelog.txt for other changes and discovered issues.
+
+---------------------------------------------------------------------------------------------------
+## Features
+### Driver install
+ - from local package.
+ - from a dowloaded package.
+ - from NVIDIA server.
+
+### Updates
+ - driver updates check.
+ - New kernel update (with dkms).
+
+### Configuration & Tools
+ - Open driver switch tool (available when open_drv set to 1)
+ - Edit xorg.conf file.
+ - Edit Zenvidia config file.
+ - Edit font color config file.
+ - Start Nvidia-Settings for default user.
+ - Installed driver mangagement (remove, backups).
+ - Zenvidia notification config.
+
+### Help & Documentation
+No administrator priviledge required.
+ - Nvidia driver manuel : Installed version driver manual with graphic chaptered index.
+ - Nvidia driver Changelog : Installed version and general driver changelog with graphic chaptered index.
+ - Zenvidia help text : Simple Zenvidia help text file display.
+ - Zenvidia About text : About Zenvidia text file display.
+
+---------------------------------------------------------------------------------------------------
+## Configuration
+Most part of Zenvidia is configurable.
+
+Script automaticaly update many of them during execution and game of Q&A.
+Options could be manage through Zenvidia > Configuration and Tools menu.
 
 ---------------------------------------------------------------------------------------------------
 ## Install
@@ -75,6 +89,8 @@ As superuser :
   make uninstall
   # to remove safely (doesn't remove downloaded driver packages)
   make safeuninstall
+  # to update :
+  make update
 ```
 And :
 Through terminal command line for GUI.
@@ -123,45 +139,21 @@ command are : _restore, rebuild, rescue, reinit_.
 version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
 
 ---------------------------------------------------------------------------------------------------
-## Features
-### Driver install
- - from local package.
- - from a dowloaded package.
- - from NVIDIA server.
- 
-### Updates
- - driver updates check.
- - New kernel update (with dkms).
+## History
+I started Zenvidia several years ago in a background of non existent Nvidia drivers managed by distros. I builded it with a light knowledge of bash code I was learning on the scratch and with the only goal of my own use.
+I finally brought it to the community, with all my knowledge gaps, and maintained it for a couples of years until my health prevent me to go on.
+I throw the sponge, hoping someone somewhere one day will continue or make a new one.
 
-### Configuration & Tools
- - Open driver switch tool (available when open_drv set to 1)
- - Edit xorg.conf file.
- - Edit Zenvidia config file.
- - Edit font color config file.
- - Start Nvidia-Settings for default user.
- - Installed driver mangagement (remove, backups).
- - Zenvidia notification config.
+Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, Zenvidia was still more flexible.
 
-### Help & Documentation
-No administrator priviledge required.
- - Nvidia driver manuel : Installed version driver manual with graphic chaptered index.
- - Nvidia driver Changelog : Installed version and general driver changelog with graphic chaptered index.
- - Zenvidia help text : Simple Zenvidia help text file display.
- - Zenvidia About text : About Zenvidia text file display.
+Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys!:joy:), event not a possibility to test and switch back.
+And as always, I decided to put that in Zenvidia.
+Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me at least 2 month to understand the clean way to make a fast switch and even wash the code of all the useless things.
 
----------------------------------------------------------------------------------------------------
-## Configuration
-Most part of Zenvidia is configurable.
+Now it's done and tested in almost all weirdest way ( I do very strange things some time) and there is still some [issues](#Known Issues).
+The code wont be maintain, just because of me, I just hope people will enjoy using it, because I don't think there's any equals in the whole linux community.
 
-Script automaticaly update many of them during execution and game of Q&A.
-Options could be manage through Zenvidia > Configuration and Tools menu.
-
----------------------------------------------------------------------------------------------------
-## Know issues
-Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
-
-I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown". It was hopfully fixed in v2.0.5.
-If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules**. Other method is to restart the PC and use in console mode the rescue command line `zenvida rebuilmd [driver version]` after disabled in grub starting menu the value `nvidia-drm.modeset=1` to `0`.
+Note that the script even if it does less than before is doing more.
 
 ---------------------------------------------------------------------------------------------------
 ## Licence
