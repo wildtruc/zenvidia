@@ -42,3 +42,6 @@
  - Fixed base menu display that suddently change for an absolutly unknown reason O_o. If you meet Zenity display issues, please tell it in Discussion section.
  - Zen Notify git repos part wasn't report and display correcty needed messages. It's hopefuly fixed. Complete change log can be found in default user zenvidia's directory (.zenvidia/src/zen_git.log).
  - A few moves in script syntax. I keep going deeper into the code until my thought tell me that everything is stable enought.
+* 2023-01-15 - v2.0.7
+ - zen_notify option command '-z' (driver and zenvidia update notification) wasn't report and fill changelog and notfication correctly (wrong comparative date check). This is fixed ... probably.
+ - uploaded admended distro config files.
