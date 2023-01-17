@@ -9,7 +9,8 @@ No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildt
 
 **The Distro Configuration file has been testeed under Fedora only. Users working with other distros have to check distro conf manually.**
 
-**This version brought many changes. Saved your confs, if any, and make a fresh install**. Default install directory has been changed to /usr/local/zenvidia.
+**This version brought many changes. Saved your confs, if any, and make a fresh install**.
+Default install directory has been changed to /usr/local/zenvidia.
 
 ## Notice
 Project not maintained. No waranty support. Just as it is.
@@ -22,8 +23,26 @@ Wiki is out of date.
 Language is English only.
 
 ---------------------------------------------------------------------------------------------------
-## Know issues
-Driver version 525.78.01 give error at nvidia-drm driver load wirh nvidia.drm-modeset=1 (fix in v2.0.5).
+## Important change log notes
+v2.0.8 introduced the option `exec_mod_tool` in basic config allowing when set to `0` to use initramfs tool for all install/upgrade/update processes. Set to `1`, only install/upgrade use it, other use modprobe relaod method. Default is :
+```
+# Use modules reload instead of initramfs tool (exec_mod_tool) : (1) or not (0)
+exec_mod_tool=1
+```
+
+
+v2.0.5 unset DKMS `autoinstall all` to allow only the loaded driver (open or closed source) to be compile at kernel upgrade boot time. If you have some extra drivers to be also compiled at kernel upgrade, add in driver's DKMS config file `AUTOINSTALL=yes` (do not add AUTOINSTALL=no, it doesn't work and breaks dkms conf).
+
+
+v2.0.5 FIX : Driver version 525.78.01 give error at nvidia-drm driver load with nvidia.drm-modeset=1 that starting plymouth splash screen. Option `drm_modset` has been introduced in basic config file to set/unset nvidia.drm-modeset in grub command line and could be manualy modified (.zenvidia/basic.conf). Default is :
+```
+# Activate plymouth splash screen (nvidia-drm.modeset) : (1) or not (0)
+drm_modset=0
+```
+
+---------------------------------------------------------------------------------------------------
+## Known issues
+Driver version 525.78.01 give error at nvidia-drm driver load with nvidia.drm-modeset=1 (fix in v2.0.5).
 
 Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
 
@@ -66,7 +85,7 @@ No administrator priviledge required.
 Most part of Zenvidia is configurable.
 
 Script automaticaly update many of them during execution and game of Q&A.
-Options could be manage through Zenvidia > Configuration and Tools menu.
+Options could be manage through **Zenvidia** > **Configuration and Tools** menu.
 
 ---------------------------------------------------------------------------------------------------
 ## Install
@@ -146,7 +165,7 @@ I throw the sponge, hoping someone somewhere one day will continue or make a new
 
 Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, Zenvidia was still more flexible.
 
-Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys!:joy:), event not a possibility to test and switch back.
+Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys! :yum: ), event not a possibility to test and switch back.
 And as always, I decided to put that in Zenvidia.
 Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me at least 2 month to understand the clean way to make a fast switch and even wash the code of all the useless things.
 

@@ -45,3 +45,9 @@
 * 2023-01-15 - v2.0.7
  - zen_notify option command '-z' (driver and zenvidia update notification) wasn't report and fill changelog and notfication correctly (wrong comparative date check). This is fixed ... probably.
  - uploaded admended distro config files.
+* 2023-01-17 - v2.0.8
+ - add a Zenvidia changes log reader. Useless, therefore obviously a mandatory feature.
+ - Trying to find a way to not use initramfs_tools and was partly successful. All update modules tools works fine without rebuilding initramfs, but install and upgrade section still need it. Add an option in basic config file to set/unset use of initramfs that could be usefull in futur and present if user want to use initramfs only for all purpose or issue. Still diging.
+ - Changed for a lighter method to discover needed system commands (dkms, lspci, etc).
+ - Little review of dep_control function to diplay missing dependencies list instead of just warn.
+
