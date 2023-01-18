@@ -24,6 +24,12 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+**2023-01-18 Issue found in zen_notify**.
+The git fetch command in local repo is inappropriate. do not use `-z` zen_notif option until the fixing.
+
+It will be necessary to re-clone local Zenvidia dir after this.
+
+
 v2.0.8 introduced the option `exec_mod_tool` in basic config allowing when set to `0` to use initramfs tool for all install/upgrade/update processes. Set to `1`, only install/upgrade use it, other use modprobe relaod method. Default is :
 ```
 # Use modules reload instead of initramfs tool (exec_mod_tool) : (1) or not (0)
