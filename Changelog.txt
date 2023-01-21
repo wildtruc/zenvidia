@@ -50,7 +50,7 @@
  - Trying to find a way to not use initramfs_tools and was partly successful. All update modules tools works fine without rebuilding initramfs, but install and upgrade section still need it. Add an option in basic config file to set/unset use of initramfs that could be usefull in futur and present if user want to use initramfs only for all purpose or issue. Still diging.
  - Changed for a lighter method to discover needed system commands (dkms, lspci, etc).
  - Little review of dep_control function to diplay missing dependencies list instead of just warn.
-* 2023-01-19 - v2.0.9
+* 2023-01-21 - v2.0.9
  - Went to last update to fast and didn't test zen_notify enought. I'm not a great git syntax user and it appears that using 'git fetch' on the downloaded zenvidia git repo wasn't a good idea. I wished to add last updated files in zenvidia log, but it's now certain that it couldn't be done with git only. So, only change log is now added (this change log), and put an issue alert if new mistake and so on, pops up... again.
  - Globally, my apologies. Yes, this is not the last...
  - Archive restore DKMS section was wrong and give wrong version number that removed ... the restored nvidia dir at the end u_u. Plus, when DKMS process engage for modules build, old version were wrongly define, then dkms wont installed nothing because the restored version were lower than the already present one. This a dkms limitation. Fixed.
