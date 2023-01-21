@@ -28,8 +28,9 @@ deficon=swiss_knife
 [ $script_conf ] || exit 0
 . $script_conf
 . $basic_conf
-## script need to sleep during the desktop session boot time.
-# sleep 20
+## script could need to sleep during the desktop session boot time.
+## to uncomment only in case of session autostart notif issue.
+# sleep 15
 ifs=$IFS
 
 [ -d $nvtmp ] || mkdir -p $nvtmp
@@ -40,6 +41,9 @@ last_update=$nvtmp/last_update
 last_beta=$nvtmp/last_beta
 local_src=$local_nvdir/src
 [ -d $local_src ] || mkdir -p $local_src
+## reset all notif display options
+driver_up=0
+zen_up=0
 
 if [[ ! -e home/$USER/.config/autostart/zen_notify.desktop ]]; then
 	zen_git=$(find -P $HOME -maxdepth 4 -name "zenvidia")
@@ -52,6 +56,8 @@ driver_ctrl(){
 wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
 ## get latest.txt file.
 wget -q -O $last_update https://$nvidia_ftp-$ARCH/latest.txt
+## latest.txt fiel dfine current official version.
+## end of all driver list define the beta version if different from diiferent of official.
 cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $drv_list
 cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
 LAST_DRV=$(cat $last_update | awk '{ print $1 }')
@@ -86,14 +92,11 @@ else
 	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
 	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
 fi
+# be sure that version found are a non 0 value.
 [ $beta_short -gt 0 ]|| beta_short=0
 [ $version -gt 0 ]|| version=0
-if [ $beta_short -gt 0 ]; then
-	if [ $beta_short -eq $offi_short ]; then
-		DRV_LIST=( "$LAST_DRV, official and beta drivers,$offi_short" )
-	else
-		DRV_LIST=( "$LAST_DRV, official driver,$offi_short" "$LAST_BETA, beta driver,$beta_short" )
-	fi
+if [ $beta_short -gt 0 ]&&[ $beta_short -ne $offi_short ]; then
+	DRV_LIST=( "$LAST_DRV, official driver,$offi_short" "$LAST_BETA, beta driver,$beta_short" )
 else
 	DRV_LIST=( "$LAST_DRV, official drivers,$offi_short" )
 fi
@@ -117,17 +120,17 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
 		notif_msg+='Nvidia driver '
 		driver_up=1
-	else
-		driver_up=0
 	fi
 	IFS=$ifs
-else
-	driver_up=0
 fi
 }
 source_ctrl(){
-	if [ $driver_up -gt 0 ]; then notif_txt='and Zenvidia'; line='\n'; else notif_txt='Zenvidia'; line=''; fi
- 	tmp_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
+	if [ $driver_up -gt 0 ]; then
+	notif_txt='and Zenvidia'; line='\n'
+	else
+	notif_txt='Zenvidia'; line=''
+	fi
+ 	rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
 	tmp_git_src=$(mktemp -d --tmpdir tmp_git.XXX)
 	IFS=$(echo -en "\n\b")
 	CHECK_GIT_REPO(){
@@ -137,47 +140,57 @@ source_ctrl(){
 		# convert date to comparable number
 		git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
 		# extract version line
-		git_rm_version=$(git log origin -n 1 | egrep "v[0-9].[0-9].[0-9]{,2}")
-		if [ -d $tmp_git_local ]; then
-			pushd $tmp_git_local
-			# before acting, we need to know the last pull record in local dir.
+		git_rm_version=$(git log origin -n 1 | egrep -o "v[0-9].[0-9].[0-9]{,2}")
+		git_local_verion=$(cat $local_nvdir/zen_version)
+ 		git_rm_fetch_log=$(git log origin -n 1 | sed -n "/-/,/-/p")
+		# before acting, we need to know the last pull record in local dir.
+		if [ $rep_git_local ]; then
+			pushd $rep_git_local
 			git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
 			git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
-			# then, ftech and look into local git repos.
-			git fetch origin
-			# check if mutiple entries exist and use pre_local_change var as number of push for version.
-			pre_local_change=$(git whatchanged origin | grep -c "$git_rm_version")
-			git_rm_fetch_log=$(git log origin -n $pre_local_change | sed -n "/-/,/-/p")
-			git_local_change=$(git whatchanged origin -n $pre_local_change | grep "^:" | awk '{print $6}')
 			popd
-			if [ ${#git_local_change[*]} -gt 0 ]; then
-				# format files change list.
-				for change in ${git_local_change[@]}; do
-					git_change_msg+=$(echo -e "$change"|sed -En "s/^(.*)$/* \1\n     /g;p")
-				done
-			fi
-			if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
-				# be sure than a change log line exist. In none, just display files list.
+			zen_up=1
+		fi
+		# then, we need to know if log is about version update or issue warning message.
+		# log and issue is mandatory formated with a '-' in commit message.
+		if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
+			if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_verion" ]; then
 				if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
-				cat <<-LOG >> $local_src/zen_git.log
-					$git_rm_fetch_date :$git_rm_version
-					$git_rm_fetch_log
-					     Changed remote file(s) :
-					     ${git_change_msg[@]}
-				LOG
-				else
-				cat <<-LOG >> $local_src/zen_git.log
-					$git_rm_fetch_date :$git_rm_version
-					     Changed remote file(s) :
-					     ${git_change_msg[@]}
-				LOG
+					cat <<-LOG >> $local_src/zen_git.log
+						$git_rm_fetch_date :$git_rm_version
+						$git_rm_fetch_log
+					LOG
+					issue=0
+				fi
+			else
+				if [ $(grep -c "issue" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+					issue=1
+					git_rm_warn_log=$(cut -d'-' -f2 <<< ${git_rm_fetch_log[*]})
 				fi
 			fi
 		fi
-		if [ $git_pull_date -lt $git_rm_date ]; then
+		# do we have a driver upodate message ?
+		if [ ${#_driver_notif[*]} -gt 0 ]; then
 			# if last pull/clone date is lower than the remote's, display update message.
-			notif_msg+="$notif_txt "
-			_driver_notif+=("$line\zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
+			if [ $git_pull_date -lt $git_rm_date ]; then
+				# is the log message an issue warning ?
+				if [ $issue = 0 ]; then
+					notif_msg+="$notif_txt "
+					_driver_notif+=("$line\zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
+				else
+					notif_msg+="$notif_txt "
+					_driver_notif+=("$line\zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
+				fi
+			fi
+		else
+		# if driver update none, only display warning message, if exist.
+		# compare repos date for the same reason than above.
+			if [ $git_pull_date -lt $git_rm_date ]; then
+				if [ $issue = 1 ]; then
+					notif_msg+="$notif_txt "
+					_driver_notif+=("$line\zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
+				fi
+			fi
 		fi
 	}
 	# clone remote .git dir only to get changes.
@@ -189,7 +202,10 @@ source_ctrl(){
 	IFS=$ifs
 }
 notifying(){
-	notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "${_driver_notif[@]}")"
+	# only display notif if driver_ctrl or source_ctrl are true.
+	if [[ $driver_up -gt 0 || $zen_up -gt 0 ]]; then
+		notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "${_driver_notif[@]}")"
+	fi
 }
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"
@@ -207,8 +223,9 @@ while [ $# -gt 0 ]
 		source_ctrl
 		notifying
 		;;
-		n) driver_ctrl
-		if [ $driver_up -gt 0 ]; then notifying; fi
+		n)
+		driver_ctrl
+		notifying
 		;;
 		h) usage_help ;;
 	esac

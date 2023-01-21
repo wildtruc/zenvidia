@@ -26,6 +26,7 @@ install:
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
+	git log origin/master -n 1 | egrep -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 
 uninstall:
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
@@ -57,3 +58,4 @@ update:
 	install -Dm644 -t $(PREFIX)/share/pixmaps/ *.png
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	git log origin/master -n 1 | egrep -o "v[0-9]..*" > $(CONF_DIR)/zen_version

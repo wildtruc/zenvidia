@@ -50,4 +50,12 @@
  - Trying to find a way to not use initramfs_tools and was partly successful. All update modules tools works fine without rebuilding initramfs, but install and upgrade section still need it. Add an option in basic config file to set/unset use of initramfs that could be usefull in futur and present if user want to use initramfs only for all purpose or issue. Still diging.
  - Changed for a lighter method to discover needed system commands (dkms, lspci, etc).
  - Little review of dep_control function to diplay missing dependencies list instead of just warn.
-
+* 2023-01-19 - v2.0.9
+ - Went to last update to fast and didn't test zen_notify enought. I'm not a great git syntax user and it appears that using 'git fetch' on the downloaded zenvidia git repo wasn't a good idea. I wished to add last updated files in zenvidia log, but it's now certain that it couldn't be done with git only. So, only change log is now added (this change log), and put an issue alert if new mistake and so on, pops up... again.
+ - Globally, my apologies. Yes, this is not the last...
+ - Archive restore DKMS section was wrong and give wrong version number that removed ... the restored nvidia dir at the end u_u. Plus, when DKMS process engage for modules build, old version were wrongly define, then dkms wont installed nothing because the restored version were lower than the already present one. This a dkms limitation. Fixed.
+ - For the same reasons, commandline tools has been admended to work in the same way.
+ - Add a check sum control and fix a size diff between remote and local downloaded drivers packages, that... didn't diff nothing (old zenvidia bad legacy). Script now control if check sum is possible, but check also if size between downloaded and remote differ in case of download error.
+ - initrmafs process is now applied on a mandatory for install/upgrade drivers and for archives restore if dkms is use to build inexistent modules. No alternative found at this moment.
+ - There's still some little things I wish to change.
+ - I hope this the very last of my mistakes this time v_v. Should I apply for a job at M$ ?
