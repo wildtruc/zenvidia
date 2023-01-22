@@ -2646,7 +2646,7 @@ check_update(){
 	IFS=$ifs
 	win_update
 }
-win_update(){
+win_update(){ # TODO
 	## define window messages and display compatibilities.
 	in_local=$(ls -1 $nvdl/ | grep -c "$LAST_DRV\|$LAST_BETA")
 	if [ $in_local -gt 0 ]; then
@@ -3776,7 +3776,8 @@ read_changelog(){
 }
 read_zen_changelog(){
 	unset entry_list entrylog_list
-	log_pages=~/.zenvidia/src/
+# 	log_pages=~/.zenvidia/src/
+	log_pages=$zen_docs/Changelog.txt
 	IFS=$(echo -en "\n\b")
 	w_height='--height=260'
 	brief(){
@@ -3817,21 +3818,21 @@ read_zen_changelog(){
 			base_menu
 		else
 			if [[ $entrylog != '' ]]; then
-					entrylog=$(echo -e "$entrylog"| sed -En "s/^(.*:.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
+					entrylog=$(echo -e "$entrylog"| sed -En "s/^(.*-.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
 					log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
 					if [ "$log_end" != '' ]; then
-						log_end=$(echo -e "$log_end"| sed -En "s/^(.*:.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
+						log_end=$(echo -e "$log_end"| sed -En "s/^(.*-.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
 					else
 						log_end='^     $'
 					fi
-					log_list=$(cat $log_pages/zen_git.log | sed -En "/$entrylog/,/$log_end/p"	)
-					log_brief=$(cat <<< $log_list | sed -n "/     -/,/     -/p" )
+					log_list=$(cat $log_pages | sed -En "/$entrylog/,/$log_end/p"	)
+					log_brief=$(egrep "^[ ]{,3}-" <<< $log_list)
 			else
 				base_menu
 			fi
 		fi
 	}
-	entry_list=$(egrep -e "^[Aa-Zz]{3} [0-9]{1,2} [0-9]{4} :" $log_pages/zen_git.log)
+	entry_list=$(egrep -e "^* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //p")
 	relist
 	brief
 	IFS=$ifs
