@@ -59,3 +59,7 @@
  - initrmafs process is now applied on a mandatory for install/upgrade drivers and for archives restore if dkms is use to build inexistent modules. No alternative found at this moment.
  - There's still some little things I wish to change.
  - I hope this the very last of my mistakes this time v_v. Should I apply for a job at M$ ?
+* 2023-01-22 - v2.0.10
+ - zen_notify issue with '-z' option (again v_v), previous patch was mistaken. Fixed.
+ - read zenvidia changelog was read from zenvidia local dir, this is rubbish. Read now from Changelog.txt.
+ - Makefile change accordingly.
