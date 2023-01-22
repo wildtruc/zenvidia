@@ -149,7 +149,6 @@ source_ctrl(){
 			git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
 			git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
 			popd
-			zen_up=1
 		fi
 		# then, we need to know if log is about version update or issue warning message.
 		# log and issue is mandatory formated with a '-' in commit message.
@@ -160,8 +159,8 @@ source_ctrl(){
 						$git_rm_fetch_date :$git_rm_version
 						$git_rm_fetch_log
 					LOG
-					issue=0
 				fi
+				issue=0
 			else
 				if [ $(grep -c "issue" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
 					issue=1
@@ -169,10 +168,9 @@ source_ctrl(){
 				fi
 			fi
 		fi
-		# do we have a driver upodate message ?
-		if [ ${#_driver_notif[*]} -gt 0 ]; then
 			# if last pull/clone date is lower than the remote's, display update message.
 			if [ $git_pull_date -lt $git_rm_date ]; then
+				zen_up=1
 				# is the log message an issue warning ?
 				if [ $issue = 0 ]; then
 					notif_msg+="$notif_txt "
@@ -182,16 +180,6 @@ source_ctrl(){
 					_driver_notif+=("$line\zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
 				fi
 			fi
-		else
-		# if driver update none, only display warning message, if exist.
-		# compare repos date for the same reason than above.
-			if [ $git_pull_date -lt $git_rm_date ]; then
-				if [ $issue = 1 ]; then
-					notif_msg+="$notif_txt "
-					_driver_notif+=("$line\zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
-				fi
-			fi
-		fi
 	}
 	# clone remote .git dir only to get changes.
 	pushd $tmp_git_src
