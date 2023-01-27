@@ -63,3 +63,8 @@
  - zen_notify issue with '-z' option (again v_v), previous patch was mistaken. Fixed.
  - read zenvidia changelog was read from zenvidia local dir, this is rubbish. Read now from Changelog.txt.
  - Makefile change accordingly.
+* 2023-01-27 - v2.0.11
+ - restore backup previous package detection mistake. A variable was misplaced in processus that prevent previous version dir to be removed (not fatal, anoying).
+ - restore backup tool was using modprobe reload that seemed to work, but, not really. Fallback to initramfs_tools until figure out something more sure. Use command line reinit tool in case of troubles.
+ - Re arranged update section window and behaviour.
+ - Secondary driver was always compiling even if already builded. Add a filter to detect if driver is already in DKMS path before building anything.
