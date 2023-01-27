@@ -789,6 +789,7 @@ nv_modules_set(){
 	--column="check" --column="hide" --column="driver" --checklist --multiple --print-column=2 --hide-column=2 \
 	--separator=' ' --hide-header \
 	$UVM "use_uvm" "Unified Memory Module (nvidia-uvm)" $DRM "use_drm" "Optimus Prime Sync DRM Module (nvidia-drm)")
+	if [ $? = 1 ]; then base_menu; fi
 	## sortie : use_uvm use_drm
 	## ATTENTION la valeur TRUE implique l'usage et n'est pas blacklistée.
 	## La valeur FALSE implique le non usage et est blacklistée.
@@ -869,7 +870,7 @@ new_version(){
 			if [ "$LAST_PACK" ]; then
 				echo "$LAST_PACK"
 			else
-				echo "$run_pkg" | sed -n 's/^.*-//p'
+				echo "$run_pkg" | sed -En "s/^.*-(.*)/\1/; s/.run//g;p"
 			fi
 	else
 		echo "$(version)"
@@ -951,9 +952,10 @@ exec_mod_load(){
 	# ATTENTION modprobe on device only ?
 	#nv_pci=$(grep "10de" <<< ${pci_n[*]}|cut -d, -f2 )
 	#find /sys/devices -regextype sed -regex ".*$nv_pci.*modalias" -print0 | xargs -0 cat | xargs modprobe -b
-	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$KERNEL.gz"
+# 	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$KERNEL.gz"
 	# or modprobe on all mandatory ?
 	find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
+	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$KERNEL.gz"
 	if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
 		$d_sys restart systemd-modules-load.service
 	fi
@@ -1528,58 +1530,62 @@ nv_build_dkms(){
 		mod_check(){
 		## for an unkonw reason, in some rare case, dkms even if build and install retrun succes doesn't install the drivers.
 		## thus, we install those driver manually with cp.
-				mod_move=$(
-				cat <<-CHECK
-					if [ -f nvidia.*[ko\\|ko.xz] ]; then
-						printf "${blu}#${red} Error${blu} : No \$_dkms $(new_version) modules found in kernel path $kernel_path.\n${nc}"
+			mod_move=$(
+			cat <<-CHECK
+				if [ -f nvidia.*[ko\\|ko.xz] ]; then
+					printf "${blu}#${red} Error${blu} : No \$_dkms $(new_version) modules found in kernel path $kernel_path.\n${nc}"
+					sleep 2
+					printf "${blu}# Copying \$_dkms modules in $kernel_path from DKMS repository.\n${nc}"
+					#echo -e "moving"
+					cp -vf nvidia.ko $kernel_path/nvidia.ko
+					if [[ -s nvidia-uvm.ko ]]; then cp -vf nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
+					if [[ -s uvm/nvidia-uvm.ko ]]; then cp -vf uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
+					if [[ -s nvidia-modeset.ko ]]; then cp -vf nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
+					if [[ -s nvidia-drm.ko ]]; then cp -vf nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
+					echo -e "${pur}- Compressing \$_dkms modules if needed."
+					test $is_RT -eq 0 || xz -T12 $kernel_path/*.ko
+					if [[ -s $kernel_path/nvidia.*[ko\\|ko.xz] ]]; then
+						echo -e "${pur}- Exec $KERNEL modules depmod"
 						sleep 2
-						printf "${blu}# Copying \$_dkms modules in $kernel_path from DKMS repository.\n${nc}"
-						#echo -e "moving"
-						cp -vf nvidia.ko $kernel_path/nvidia.ko
-						if [[ -s nvidia-uvm.ko ]]; then cp -vf nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-						if [[ -s uvm/nvidia-uvm.ko ]]; then cp -vf uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-						if [[ -s nvidia-modeset.ko ]]; then cp -vf nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
-						if [[ -s nvidia-drm.ko ]]; then cp -vf nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
-						echo -e "${pur}- Compressing \$_dkms modules if needed."
-						test $is_RT -eq 0 || xz -T12 $kernel_path/*.ko
-						if [[ -s $kernel_path/$_dkms.*[ko\\|ko.xz] ]]; then
-							echo -e "${pur}- Exec $KERNEL modules depmod"
-							sleep 2
-							progress_msg(){ echo -en "\\r- Exec $KERNEL modules depmod (\$m sec.)"; }
-							m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
-						fi
+						progress_msg(){ echo -en "\\r- Exec $KERNEL modules depmod (\$m sec.)"; }
+						m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
 						$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
 						pass=\$?
-						if [ \$pass = 0 ]; then
-							vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print \$1}')
-							printf "${blu}# All Clear ($(new_version) modules moved from dkms repo)${nc}.\n\n"
-							echo -e "pass=\$pass" >> $tmp_b
-						else
-							printf "${red} ------------- ERROR -------------- ${nc}\n"
-							printf "${red} -------- Version mismatch -------- ${nc}\n"
-							echo -e "pass=1" >> $tmp_b
-						fi
+					else
+						pass=1
+					fi
+					if [ \$pass = 0 ]; then
+						vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print \$1}')
+						printf "${blu}# All Clear modules loaded ($(new_version) modules moved from dkms dir)${nc}.\n\n"
+						echo -e "pass=\$pass" >> $tmp_b
 					else
 						printf "${red} ------------- ERROR -------------- ${nc}\n"
-						printf "${red} ---- Driver not found in path ---- ${nc}\n"
+						printf "${red} -------- Version mismatch -------- ${nc}\n"
 						echo -e "pass=1" >> $tmp_b
 					fi
+				else
+					printf "${red} ------------- ERROR -------------- ${nc}\n"
+					printf "${red} ---- Driver not found in path ---- ${nc}\n"
+					echo -e "pass=1" >> $tmp_b
+				fi
 
-				CHECK
-				)
-				cat <<-FILTER
-					if [ -d /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module ]; then
-						cd /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module
-						printf "${pur}# Checking presence in DKMS /$(new_version)/$KERNEL/$ARCH/module${nc}\n"
-						$mod_move
-					elif [ -d /var/lib/dkms/\$_dkms/$(new_version)/build ]; then
-						cd /var/lib/dkms/\$_dkms/$(new_version)/build
-						printf "${pur}# Checking presence in DKMS /$(new_version)/build${nc}\n"
-						$mod_move
-					else
-						printf "${pur}# Nothing to do${nc}\n"
-					fi
-				FILTER
+			CHECK
+			)
+			cat <<-FILTER
+				if [ -d /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module ]; then
+					pushd /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module
+					printf "${pur}# Checking $(new_version) in DKMS $KERNEL path{nc}\n"
+					$mod_move
+					popd
+				elif [ -d /var/lib/dkms/\$_dkms/$(new_version)/build ]; then
+					pushd /var/lib/dkms/\$_dkms/$(new_version)/build
+					printf "${pur}# Checking $(new_version) in DKMS $KERNEL build path${nc}\n"
+					$mod_move
+					popd
+				else
+					printf "${pur}# Nothing to do${nc}\n"
+				fi
+			FILTER
 		}
 		remove_add(){
 			# ATTENTION Remove driver tree only ? or remove all ?
@@ -1664,14 +1670,18 @@ nv_build_dkms(){
 			#$headings
 			printf "${xB}# Building ${red}$(new_version) \$_dkms${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
 			sleep 2
-			printf "${pur}"
 			#echo -e "build \$_dkms"
-			$p_dkms build -m \$_dkms/$(new_version) -k $KERNEL --force
-			printf "${nc}"
-			printf "${blu}# All Clear for $(new_version) \$_dkms build.${nc}\n"
+			if [ -f /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.*[ko\\|ko.xz] ]; then
+				printf "${blu}# All Clear for $(new_version) \$_dkms already build.${nc}\n"
+			else
+				printf "${pur}"
+				$p_dkms build -m \$_dkms/$(new_version) -k $KERNEL $force
+				printf "${nc}"
+				printf "${blu}# All Clear for $(new_version) \$_dkms build.${nc}\n"
+			fi
 			printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
 			sleep 2
-# 			clear
+			#clear
 			BLD
 			)
 			build_seq_2=$(
@@ -1681,7 +1691,7 @@ nv_build_dkms(){
 			sleep 2
 			printf "${pur}"
 			#echo -e "install classic \$_dkms"
-			$p_dkms install -m \$_dkms/$(new_version) -k $KERNEL --force
+			$p_dkms install -m \$_dkms/$(new_version) -k $KERNEL $force
 			printf "${nc}"
 			sleep 2
 			$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
@@ -1702,7 +1712,7 @@ nv_build_dkms(){
 				printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
 				sleep 2
 			fi
-# 			clear
+			#clear
 			BLD
 			)
 			cat <<-SEQ
@@ -2063,7 +2073,7 @@ install_report_log(){
 	$d_zen --title="Zenvidia" --question --no-wrap --window-icon=$img_zen_desktop --width=500 \
 	--text="${j}${bf}$(new_version) Install Report${end}${end}${v}:\n $(cat <<< ${report_log[*]})${end}\n$rep_msg" \
 	--ok-label="edit now" --cancel-label="edit later"
-	if [ $? = 0 ]; then edit_xorg_conf; else base_menu; fi
+	if [ $? = 0 ]; then edit_xorg_conf; fi
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ###
 install_drv(){
@@ -2110,7 +2120,7 @@ install_drv(){
 				report_log+=("${vB}Previous version:\t${end}${gB} passed\t\t${end}> ${y}previously backed up${end}\n")
 			else
 				backup_old_version
-				report_log+=("${vB}backed up:\t${end}${gB} success\t\t${end}> ${y}$bak_version normal backup process${end}\n")
+				report_log+=("${vB}Previous version:\t${end}${gB} success\t\t${end}> ${y}$bak_version normal backup process${end}\n")
 			fi
 		else
 			report_log+=("${vB}Previous version:\t${end}${jB} warning\t\t${end}> ${y}no directory to archive.${end}\n")
@@ -2253,7 +2263,7 @@ install_drv(){
 extract_build(){
 	[ -d $nvtmp ]|| mkdir -p $nvtmp
 	[ -d $buildtmp ]|| mkdir -p $buildtmp
-	cd $nvtmp
+	pushd $nvtmp
 	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$(new_version) ]; then
 		extracted_release=NVIDIA-Linux-$ARCH-$(new_version)
 		echo "# ($n%) - $(new_version) package already extracted"; sleep 2
@@ -2275,7 +2285,8 @@ extract_build(){
 			base_menu
 		fi
 	fi
-	cd $nvdir
+	#cd $nvdir
+	popd
 }
 hardware_compat(){
 	echo "# ($n%) - Checking compatibility data files"; sleep 2
@@ -2421,6 +2432,8 @@ backup_old_version(){ # TO CLEAN ?
  		fi
 # 		tar_count "tar uf nvidia.$bak_version.tar $install_dir/share/nvidia/nvidia-application-profiles-$bak_version*"
 		tar_count "tar uf nvidia.$bak_version.tar /var/lib/dkms/nvidia/$bak_version/{source,$KERNEL}"
+		[ -d /var/lib/dkms/open-nvidia/$bak_version ] && \
+		tar_count "tar uf nvidia.$bak_version.tar /var/lib/dkms/open-nvidia/$bak_version/{source,$KERNEL}"
 		tar_count "tar uf nvidia.$bak_version.tar /var/lib/nvidia/{dirs,log}"
 		tar_count "tar uf nvidia.$bak_version.tar $nvdir/version.txt"
 ## compress in gz.
@@ -2484,16 +2497,29 @@ upgrade_kernel(){
 ## FROM A REMOTE/USER DIRECTORY ###
 from_directory(){
 	nv_dir(){
-		table_opts='--column \"1\" --column \"2\" --separator=\";\"'
+		unset list_drv
+		table_opts='--column "1" --column "2" --separator=";"'
+		zen_opts='--list --radiolist --hide-header'
 		cd $nvdl; n=1
-		for local_drv in $(ls -1 $nvdl); do
-			list_drv+=("false")
-			list_drv+=(" $local_drv")
+		for local_drv in ${nvdl_list[@]}; do
+			if [ $_drive ]&&[[ "$local_drv" =~ "$_drive" ]]; then
+				list_drv+=("true")
+			else
+				list_drv+=("false")
+			fi
+			list_drv+=("$local_drv")
 		done
-		drv_pick=$($d_zen --width=450 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
-		--text="${j}${bf}Install from stock${end}${end}\n${vB}Driver list in $nvdl :${end}\n$loaded"\
-		$table_opts ${list_drv[@]})
-		if [ $? = 1 ]; then menu_install; fi
+		w_text=$(
+		cat <<-INFO
+			${j}${bf}Install from stock${end}${end}
+
+			${vB}Driver list in $nvdl :${end}
+
+			$loaded
+		INFO
+		)
+		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		--text="$w_text" $table_opts ${list_drv[@]})
 		if [ $? = 0 ]; then
 			if [ "$drv_pick" != '' ]; then
 				run_pkg=$nvdl/$drv_pick
@@ -2501,14 +2527,29 @@ from_directory(){
 				from_directory
 			fi
 		else
-			menu_install
+			if [ $_drive ]; then base_menu; else menu_install; fi
 		fi
 	}
 	home_dir(){
-		drv_pick=$($d_zen --width=450 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia" --file-selection \
-		--filename="$(user_DL_DIR)" --file-filter=".run" \
-		--text="${j}${bf}Install from user directory${end}${end}\n${vB}Select a driver from ${j}$(def_user)${end} download directory${end}\n$loaded")
-		if [ $? = 1 ]; then menu_install; fi
+		unset list_drv
+		table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
+		zen_opts='--list --radiolist --hide-header'
+		for local_drv in ${home_list[@]}; do
+			list_drv+=("false")
+			list_drv+=("$local_drv")
+			list_drv+=("$(sed -En "s|^.*\/||g;p" <<< $local_drv)")
+		done
+		w_text=$(
+		cat <<-INFO
+			${j}${bf}Install from user directory${end}${end}
+
+			${vB}Select a driver from ${j}$(def_user)${end} download directory${end}
+
+			$loaded
+		INFO
+		)
+		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		--text="$w_text" $table_opts ${list_drv[@]})
 		if [ $? = 0 ]; then
 			if [ "$drv_pick" != '' ]; then
 				chmod a+x $drv_pick
@@ -2521,19 +2562,35 @@ from_directory(){
 		fi
 	}
 	test $(version) && loaded="${v}<i>($(version) actually installed and loaded)</i>${end}"
-	A="Listed versions"
-	B="Use a local directory"
-	zen_opts='--list --radiolist --hide-header'
-	table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
-	from_cmd=$($d_zen --width=450 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
-	--text="${vB}Local NVIDIA drivers list :${end}\n$j$(printf "$(ls $nvdl|sed -n 's/^/\t - /p')")${end}\n${vB}Use one of the listed above or one from the user's directory.${end}" \
- 	$table_opts false 1 "$A" false 2 "$B" )
-	if [ $? = 1 ]; then base_menu; fi
-	case $from_cmd in
-		"1") nv_dir ;;
-		"2") home_dir ;;
-		*) menu_install ;;
-	esac
+	nvdl_list=( $(ls -1 $nvdl| grep -v ".sum") )
+	home_list=( "$(find $(user_DL_DIR)/ -regextype sed -regex "^.*NVIDIA-Linux-.*\.run")" )
+	if [ $ui_mod = 1 ]; then
+		A="Use Zenvidia stock directory"
+		B="Use a user local directory"
+		zen_opts='--list --radiolist --hide-header'
+		table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
+		w_text=$(
+		cat <<-INFO
+			${j}<b>Local NVIDIA drivers STOCK</b>${end}
+
+			Zenvidia release stock : ${j}${#nvdl_list[*]}${end} object(s) found.
+			User home directory : ${j}${#home_list[*]}${end} object(s) found.
+
+			${v}<b>Select the directory to install from.</b>${end}
+		INFO
+		)
+
+		from_cmd=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		--text="${v}$w_text${end}" $table_opts false 1 "$A" false 2 "$B" )
+		if [ $? = 1 ]; then base_menu; fi
+		case $from_cmd in
+			"1") nv_dir ;;
+			"2") home_dir ;;
+			*) menu_install ;;
+		esac
+	elif [ $ui_mod = 2 ]; then
+		nv_dir
+	fi
 	new_version=$(printf "$run_pkg"| sed -n "s/^.*-//g;p")
 	install_drv
 }
@@ -2563,7 +2620,8 @@ check_update(){
 	LAST_IN=$(version)
 	LAST_DRV=$(cat $nvtmp/last_update | awk '{ print $1 }')
 	LAST_BETA=$(tac $nvtmp/drvlist | sed -n 1p)
-	# compatibilty control
+	## COMPATIBILTY SECTION
+	# first chack if alpha = beta or not.
 	if [[ $LAST_DRV == $LAST_BETA ]] ; then
 			DIFF_list=$LAST_DRV
 	else
@@ -2648,83 +2706,81 @@ check_update(){
 }
 win_update(){ # TODO
 	## define window messages and display compatibilities.
-	in_local=$(ls -1 $nvdl/ | grep -c "$LAST_DRV\|$LAST_BETA")
-	if [ $in_local -gt 0 ]; then
-		in_offi=$(ls -1 $nvdl/ | grep -c "$LAST_DRV")
-		in_beta=$(ls -1 $nvdl/ | grep -c "$LAST_BETA")
-	fi
-	unset more_msg
-	case $in_local in 
-		## ↓ if not dowloaded packages are detected, set ui mode to full and process to next 
-# 		0) ui_mod=1; extra_msg="\n${v}What do you want to do ?${end}";;
-		0) ui_mod=1; end_msg="What do you want to do ?"; w_add='-30';;
-		## ↓ if one or more packages are detected, set ui mode to full.
-		## Then check if ui mode has to be set differently.
-		1)	ui_mod=1
-			## ↓ check if last driver is installed and mack it 'installed'. 
-			if [[ $LAST_IN == $LAST_DRV ]]; then set_in=" (installed)"; fi
-			## ↓ control present packages and choose waht to display.
-			for more_drv in {"$in_offi,$LAST_DRV","$in_beta,$LAST_BETA"}; do
-				_exist=$(echo "$more_drv"|cut -d',' -f1)
-				_drive=$(echo "$more_drv"|cut -d',' -f2)
-				case $_exist in
-					0) more_msg+=( "\n${j}$_drive${end}${vB} is not in your repository.${end}" ) ;;
-					1) if [ "$LAST_BETA" == "$LAST_DRV" ]; then
-							if [ ${#more_msg[*]} -eq 0 ]; then
-							more_msg+="\n${j}$_drive${end}${vB} is in your repository.${end}${v}$set_in${end}"
-							fi
-						else
-							more_msg+=( "\n${j}$_drive${end}${vB} is in your repository.${end}${v}$set_in${end}" )
-						fi
-					;;
-				esac
-			done
-# 			if [ "$LAST_BETA" == "$LAST_DRV" ]; then
-#
-# 			fi
-			start_msg=$(cat <<< ${more_msg[@]})
-			end_msg="What do you want to do ?"
-			w_add='+65'
-		;;
-		## set ui_mod to 0 if offi and beta exist or are the same.
-		2) if [[ $in_offi = 1 && $in_beta = 1 ]]; then
-				ui_mod=0
-				if [[ $LAST_DRV == $LAST_BETA ]]; then
-					start_msg="${j}$LAST_DRV${end}${rB}, Official and BETA are in your repository.${end}"
-				else
-					if [[ $LAST_IN == $LAST_DRV||$LAST_BETA ]]; then
-						set_in=" ($LAST_IN installed)"
-					fi
-					start_msg="${rB}Official and BETA are in your repository $set_in.${end}\n"
-					end_msg="Go back to Install menu if needed\n"
+	in_local=0
+	in_install=0
+	end_msg="What do you want to do ?"
+	unset LOCAL_DRV down_list main_msg more_msg
+	## get driver list from check_update to define local presence and what to display.
+	for RM_DRV in ${DIFF_list[@]}; do
+		# count how many driver are in local repos.
+		in_pack=$(ls -1 $nvdl/ | grep -c "$RM_DRV")
+		test "$RM_DRV" == "$LAST_IN" && _installed=1 || _installed=0
+		test "$LAST_DRV" == "$LAST_BETA" && _is_beta=0 || _is_beta=1
+		LOCAL_DRV+=("$RM_DRV,$in_pack,$_installed,$_is_beta")
+	done
+	for local_drv in ${LOCAL_DRV[@]}; do
+		_drive=$(echo "$local_drv"|cut -d',' -f1)
+		_exist=$(echo "$local_drv"|cut -d',' -f2)
+		_insta=$(echo "$local_drv"|cut -d',' -f3)
+		_beta=$(echo "$local_drv"|cut -d',' -f4)
+		case $_insta in
+			0) set_in='' ;;
+			1) set_in=" (installed)"; ((in_install++)) ;;
+		esac
+		case $_exist in
+			0) in_repos='is not in your repository'; down_list+=("$_drive")
+			;;
+			1) in_repos='is in your repository'; ((in_local++))
+			;;
+		esac
+		case $_beta in
+			0) set_beta='official' ;;
+			1) set_beta='beta' ;;
+		esac
+		main_msg+=("${v}The $set_beta version is :${end}${ge}  - - - - - - ${end}${y}$_drive${end}")
+		more_msg+=("\n${j}$_drive${end}${vB} $in_repos.${end}${v}$set_in${end}")
+		case $in_local in
+			0) ui_mod=1
+				start_msg="${more_msg[@]}"
+			;;
+			1) ui_mod=1
+				#start_msg=$(cat <<< ${more_msg[@]})
+				start_msg="${more_msg[@]}"
+				if [ $in_install -ge 1 ]; then
+					ui_mod=0
+					end_msg='Nothing to do.'
+				elif [ $in_local -ge 1 ]; then
+					ui_mod=2
 				fi
-			fi
-		;;
-	esac
-# 	if [ $ui_mod = 1 ]; then w_height=$(($w_height+65)); fi
+			;;
+			2) ui_mod=2
+				start_msg="${more_msg[@]}"
+			;;
+		esac
+	done
 	extra_msg="\n$start_msg\n${v}$end_msg${end}"
 	case $ui_mod in
-		0)	w_height=300
-			zen_opts='--info --icon-name=swiss_knife '
+		0)	w_height=220
+			zen_opts='--info --icon-name=swiss_knife --ok-label=OK'
 			table_opts=''
-			list_opts='';;
-		1)	w_height=$(($w_height$w_add))
+			list_opts=''
+			;;
+		1)	w_height=220
+			#w_height=$(($w_height$w_add))
 			zen_opts='--list --radiolist --hide-header'
 			table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
 			list_opts="false 1 Install false 2 Download ";;
-		2)	w_height=300
+		2)	w_height=220
 			zen_opts="--question --ok-label=Install --cancel-label=$R"
 			table_opts=''
 			list_opts=''
-			extra_msg="${v}What do you want to do ?${end}";;
+			;;
 	esac
 	w_text=$(cat <<-MSG
 		${jB}${bf}Available drivers${end}${end}
 
 		${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$LAST_IN${end}
-		${v}The official version is :${end}${ge}  - - - - - - ${end}${y}$LAST_DRV${end}
-		${v}The last beta is :${end}${ge}   - - - - - - - - - - ${end}${y}$LAST_BETA${end}
-
+		$(cat <<< ${main_msg[@]})
 		$compat_msg
 		$dl_warn_msg
 		$extra_msg
@@ -2740,7 +2796,7 @@ win_update(){ # TODO
 					"1") from_net ;;
 					"2") download_only ;;
 				esac ;;
-			2) from_net ;;
+			2) from_directory ;;
 			*) menu_install ;;
 		esac
 	else
@@ -3175,6 +3231,7 @@ backup_pcks(){
 restore_pcks(){
 	nv_build_options
 	# list package in release directory
+	from_install=0
 	unset drive_list
 	[ -d $nvbackup ]|| mkdir -p $nvbackup
 	nv_root_repo=$(ls -1 $nvbackup | grep "nvidia."| sed -n "s/.tar.gz//p")
@@ -3194,7 +3251,7 @@ restore_pcks(){
 	if [ $? = 1 ]; then manage_pcks; fi
 	# check that list not empty before proceed.
 	if [[ $drive_packs ]]; then
-		present_version=$(mktemp --tmpdir zn_old.XXX)
+		export present_version=$(mktemp --tmpdir zn_old.XXX)
 		res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\([0-9]*\)/\1/p")
 		ver_res=$(printf "$res_version"| sed -n "s/\.//g;p")
 		ver_mod=$(printf "$(version)"| sed -n "s/\.//g;p")
@@ -3226,7 +3283,6 @@ restore_pcks(){
 			if [ $? -eq 1 ]; then
 				echo "# Rebuilding missing $res_version drivers for $KERNEL kernel.."
 				sleep 2
-				from_install=0
 				rt_options
 				if [ -d /usr/src/nvidia-$res_version ]||[ -d /usr/src/open-nvidia-$res_version ]; then
 # 					version(){ echo $res_version; }
@@ -3249,14 +3305,17 @@ restore_pcks(){
 				## exec_mod_load is useless here, a modprobe reload all doesn't catch change on kernel init.
 				progress_msg="Rebuilding INITRAMFS (required)\t\t\t"
 				msg_suffix=" sec."
-				progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS (required)"; echo "$m"; }; m=1; do_slp=1
+				progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS"; echo "$m"; }; m=1; do_slp=1
 				exec_initramfs
 			else
 				echo "# Clear : $res_version modules checked in $KERNEL kernel."
 				sleep 2
 				echo "# Restore $res_version modules system symlinks for $KERNEL kernel."
-				## exec_mod_load seems to work here when archive modules are already build for active kernel.
+				# exec_mod_load seems to work here when archive modules are already build for active kernel.
 				exec_mod_load
+				## when it want, so fallback to initramfs.
+# 				progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS"; echo "$m"; }; m=1; do_slp=1
+# 				exec_initramfs
 			fi
 			## remove /opt/nvidia.prev_version for compatibility future restore purpose
 			test -d $nv_root/nvidia.$(old_version) && rm -Rf $nv_root/nvidia.$(old_version)
@@ -3932,13 +3991,14 @@ menu_install(){
 	done 
 	menu_inst=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
 	--radiolist --hide-header --title="Zenvidia" \
-	--text "${j}${bf}Install new drivers${end}${end}${v}$hlp_tip${end}" \
+	--text "${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	"${ins_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
+	ui_mod=1
 	case $menu_inst in
 		"1") menu_msg="${vB}NVIDIA package update from local dir. ${end}"; from_directory ;;
-		"2") menu_msg="${vB}NVIDIA package from NVIDIA server.${end}"; ui_mod=2; check_update ;;
+		"2") menu_msg="${vB}NVIDIA package from NVIDIA server.${end}"; check_update ;;
 		*) base_menu ;;
 	esac
 }
@@ -3992,13 +4052,16 @@ menu_update(){
 	home=/home/$(def_user)
 	if [ $use_dkms = 1 ]; then
 		case $menu_upd in
-			"1") menu_msg="${v}Check driver updates list${end}"; ui_mod=1; check_update ;;
-			"2") menu_msg="${v}Build module for current kernel (dkms)${end}"
-					upgrade_other=0; upgrade_kernel; base_menu ;;
-			"3") menu_msg="${v}Build module for current kernel (force)${end}"
-					upgrade_other=0; use_dkms=0; upgrade_kernel; base_menu ;;
-			"4") menu_msg="${v}Build module for the selected kernel (dkms)${end}"
-					upgrade_other=1; upgrade_new_kernel; base_menu ;;
+			"1")	menu_msg="${v}Check driver updates list${end}"; check_update ;;
+			"2")	menu_msg="${v}Build module for current kernel (dkms)${end}"
+					upgrade_other=0; force='--force'
+					upgrade_kernel; base_menu ;;
+			"3")	menu_msg="${v}Build module for current kernel (force)${end}"
+					upgrade_other=0; use_dkms=0;
+					upgrade_kernel; base_menu ;;
+			"4")	menu_msg="${v}Build module for the selected kernel (dkms)${end}"
+					upgrade_other=1;
+					upgrade_new_kernel; base_menu ;;
 			*) base_menu ;;
 		esac
 	fi
@@ -4282,11 +4345,12 @@ base_menu(){
 	open_check(){
 	if [ $open_drv ]&&[ $open_drv = 1 ]; then
 		if [ $use_open ]; then
-			if [ $use_open = 1 ]; then open_used=" and in use\n"; else open_used=", but unused\n"; fi
+			if [ $use_open = 1 ]; then open_used=" and in use"; else open_used=", but unused"; fi
 		else
-			open_used=", closed source used\n"
+			open_used=", closed source used"
 		fi
-		printf "${vB}Open Source modules :${end}${ge}     ${end}${j}installed$open_used${end}"
+		echo -e "${vB}Open Source modules :${end}${ge}     ${end}${j}installed$open_used${end}"
+		echo -e "${vB}Loaded module license :${end}${ge}  ${end}${j}$($d_modinfo -F license nvidia)\n${end}"
 	fi
 	}
 	right_check(){
