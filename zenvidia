@@ -371,15 +371,25 @@ PCI_ID(){
 	## graphic cards id
 	unset dev_n dev slot slot_id vnd vnd_id
 	i=0
-	for dev_slot in "$(lspci -mnn | grep "VGA")"; do
+	pci_list=( "$(lspci -mnn | grep "VGA")" )
+	IFS=$(echo -en "\n\b")
+	for dev_slot in ${pci_list[@]}; do
 		dev_n+=("$i")
-		dev+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}'| sed -En "s/^.*\[(.*)\] \[.*\].*$/\1/p")")
-		slot+=("$(printf "$dev_slot"| awk '{print $1}')")
-		slot_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.*\[.*\] \[(.*)\].*$/\1/p")")
 		vnd+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $3}' | sed -En "s/^(.*) \[.*\]$/\1/p")")
 		vnd_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $3}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
-		((n++))
+		if [[ "${vnd_id[$i]}" =~ "10de" ]]; then
+			dev+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}'| sed -En "s/^.*\[(.*)\] \[.*\].*$/\1/p")")
+		else
+			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic")
+			[ "${vnd_id[$i]}" = "1002" ] && dev+=("AMD Radeon")
+			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Graphic")
+		fi
+		slot+=("$(printf "$dev_slot"| awk '{print $1}')")
+		slot_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.*\[.*\] \[(.*)\].*$/\1/p")")
+		((i++))
 	done
+	IFS=$ifs
+# 	dev_nb=${#dev_n[*]}
 	pci_dev_nb=${dev_n[*]}
 }
 # elf types
@@ -2272,7 +2282,7 @@ extract_build(){
 	#cd $nvdir
 	popd
 }
-hardware_compat(){ # TEST
+hardware_compat(){ # TEST CLEAN UP !
 	{ wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
 		sleep 2
 	}| $d_zen --width=400 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate \
@@ -2425,6 +2435,7 @@ progress(){
 		wait $pid 2>/dev/null
 		exitval=$?
 		kill $progresspid 2>/dev/null
+
 		wait $progresspid 2>/dev/null
    fi
    ## line to paste in global progress count
@@ -2712,8 +2723,8 @@ check_for_newer(){
 ## UPDATED RELEASE CHECK ###
 check_update(){
 	unset DIFF_list
-
 	LAST_IN=$(version)
+# 	LAST_BETA=$(tac $drv_list_file | sed -n 1p)
 	LAST_BETA=$(tac $(rem_drv_list) | sed -n 1p)
 	upt_comp_tmp=$(mktemp --tmpdir zn_vars.XXXX )
 	## COMPATIBILTY SECTION
@@ -4449,9 +4460,12 @@ base_menu(){
 # 	}
 # 	echo -e "${dev_n[0]},${dev[0]},${slot[0]},${slot_id[0]},${vnd[0]},${vnd_id[0]}"
 	devices(){
-	for e in $pci_dev_nb; do
+# 	for e in $pci_dev_nb; do
+	e=0
+	until [ $e -eq ${#dev_n[*]} ]; do
 		printf "${vB}Card $((${dev_n[$e]}+1)) :${end}${ge} - - - - - - - - - ${end}${j}${dev[$e]} ($(printf "${vnd[$e]}"|awk '{print $1}'))${end}\n"
 # 		echo "${dev[$e]} ** ${vnd[$e]}"
+		((e++))
 	done
 	}
 	open_check(){
@@ -4480,6 +4494,11 @@ base_menu(){
 		moment in: ${j}Configuration and Tools${end} menu » ${j}Edit script config${end}.\n\n"
 	HLP
 	)
+	if [ "$(version)" == "0" ]; then
+		drv_installed='not installed'
+	else
+		drv_installed=$(version)
+	fi
 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }	
 # 	window_text=$( cat <<-MSG
 # 		                            ${rBB}ZENVIDIA${end}
@@ -4508,7 +4527,7 @@ base_menu(){
 		${vB}Processor type :${end}${ge} - - ${end}${j}$ARCH${end}
 		$(devices)
 
-		${vB}Driver version installed :${end} ${j}$(version_id)${end}$restore_msg
+		${vB}Driver version installed :${end} ${j}$drv_installed${end}$restore_msg
 		${vB}Kernel version :${end}${ge}  - - - - - - -  ${end}${j}$KERNEL${end}
 		${vB}GCC version :${end}${ge}  - - - - - - - - -  ${end}${j}$GCC${end}
 		${vB}NVIDIA binary version :${end}${ge}    ${end}${j}$NV_bin_ver${end}$restore_msg
@@ -4519,7 +4538,8 @@ base_menu(){
 		${v}$hlp_wrn$ansWN${end}
 	MSG
 	)
-	menu_cmd=$($d_zen --width=380 --height=$w_height --title="Zenvidia" --list --window-icon=$img_zen_desktop \
+# 	menu_cmd=$($d_zen --width=380 --height=$w_height --title="Zenvidia" --list --window-icon=$img_zen_desktop \
+	menu_cmd=$($d_zen --title="Zenvidia" --list --window-icon=$img_zen_desktop \
 	--radiolist --hide-header --column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	--text="$window_text" \
 	false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
@@ -4666,6 +4686,7 @@ if [[ $(def_user) != "root" ]]; then
 ## define compats dirs.
 nvcompat="$(user_CF_DIR)/compats"
 upcompat="$(user_CF_DIR)/updates"
+# drv_list_file=$(rem_drv_list)
 ## then read script conf.
 . $basic_conf
 . $color_conf
