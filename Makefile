@@ -1,6 +1,6 @@
 # DEFINE FIRST THE CURRENT USER NAME
-# C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
-C_USER = $(shell who | cut -d' ' -f1 | sed -n "1p")
+C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "$p")
+#C_USER = $(shell who | cut -d' ' -f1 | sed -n "1p")
 PREFIX = /usr/local
 USER_DIR = /home/$(C_USER)
 CONF_DIR = $(USER_DIR)/.zenvidia

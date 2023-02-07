@@ -24,6 +24,10 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.0.12 NOTES :
+ - When installing driver for old devices not supported by actual driver serie, in case of Optimus/Prime nothing is managed to warn or prepare for this type of device system; so be aware that it could break your xorg config if you install drivers for Optimus/Prime. Diging for a soft solution (my old laptop would be delighted).
+ - It look like that the default font used in Zenvidia is not install by default in all distro (Google-Noto-Sans) and because of this, zenity doesn't display correctly tab and so on. Further research is need to fix this.
+
 v2.0.9 zen_notif hopefully fixed with others anoying things (from 2023-01-18 Issue).
 
 v2.0.8 introduced the option `exec_mod_tool` in basic config allowing when set to `0` to use initramfs tool for all install/upgrade/update processes. Set to `1`, only install/upgrade use it, other use modprobe relaod method. Default is :

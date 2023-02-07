@@ -68,3 +68,14 @@
  - restore backup tool was using modprobe reload that seemed to work, but, not really. Fallback to initramfs_tools until figure out something more sure. Use command line reinit tool in case of troubles.
  - Re arranged update section window and behaviour.
  - Secondary driver was always compiling even if already builded. Add a filter to detect if driver is already in DKMS path before building anything.
+* 2023-02-07 - v2.0.12
+ - It appears that tue 'who' command to identify desktop user doesn't report anything in some end user interfece (lxde in my case, I didn't know that). Added a fallback in zenvidia and reverse to old way in makefile (a bit archaïc, but working).
+ - Found also a mistake in auto distro config checker. Fixed.
+ - Add a check driver family serie in pre install/download section to inform wich serie is compatible when older driver are select. If found, last driver of this serie is proposed in the install/download list.
+ - Revamp older driver serie download section that was still in old zenvidia version mode.
+ - Many mandatory little changes also in consequencies of the rework above.
+ - Zen Notify wasn't checking date if local zenvidia changelog file was already wrote. Fixed.
+ - Simplifyied PCI_ID
+ - Because of number of test show cases of all this change, this is very expérimeantal and there still tests to do. Issue report would be very welcome.
+ - NOTE : When installing driver for old devices not supported by actual driver serie, in case of Optimus/Prime nothing is managed to warn or prepare for this type of device system; so be aware that it could break your xorg config if you install drivers for Optimus/Prime. Diging for a soft solution (my old laptop would be delighted).
+ - NOTE : It look like that the default font used in Zenvidia is not install by default in all distro (Google-Noto-Sans) and because of this, zenity doesn't display correctly tab and so on. Further research is need to fix this.

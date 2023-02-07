@@ -154,11 +154,13 @@ source_ctrl(){
 		# log and issue is mandatory formated with a '-' in commit message.
 		if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
 			if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_verion" ]; then
-				if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
-					cat <<-LOG >> $local_src/zen_git.log
-						$git_rm_fetch_date :$git_rm_version
-						$git_rm_fetch_log
-					LOG
+				if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
+					if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+						cat <<-LOG >> $local_src/zen_git.log
+							$git_rm_fetch_date :$git_rm_version
+							$git_rm_fetch_log
+						LOG
+					fi
 				fi
 				issue=0
 			else
