@@ -2093,9 +2093,11 @@ install_drv(){
 		## check compatiblity files before executng anything. (4)
 		echo "# ($n%) - Checking compatibility data files"; sleep 2
 		DRV=$(new_version)
-		if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
-			$(hardware_compat)
-		fi
+		for e in ${pci_dev_nb[@]}; do
+			if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
+				$(hardware_compat)
+			fi
+		done
 		echo "$install_msg" ; n=$[ $n+6 ]; echo "$n"; sleep 2 # 1
 		## extract .run package for install processes (22)
 		extract_build
