@@ -123,7 +123,7 @@ if [ $x_alive -eq 0 ]; then
 fi
 rem_drv_list(){
 	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		zen_notify -n &>/dev/null
+		$su_cmd "$(def_user)" $(command -v zen_notify) -n &>/dev/null
 	fi
 	echo "$(user_CF_DIR)/notify/drvlist"
 }
@@ -371,6 +371,7 @@ PCI_ID(){
 	## graphic cards id
 	unset dev_n dev slot slot_id vnd vnd_id
 	i=0
+	optimus=0
 	pci_list=( "$(lspci -mnn | grep "VGA")" )
 	IFS=$(echo -en "\n\b")
 	for dev_slot in ${pci_list[@]}; do
@@ -379,10 +380,12 @@ PCI_ID(){
 		vnd_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $3}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
 		if [[ "${vnd_id[$i]}" =~ "10de" ]]; then
 			dev+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}'| sed -En "s/^.*\[(.*)\] \[.*\].*$/\1/p")")
+			((optimus++))
 		else
 			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic")
 			[ "${vnd_id[$i]}" = "1002" ] && dev+=("AMD Radeon")
-			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Graphic")
+			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Embed")
+			((optimus++))
 		fi
 		slot+=("$(printf "$dev_slot"| awk '{print $1}')")
 		slot_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.*\[.*\] \[(.*)\].*$/\1/p")")
@@ -722,9 +725,6 @@ nv_open_modules_set(){
 	fi
 }
 nv_modules_set(){
-	## We don't use Nvidia installer for modules install for a good reason.
-	## Nvidia-installer crash or don't give a shit of --no-drm, --no-uvm or --no-xorg-check options.
-	## So even this will maybe fix in an update, we don't use it. Too much problems.
 	_insert_type=1
 	_help_tip=$(cat <<-HLP
 		${v}- Unified Memory Module (${j} nvidia-uvm ${end})
@@ -739,7 +739,41 @@ nv_modules_set(){
 	if [ $hlp_txt = 1 ]; then _tip=$_help_tip; else _tip=''; fi
 	if [ $use_uvm -gt 0 ]; then UVM='TRUE'; else UVM='FALSE'; fi
 	if [ $use_drm -gt 0 ]; then DRM='TRUE'; else DRM='FALSE'; fi
+# 	if [ $use_peer -gt 0 ]; then DRM='TRUE'; else DRM='FALSE'; fi
 
+	## Optimus allert and basic config.
+	if [ ${#dev_n[*]} -gt 1 ]; then
+		if [ $optimus -gt 0 ]; then
+			if [ $no_opti_warn = 0 ]; then
+				modules_msg=$(cat <<-TXT
+					${v}<b>Optimus Prime detection alert</b>
+					More than one different devices detected in the system.
+
+					In this particular case all driver type are mandatory and Zenvidia
+					will auto setup drivers for Optimus. Xorg file is not manage yet.
+					<b>Warning</b> : ${j}From there, Optimus/Prime manager tool is mandatory${end}.
+
+					<u>Note</u> : <i>settings will be saved in zenvidia local config and alert wont be shown again.
+					Edit Zenvidia local config file to change this behaviour or only Optimus set.</i>
+
+					Do you want to preset Optimus ?${end}
+				TXT
+				)
+				$d_zen --question --window-icon=$img_zen_desktop --title="Zenvidia modules set" --icon-name=dialog-warning \
+				--text="$modules_msg" --no-wrap --cancel-label="No thanks, I'll figure it out later" --ok-label="Yes, please"
+				if [ $? = 0 ]; then
+					opti_preset=1
+				else
+					opti_preset=0
+				fi
+				no_opti_warn=1
+				sed -Ei "s/^(no_opti_warn)=[0-9]$/\1=$no_opti_warn/g" $basic_conf
+				sed -Ei "s/^(opti_preset)=[0-9]$/\1=$opti_preset/g" $basic_conf
+			fi
+			prime=1
+		fi
+	fi
+	## warn about first use.
 	modules_msg=$(cat <<-TXT
 		${vB}This is the first time you launch this options sets.
 
@@ -748,7 +782,6 @@ nv_modules_set(){
 		$_help_tip${end}
 	TXT
 	)
-	# warn about first use.
 	if [ $no_warn = 0 ]; then
 		$d_zen --question --window-icon=$img_zen_desktop --title="Zenvidia modules set" --icon-name=dialog-warning \
 		--text="$modules_msg" --no-wrap --cancel-label="I got it, don't show me this message again" --ok-label="I got it"
@@ -779,21 +812,28 @@ nv_modules_set(){
 	## ATTENTION la valeur TRUE implique l'usage et n'est pas blacklistée.
 	## La valeur FALSE implique le non usage et est blacklistée.
 	for mod in {use_uvm,use_drm}; do
-		if [[ "$driver_var" =~ "$mod" ]]; then
-		# don't blacklist or remove from blacklist.
+		## if optimus system is detect, set all vars to 1, else, manage as usual.
+		if [ $opti_preset = 0 ]; then
+			if [[ "$driver_var" =~ "$mod" ]]; then
+			# don't blacklist or remove from blacklist.
+				class=$(printf "$mod"|cut -c4-)
+				black_conf+=("$mod;1;nvidia$class")
+			else
+			# blacklist or add to blacklist.
+				VAL=0
+				if [ $(chk_version) -ge 515 ]; then
+				## SINCE 515.48 DRM ARE USE BY DEFAULT set is 1.
+					if [[ "$mod" == "use_drm" ]]; then
+						[ $(grep -c "nvidia$class" $black_file) -gt 0 ]&& VAL=1
+					fi
+				fi
+				class=$(printf "$mod"|cut -c4-)
+				black_conf+=("$mod;$VAL;blacklist nvidia$class")
+			fi
+		else
 			class=$(printf "$mod"|cut -c4-)
 			black_conf+=("$mod;1;nvidia$class")
-		else
-		# blacklist or add to blacklist.
-			VAL=0
-			if [ $(chk_version) -ge 515 ]; then
-			## SINCE 515.48 DRM ARE USE BY DEFAULT set is 1.
-				if [[ "$mod" == "use_drm" ]]; then
-					[ $(grep -c "nvidia$class" $black_file) -gt 0 ]&& VAL=1
-				fi
-			fi
-			class=$(printf "$mod"|cut -c4-)
-			black_conf+=("$mod;$VAL;blacklist nvidia$class")
+			eval $mod=1
 		fi
 	done
 }
@@ -2284,127 +2324,7 @@ extract_build(){
 	#cd $nvdir
 	popd
 }
-hardware_compat(){ # TEST CLEAN UP !
-	{ wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
-		sleep 2
-	}| $d_zen --width=400 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate \
-	--auto-close --text="${v}NVIDIA Download center compatibility check (${j}$DRV${end})...${end}"
 
-	cat $upcompat/upt_compat | sed -n "/<h3>/,/Below are the legacy/{;/<tr\|<td\|<\/tr>/p}"| \
-	perl -n -pe "s|(<(/\|)t[r,d](>\| id=\"))||,s|(\">\|</td>)\n|,|p" > $nvcompat/compat.$DRV
-
-	## build a genaral compatibility list for series drivers classes.
-	upt_compat_list=$(user_CF_DIR)/updates/upt_compat_list
-	upt_local_conf=$(rem_drv_list)
-
-	cat $upcompat/upt_compat | sed -n "/<h3>/,/name=\"subsys/p"| \
-	perl -n -pe "s|(<(/)?t[r,d,a,b](ble\|ody)?(>\| id=\")?)||;s|(\">\|</td>)\n|,|; \
-	s|.*legacy_(.*.xx)\">.*|* \1|;s|.*<[/]?[dtpc].*$||p"| \
-	sed -n "/^[[:space:]]*$/d;s/^\ //i;p" > $upt_compat_list
-
-	echo -e "------" >> $upt_compat_list
-
-	## here start the compatibility tool.
-	unset COMPAT class_list sed_output
-	[ -d $nvcompat ]|| mkdir -p $nvcompat/series
-	IFS=$(echo -en "\n\b")
-	## define the separation chapter series section.
-# 	COMPAT+=("Current NVIDIA GPUs")
-	COMPAT+=("<h3>")
-	COMPAT+=("$(egrep "\* *[0-9]{2,4}((.xx)|(\.*[0-9]{2,3}.xx))" $upt_compat_list)")
-	if [ $(ls -1 $nvcompat/series/ | egrep -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
-		rm -f $nvcompat/series/* | egrep "^[0-9]*\.[0-9]*\.[0-9]*$"
-	fi
-	for line in ${COMPAT[@]}; do
-		if [[ $line =~ ".xx" ]]; then
-			drv_class=$(echo -e "$line"| sed -En "s/\* (.*).xx$/\1/p")
-			line=$(cut -d' ' -f2 <<< $line)
-		else
-			drv_class=$(echo "$DRV"| cut -d. -f1)
-		fi
-		drv_end=$(cat <<< ${COMPAT[*]}| grep -A1 "$line"| sed -En "s/^\* (.*).xx$/\1/g;\$p")
-		test "$drv_end" = "$drv_class" && drv_end='-----'
-		## send result in separate compat files.
-		sed_output=( $( sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list) )
-		sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list | egrep "^devid" > $nvcompat/series/$drv_class
-	done
-	## build compat file list from created.
-	class_list=("$(ls -1 $nvcompat/series/| sort -n)")
-	## dig for device id and usual name.
-# 	pci_class=$(echo "$pci_dev"| cut -d, -f3)
-# 	pci_brand=$(echo "$pci_dev"| cut -d, -f6)
-	pci_class=${dev[$e]}
-	pci_brand=${slot_id[$e]}
-
-	## check compat.
-	if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
-		## send message for the install_drv section.
-		install_msg="# Compatiblity found in $(echo "$DRV"| cut -d. -f1) serie, proceed to install"
-		comp_check=1
-		legacy_found=0
-		family_check=1
-		echo "$DRV,$family_check,$legacy_found,$family,0" >> $upt_comp_tmp
-	else
-		for comp_file in ${class_list[@]}; do
-			if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$comp_file) -gt 0 ]; then
-				## message for install_drv section.
-				if [ $from_install = 1 ]; then
-					install_msg="# Your $pci_brand is not compatible with $DRV, look in $comp_file serie instead."
-					error_log=$(cat <<-ERR
-						${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}
-						${v}The ${j}$pci_class${end} is not compatible with ${j}$DRV${end} driver.
-						look in ${j}$comp_file${end} serie instead.
-						Abort.${end}
-					ERR
-					)
-					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
-					--text="$error_log" \
-					--icon-name=xkill --ok-label="Got it"
-					kill $zen_pid
-# 					base_menu
-				fi
-				## serie dirver class for the update/isntall section.
-				family=$comp_file
-				comp_check=0
-			fi
-		done
-		## define vazrs for the update/isntall section.
-		if [ $family ]; then
-			if [ $family -ne $(chk_version) ]; then
-				family_last=$(cat "$upt_local_conf" | grep "$family" | sed -n '$p')
-				legacy_found=1
-				comp_line=''
-			else
-				legacy_found=0
-			fi
-			family_check=1
-		else
-			## send fatal in no driver support.
-			install_msg="# Your $pci_brand is not supported by NVIDIA's drivers."
-			if [ $from_install = 1 ]; then
-				error_log=$(cat <<-ERR
-					${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}
-					${v}The ${j}$pci_class${end} is not supported by ${j}NIVDIA${end} driver.
-					and there's no solution here except maybe reverse to ${j}Nouveau${end} driver.
-					Abort.${end}
-				ERR
-				)
-				$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
-				--text="$error_log" \
-				--icon-name=xkill --ok-label="Got it"
-				kill $zen_pid
-# 				base_menu
-			else
-				legacy_found=0
-				comp_line='\n'
-			fi
-			family_check=0
-		fi
-		echo "$DRV,$family_check,$legacy_found,$family,$family_last" >> $upt_comp_tmp
-	fi
-# 	comp_check+=("$DRV,$comp_check,$legacy_found")
-# 	echo "$DRV,$comp_check,$legacy_found" >> $upt_comp_tmp
-}
 ## BACKUP & PROGRESS COUNT ###
 tar_count(){
 	( eval "$1" &>/dev/null ) & \
@@ -2705,6 +2625,7 @@ check_for_older(){
 		old_pack_list+=("$pack_list")
 		n=$[ $n+1 ]
 	done
+	w_height='--height=300'
 	older_pack=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
 	--radiolist --hide-header --title="Zenvidia" \
 	--text "${j}${bf}Driver version type to install${end}\n${end}${v}$hlp_tip${end}" \
@@ -2723,10 +2644,135 @@ check_for_newer(){
 	legacy_drv=0
 }
 ## UPDATED RELEASE CHECK ###
+hardware_compat(){
+	{ wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
+		sleep 2
+	}| $d_zen --width=400 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate \
+	--auto-close --text="${v}NVIDIA Download center compatibility check (${j}$DRV${end})...${end}"
+
+	cat $upcompat/upt_compat | sed -n "/<h3>/,/Below are the legacy/{;/<tr\|<td\|<\/tr>/p}"| \
+	perl -n -pe "s|(<(/\|)t[r,d](>\| id=\"))||,s|(\">\|</td>)\n|,|p" > $nvcompat/compat.$DRV
+
+	## build a genaral compatibility list for series drivers classes.
+	upt_compat_list=$(user_CF_DIR)/updates/upt_compat_list
+	upt_local_conf=$(rem_drv_list)
+
+	cat $upcompat/upt_compat | sed -n "/<h3>/,/name=\"subsys/p"| \
+	perl -n -pe "s|(<(/)?t[r,d,a,b](ble\|ody)?(>\| id=\")?)||;s|(\">\|</td>)\n|,|; \
+	s|.*legacy_(.*.xx)\">.*|* \1|;s|.*<[/]?[dtpc].*$||p"| \
+	sed -n "/^[[:space:]]*$/d;s/^\ //i;p" > $upt_compat_list
+
+	echo -e "------" >> $upt_compat_list
+
+	## here start the compatibility tool.
+	unset COMPAT class_list sed_output
+	[ -d $nvcompat ]|| mkdir -p $nvcompat/series
+	IFS=$(echo -en "\n\b")
+	## define the separation chapter series section.
+# 	COMPAT+=("Current NVIDIA GPUs")
+	COMPAT+=("<h3>")
+	COMPAT+=("$(egrep "\* *[0-9]{2,4}((.xx)|(\.*[0-9]{2,3}.xx))" $upt_compat_list)")
+	if [ $(ls -1 $nvcompat/series/ | egrep -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
+		rm -f $nvcompat/series/* | egrep "^[0-9]*\.[0-9]*\.[0-9]*$"
+	fi
+	for line in ${COMPAT[@]}; do
+		if [[ $line =~ ".xx" ]]; then
+			drv_class=$(echo -e "$line"| sed -En "s/\* (.*).xx$/\1/p")
+			line=$(cut -d' ' -f2 <<< $line)
+		else
+			drv_class=$(echo "$DRV"| cut -d. -f1)
+		fi
+		drv_end=$(cat <<< ${COMPAT[*]}| grep -A1 "$line"| sed -En "s/^\* (.*).xx$/\1/g;\$p")
+		test "$drv_end" = "$drv_class" && drv_end='-----'
+		## send result in separate compat files.
+		sed_output=( $( sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list) )
+		sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list | egrep "^devid" > $nvcompat/series/$drv_class
+	done
+	IFS=$ifs
+	## build compat file list from created.
+	class_list=("$(ls -1 $nvcompat/series/| sort -n)")
+	## dig for device id and usual name.
+	pci_class=${dev[$e]}
+	pci_brand=${slot_id[$e]}
+	## check compat.
+	if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
+		## send message for the install_drv section.
+		if [ $from_install = 1 ]; then
+			install_msg="# Compatiblity found in $(echo "$DRV"| cut -d. -f1) serie, proceed to install"
+		else
+			legacy=0
+			echo -e "comp_result=+\"$DRV,$legacy\"" >> $upt_comp_tmp
+		fi
+	else
+		for comp_file in ${class_list[@]}; do
+			if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$comp_file) -gt 0 ]; then
+				## message for install_drv section.
+				if [ $from_install = 1 ]; then
+					install_msg="# Your $pci_brand is not compatible with $DRV, look in $comp_file serie instead."
+					error_log=$(cat <<-ERR
+						${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}
+						${v}The ${j}$pci_class${end} is not compatible with ${j}$DRV${end} driver.
+						look in ${j}$comp_file${end} serie instead.
+						Abort.${end}
+					ERR
+					)
+					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+					--text="$error_log" \
+					--icon-name=xkill --ok-label="Got it"
+					kill $zen_pid
+				fi
+				## serie dirver class for the update/isntall section.
+				family=$comp_file
+			fi
+		done
+		## define vazrs for the update/isntall section.
+		if [ $family ]; then
+			if [ $family -ne $(chk_version) ]; then
+				family_last=$(cat "$upt_local_conf" | grep "$family" | sed -n '$p')
+# 				legacy_found=1
+				legacy=1
+				((comp_display++))
+			else
+				legacy=0
+			fi
+			family_check=1
+		else
+			## send fatal in no driver support.
+			install_msg="# Your $pci_brand is not supported by NVIDIA's drivers."
+			if [ $from_install = 1 ]; then
+				error_log=$(cat <<-ERR
+					${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}
+					${v}The ${j}$pci_class${end} is not supported by ${j}NIVDIA${end} driver.
+					and there's no solution here except maybe reverse to ${j}Nouveau${end} driver.
+					Abort.${end}
+				ERR
+				)
+				$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+				--text="$error_log" \
+				--icon-name=xkill --ok-label="Got it"
+				kill $zen_pid
+# 				base_menu
+			else
+				legacy=0
+			fi
+			family_check=0
+		fi
+# 		echo "$DRV,$family_check,$legacy_found,$family,$family_last," >> $upt_comp_tmp
+# 		echo -e "comp_result=+\"$DRV,$family_check,$legacy_found,$family,$family_last\"" >> $upt_comp_tmp
+		echo -e "comp_result=+\"$DRV,$legacy\"" >> $upt_comp_tmp
+		echo -e "family_last=$family_last" >> $upt_comp_tmp
+		echo -e "family=$family" >> $upt_comp_tmp
+# 		echo -e "legacy=$legacy_found" >> $upt_comp_tmp
+		echo -e "legacy=$legacy" >> $upt_comp_tmp
+		echo -e "comp_family=$family_check" >> $upt_comp_tmp
+		echo -e "comp_display=$comp_display" >> $upt_comp_tmp
+	fi
+# 	comp_check+=("$DRV,$comp_check,$legacy_found")
+# 	echo "$DRV,$comp_check,$legacy_found" >> $upt_comp_tmp
+}
 check_update(){
 	unset DIFF_list
 	LAST_IN=$(version)
-# 	LAST_BETA=$(tac $drv_list_file | sed -n 1p)
 	LAST_BETA=$(tac $(rem_drv_list) | sed -n 1p)
 	upt_comp_tmp=$(mktemp --tmpdir zn_vars.XXXX )
 	## COMPATIBILTY SECTION
@@ -2737,18 +2783,21 @@ check_update(){
 			DIFF_list="$LAST_DRV $LAST_BETA"
 	fi
 	## reset old compatibilty sets.
-	comp_check=0
 	legacy_found=0
+	family_check=0
+	legacy=0
+	comp_family=0
+	comp_display=0
+
 	w_height=355
-	unset dl_allow COMP_L COMP_I LOCAL_DRV comp_check
+	unset dl_allow COMP_L COMP_I LOCAL_DRV comp_check comp_result
 	## desktop could have more than one device managed. So check.
 	for e in $pci_dev_nb; do
-# 		if [[ "${vnd[$e]}" =~ "NVIDIA" ]]; then
 		if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
 			for DRV in $DIFF_list; do
 				## test existence of the new driver version in remote tree and compatibilities.
 				$(hardware_compat)
-				cat $upt_comp_tmp
+				. $upt_comp_tmp
 				## and prepare optional messages to display.
 				if [ $(cat $(rem_drv_list)| grep -c $DRV) -gt 0 ]; then
 					dl_allow=1
@@ -2758,21 +2807,17 @@ check_update(){
 				# mark driver stocked in local repos.
 				in_pack=$(ls -1 $nvdl/ | grep -c "$DRV")
 				test "$DRV" == "$LAST_IN" && _installed=1 || _installed=0
-				comp=$(grep "$DRV" $upt_comp_tmp| cut -d, -f2)
-				legacy=$(grep "$DRV" $upt_comp_tmp| cut -d, -f3)
-				family=$(grep "$DRV" $upt_comp_tmp| cut -d, -f4)
-				family_last=$(grep "$DRV" $upt_comp_tmp| cut -d, -f5)
-				# TEST ISSUE
 				if [ "$LAST_BETA" ]; then
 					test "$DRV" == "$LAST_BETA" && _is_beta=0 || _is_beta=1
 					test $legacy_drv -gt 0 && _is_beta=0
 				else
 					_is_beta=0
 				fi
-					DEV_filter=$(cat $nvcompat/compat.$DRV| egrep -i "${dev[$e]}.*${slot_id[$e]}")
-					dev_compat=$(cat $nvcompat/compat.$DRV| egrep -ic "${dev[$e]}.*${slot_id[$e]}")
-					VDPAU_class=$(printf "$DEV_filter"|cut -d"," -f4) # J
-				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$comp,$legacy,$dev_compat,$family,$family_last,${dev[$e]},$VDPAU_class,$dl_allow")
+				DEV_filter=$(cat $nvcompat/compat.$DRV| egrep -i "${dev[$e]}.*${slot_id[$e]}")
+				dev_compat=$(cat $nvcompat/compat.$DRV| egrep -ic "${dev[$e]}.*${slot_id[$e]}")
+				VDPAU_class=$(printf "$DEV_filter"|cut -d"," -f4) # J
+# 				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$comp,$legacy,$dev_compat,$family,$family_last,${dev[$e]},$VDPAU_class,$dl_allow")
+				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow")
 				# '364.12,0,0,0,0,0,0,GeForce RTX 2060,,1'
 				# '525.85.05,1,0,0,1,0,1,GeForce RTX 2060,J,1'
 			done
@@ -2783,7 +2828,7 @@ check_update(){
 	sed -i "/^[[:space:]]*$/d;s/^\ //g" $nvcompat/compat.update
 	win_update
 }
-win_update(){ # TEST
+win_update(){
 	## define window messages and display compatibilities.
 	in_local=0
 	in_install=0
@@ -2798,20 +2843,32 @@ win_update(){ # TEST
 		_exist=$(echo "$local_drv"|cut -d',' -f2)
 		_insta=$(echo "$local_drv"|cut -d',' -f3)
 		_beta=$(echo "$local_drv"|cut -d',' -f4)
-		_comp=$(echo "$local_drv"|cut -d',' -f5) # family_check
-		_legacy=$(echo "$local_drv"|cut -d',' -f6)
-		_dev_comp=$(echo "$local_drv"|cut -d',' -f7)
-		_family=$(echo "$local_drv"|cut -d',' -f8)
-		_family_last=$(echo "$local_drv"|cut -d',' -f9)
-		_name=$(echo "$local_drv"|cut -d',' -f10)
-		_vclass=$(echo "$local_drv"|cut -d',' -f11)
-		_dl_ok=$(echo "$local_drv"|cut -d',' -f12)
+		_dev_comp=$(echo "$local_drv"|cut -d',' -f5)
+		_name=$(echo "$local_drv"|cut -d',' -f6)
+		_vclass=$(echo "$local_drv"|cut -d',' -f7)
+		_dl_ok=$(echo "$local_drv"|cut -d',' -f8)
 		## messageries
-		# '364.12,0,0,0,"0,0,0,525",GeForce RTX 2060,,1'
-		# '525.85.05,1,0,0,"1,0,1,525",GeForce RTX 2060,J,1'
+		# '364.12,0,0,0,"0",GeForce RTX 2060,,1'
+		# '525.85.05,1,0,0,"",GeForce RTX 2060,J,1'
 		case $_insta in
 			0) set_in='' ;;
 			1) set_in=" (installed)"; ((in_install++)) ;;
+		esac
+		if [ "$_vclass" ]; then comp_v="(VDPAU class $_vclass)"; fi
+		case $_dl_ok in
+			0) dl_warn="\n${y}but is not downloadable yet (wont be list)${end}" ;;
+			1) dl_warn='' ;;
+		esac
+
+		case $_dev_comp in
+			0) comp_a="${vB}uncompatible${end}"
+				comp_b="${y}$_drive${end} ${rB} driver doesn't manage your hardware${end}\n"
+			;;
+			1) comp_a="compatible"
+# 				comp_b="compatible. $comp_v"
+				comp_b="${j}$_drive${end} ${v} driver fit your hardware${end} ${y}$(echo -e '\u2764')${end}\n" # or 2714
+				((in_compat++))
+			;;
 		esac
 		case $_beta in
 			0)
@@ -2819,9 +2876,9 @@ win_update(){ # TEST
 				set_beta='official'; _drv_title='official'
 			else
 				if [ "$_drive" == "$LAST_BETA" ]; then
-					set_beta='official'; _drv_title='last release'
+					set_beta='official'; _drv_title="last release"
 				else
-					set_beta='legacy'; _drv_title='legacy'
+					set_beta='legacy' ; _drv_title='legacy'
 				fi
 			fi
 			;;
@@ -2830,45 +2887,16 @@ win_update(){ # TEST
 		case $_exist in
 			0) in_repos='is not in your repository'
 				DOWN_list+=("false"); DOWN_list+=("$_drive"); DOWN_list+=("($_drv_title)")
-				if test $_legacy = 1; then DOWN_list+=("false"); DOWN_list+=("$_family_last"); DOWN_list+=("($_drv_title)"); fi
 			;;
 			1) in_repos='is in your repository'; ((in_local++))
 			;;
 		esac
 
-
-		if [ "$_vclass" ]; then comp_v="(VDPAU class $_vclass)"; fi
-		case $_dl_ok in
-			0) dl_warn="\n${y}but is not downloadable yet (wont be list)${end}" ;;
-			1) dl_warn='' ;;
-		esac
-		case $_dev_comp in
-			0) comp_a="${vB}uncompatible${end}"
-				comp_b="${y}$_drive${end} ${rB} driver doesn't manage your hardware${end}"
-				case $_comp in
-					0) comp_c="\n${y}this driver is not supported anymore${end}"
-						test $_legacy -gt 0 && comp_d='\n'
-					;;
-					1) case $_legacy in
-							0) comp_d='\n' ;;
-							1) comp_d="\n${v}Last ${y}$_family_last${end} will be list.${end}\n" ;;
-						esac
-						comp_c="\n${v}Devices compatibility found in ${y}$_family${end} serie${end}$comp_d"
-					;;
-				esac
-			;;
-			1) comp_a="compatible"
-# 				comp_b="compatible. $comp_v"
-				comp_b="${j}$_drive${end} ${v} driver fit your hadrware${end} ${y}$(echo -e '\u2764')${end}" # or 2714
-				comp_c='\n'
-				((in_compat++))
-			;;
-		esac
-
 		COMP_L+=("${j}$_name${end} ${v}($_drive), $comp_a${end}")
-		COMP_L+=("$comp_b$comp_c")
+		COMP_L+=("$comp_b")
 		main_msg+=("\n${v}The $set_beta version is :${end}${ge}  - - - - - - ${end}${y}$_drive${end}")
 		more_msg+=("\n${j}$_drive${end}${vB} $in_repos.${end}${v}$set_in${end}$dl_warn")
+		## define the appropriate UI.
 		case $in_local in
 			0) ui_mod=1 ;; # dl/inst selector
 			1) ui_mod=1    # dl/inst selector
@@ -2899,6 +2927,34 @@ win_update(){ # TEST
 			;;
 		esac
 	done
+	## this section has to be display only once.
+	if [ $comp_display -ge 1 ]; then # normal
+# 	if [ $comp_display -eq 0 ]; then # test
+		case $comp_family in
+			0) comp_c="${y}this driver is not supported anymore${end}"
+				test $legacy -gt 0 && comp_d='\n'
+			;;
+			1) case $legacy in
+					0) comp_d='' ;;
+					1) comp_d="\n${v}Last ${y}$family_last${end} will be list.${end}"
+						if [ $(ls -1 $nvdl/ | grep -c "$family_last") = 1 ]; then
+							in_repos='is in your repository'
+							ui_mod=2
+						else
+							in_repos='is not in your repository'
+							DOWN_list+=("false")
+							DOWN_list+=("$family_last")
+							DOWN_list+=("(last legacy)")
+						fi
+						more_msg+=("\n${j}$family_last${end}${vB} $in_repos.${end}")
+					;;
+				esac
+				comp_c="\n${v}Devices compatibility found in ${y}$family${end} serie${end}$comp_d"
+
+			;;
+		esac
+		COMP_L+=("$comp_c")
+	fi
 	compat_msg=$(cat <<< ${COMP_L[*]})
 	IFS=$ifs
 
@@ -2910,7 +2966,6 @@ win_update(){ # TEST
 			list_opts=''
 			;;
 		1)	w_height=220
-			#w_height=$(($w_height$w_add))
 			zen_opts='--list --radiolist --hide-header'
 			table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
 			list_opts="false 1 Install false 2 Download ";;
@@ -2923,7 +2978,7 @@ win_update(){ # TEST
 	w_text=$(cat <<-MSG
 		${jB}${bf}Available drivers${end}${end}
 
-		${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$LAST_IN${end}
+		${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$drv_installed${end}
 		$(cat <<< ${main_msg[@]})
 
 		$compat_msg
@@ -2945,39 +3000,40 @@ win_update(){ # TEST
 		esac
 	else
 		base_menu
-	fi	
+	fi
 }
-download_menu(){ # TEST
-	if [ ${#DOWN_list[*]} -le 3 ]; then
-		w_dim='--width=200 --height=100'
-		zen_opts="--question --ok-label=$ok_label --cancel-label=Abort"
-		table_opts=''
-		list_opts=''
-		w_text=$( cat <<-INFO
-			${jB}${bf}Downloads${end}${end}
-
-			${y}${DOWN_list[1]}${end}${v} will be downloaded.
-
-			Please confirm.${end}
-		INFO
-		)
-		output_type=0
-	else
+download_menu(){
+# 	IFS=$(echo -en "\n\b")
+# 	if [ ${#DOWN_list[*]} -le 3 ]; then
+# 		w_dim='--width=200 --height=100'
+# 		zen_opts="--question --ok-label=$ok_label --cancel-label=Abort"
+# 		table_opts=''
+# # 		list_opts=''
+# 		w_text=$( cat <<-INFO
+# 			${jB}${bf}Downloads${end}${end}
+#
+# 			${y}${DOWN_list[1]}${end}${v} will be downloaded.
+#
+# 			Please confirm.${end}
+# 		INFO
+# 		)
+# 		output_type=0
+# 	else
+# 		IFS=$(echo -en "\n\b")
 		w_dim='--width=300 --height=220'
 		zen_opts='--list --radiolist --hide-header'
 		table_opts='--column "1" --column "2" --column "3" --separator=";"'
-		list_opts="${DOWN_list[@]}"
+# 		list_opts="$(echo -e "")"
 		w_text=$( cat <<-INFO
 			${jB}${bf}Downloads${end}${end}
-
 			${v}Select the drivers version you wish to install/download.
 			in the list below${end}
 		INFO
 		)
 		output_type=1
-	fi
+# 	fi
 	dl_cmd=$($d_zen $w_dim --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
-	--text="$w_text" $table_opts $list_opts )
+	--text="$w_text" $table_opts "${DOWN_list[@]}" )
 	if [ $? = 1 ]; then
 		base_menu
 	else
@@ -2987,6 +3043,7 @@ download_menu(){ # TEST
 			test ${#DOWN_list[*]} -le 3 && LAST_PACK=${DOWN_list[1]} || base_menu
 		fi
 	fi
+# 	IFS=$ifs
 	last_pack
 }
 download_only(){
@@ -4662,6 +4719,7 @@ open_drv=0
 no_warn=0
 open_wrn=1
 first_open=1
+prime=0
 from_install=0
 #exec_mod_tool=0
 ARCH=$HOSTTYPE
