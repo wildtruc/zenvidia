@@ -45,12 +45,6 @@ local_src=$local_nvdir/src
 driver_up=0
 zen_up=0
 
-if [[ ! -e home/$USER/.config/autostart/zen_notify.desktop ]]; then
-	zen_git=$(find -P $HOME -maxdepth 4 -name "zenvidia")
-	if [[ -d $zen_git && ! -e /home/$USER/.config/autostart/zen_notify.desktop ]]; then
-		cp -f $zen_git/desktop_files/zen_notify.desktop /home/$USER/.config/autostart/
-	fi
-fi
 driver_ctrl(){
 ## get all driver list.
 wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/

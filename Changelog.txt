@@ -79,5 +79,11 @@
  - Because of number of test show cases of all this change, this is very expérimeantal and there still tests to do. Issue report would be very welcome.
  - NOTE : When installing driver for old devices not supported by actual driver serie, in case of Optimus/Prime nothing is managed to warn or prepare for this type of device system; so be aware that it could break your xorg config if you install drivers for Optimus/Prime. Diging for a soft solution (my old laptop would be delighted).
  - NOTE : It look like that the default font used in Zenvidia is not install by default in all distro (Google-Noto-Sans) and because of this, zenity doesn't display correctly tab and so on. Further research is need to fix this.
-* 2023-02-08 - v2.0.13
+* 2023-02-07 - v2.0.13
  - Missing loop in hardware_compat in case on multi GPU devices detection.
+* 2023-02-011 - v2.0.14
+ - Add warning and auto drivers setting for Optimus in case of multi and non Nvidia devices detection. (xorg part still todo, maybe). Default Basic conf has been change accordingly and zenvidia local conf need to be update (seed README.md for manially update details).
+ - Fixed daily zenvidia internal zen_notify check file owner that prevent zen_notif itself to update the daily check file (case no file found at first start).
+ - Remove a useless zen_notify autostart desktop entry checker.
+ - Rework check update from net part to be better displayed and get the possibility to downlaod/install the best driver for old hardware if found.
+

@@ -24,6 +24,19 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.0.14 NOTES :
+ - Add warning and auto drivers setting for Optimus in case of multi and non Nvidia devices detection. Default Basic conf has been change accordingly and zenvidia local config need to be update.
+
+ **Remind you that a Optimus manager is required for prime, offload, etc.**
+
+ To change local zenvidia config manually, add the lines below in `.zenvida/basic.conf` :
+ ```
+# Optimus modules preset setting : (1) or not (0)
+opti_preset=0
+# don't display Optimus modules setting messsage: (1) or not (0)
+no_opti_warn=0
+ ```
+
 v2.0.12 NOTES :
  - When installing driver for old devices not supported by actual driver serie, in case of Optimus/Prime nothing is managed to warn or prepare for this type of device system; so be aware that it could break your xorg config if you install drivers for Optimus/Prime. Diging for a soft solution (my old laptop would be delighted).
  - It look like that the default font used in Zenvidia is not install by default in all distro (Google-Noto-Sans) and because of this, zenity doesn't display correctly tab and so on. Further research is need to fix this.
