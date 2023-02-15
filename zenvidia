@@ -57,6 +57,8 @@ p_gcc=$(command -v gcc) || deplist+=("gcc")
 p_dkms=$(command -v dkms) || deplist+=("dkms")
 d_yad=$(command -v yad) || deplist+=("yad")
 d_zen=$(command -v zenity) || deplist+=("zenity")
+d_xdpy=$(command -v xdpyinfo) || deplist+=("xdpyinfo")
+d_ssl=$(command -v openssl) || deplist+=("openssl")
 d_nv_installer=$(command -v nvidia-installer)
 d_nv_settings=$(command -v nvidia-settings)
 i_sys=$(command -v dracut)
@@ -409,7 +411,7 @@ libclass(){
 dep_control(){
 	unset dep_text
 	w_width='400'
-	if [ $resolve_dep = 0 ]; then
+# 	if [ $resolve_dep = 1 ]; then
 		if [ "${#deplist[*]}" -gt 0 ] ; then
 			for d in ${deplist[@]}; do
 				dep_text+=("$d, ")
@@ -449,7 +451,7 @@ dep_control(){
 				exit 0
 			fi
 		fi
-	fi
+# 	fi
 }
 connection_control(){
 	cnx=$(ping -c2 www.nvidia.com)
@@ -563,8 +565,8 @@ xorg_conf(){ # TEST TODO multi devices check and config.
 	sec_option_df(){
 	## compute X screen DPI ex : (1080x25.4)/286. From Nvidia Doc formula.
 		if [ /usr/bin/xdpyinfo ]; then
-			pixel=$(xdpyinfo | grep -B1 "dot"| sed -En "s/^.*([0-9]{4,5})x([0-9]{4,5}).*$/\1;\2/1p")
-			milli=$(xdpyinfo | grep -B1 "dot"| sed -En "s/^.*([0-9]{3,4})x([0-9]{3,4}).*$/\1;\2/1p")
+			pixel=$($d_xdpy | grep -B1 "dot"| sed -En "s/^.*([0-9]{4,5})x([0-9]{4,5}).*$/\1;\2/1p")
+			milli=$($d_xdpy | grep -B1 "dot"| sed -En "s/^.*([0-9]{3,4})x([0-9]{3,4}).*$/\1;\2/1p")
 			w_pix=$(printf "$pixel"| cut -d';' -f1)
 			h_pix=$(printf "$pixel"| cut -d';' -f2)
 			w_mil=$(printf "$milli"| cut -d';' -f1)
@@ -904,16 +906,28 @@ new_version(){
 }
 old_version(){
 	if [ $from_install = 1 ]; then
-		if test -f $tmp_old; then
-			cat $tmp_old
+		$d_modinfo -F version nvidia -k $KERNEL &>/dev/null
+		if [ $? -eq 0 ]; then
+			if test -f $tmp_old; then
+				cat $tmp_old
+			else
+				$d_modinfo -F version nvidia -k $KERNEL
+			fi
 		else
-			$d_modinfo -F version nvidia -k $KERNEL
+			echo "0"
 		fi
 	else
-		test -f $present_version && cat $present_version || echo "0"
+		## in case of archive restoration, the old version is current version in te kernel.
+		if [ "$present_version" ]; then
+			test -f $present_version && cat $present_version || echo "0"
+		else
+			echo "0"
+		fi
 	fi
 }
-nv_old(){ echo "$(old_version)"| sed -n "s/\.//g;p"; }
+nv_old(){
+	echo "$(old_version)"| sed -n "s/\.//g;p"
+}
 nv_new(){
 	if [ "$(new_version)" ]&&[ "$(new_version)" != "0" ]; then
 		echo "$(new_version)"| sed -n "s/\.//g;p"
@@ -1161,13 +1175,15 @@ blacklist_nouveau(){
 		if [ $(cat $grub_def| egrep -c "^GRUB_CMD.*$blacklist $modset.*$") -eq 0 ]; then
 			echo "# - GRUB conf updated (nouveau driver blacklisting and options)."; sleep 2
 			## then, replace default env grub with new vars and update grub.cfg.
-			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)$/\1=\"$blacklist $modset \3/" $grub_def
+# 			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)$/\1=\"$blacklist $modset \3/" $grub_def
+			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist $modset \3\"" $grub_def
 			$d_grub-mkconfig -o $grub_cfg
 		fi
 	else
 		echo "# Create GRUB conf for nouveau driver blacklisting."; sleep 2
 		sed -En "s/^GRUB_CMD.*=\"(.*)\"$/grub_orig='\1'/p" $grub_def > $(user_CF_DIR)/grub-orig
-		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)$/\1=\"$blacklist $modset\2" $grub_def
+# 		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)$/\1=\"$blacklist $modset\2" $grub_def
+		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)\"$/\1=\"$blacklist $modset \2\"" $grub_def
 		$d_grub-mkconfig -o $grub_cfg
 	fi
 	## add nouveau blacklist to modeprobe.d configs list.
@@ -1192,9 +1208,11 @@ nv_blacklist_modules_conf(){
 					sed -Ei "s/^($class)=[0-9]$/\1=$used_val/g" $basic_conf
 				fi
 				# update or modifiy blacklist.conf
-				if [ $(grep -c "$black_text" $black_file) -gt 0 ]; then
-					if [ $used_val -eq 0 ]; then replace="$black_text"; else replace=''; fi
-					sed -Ei "s/^$black_text$/$replace/g" $black_file
+				if [ -f $black_file ]; then
+					if [ $(grep -c "$black_text" $black_file) -gt 0 ]; then
+						if [ $used_val -eq 0 ]; then replace="$black_text"; else replace=''; fi
+						sed -Ei "s/^$black_text$/$replace/g" $black_file
+					fi
 				else
 					if [ $used_val -eq 0 ]; then
 						cat <<-CONF >> $black_file
@@ -1312,9 +1330,11 @@ post_install(){
 				cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$(new_version) $r_dir/
 			fi
 			if [ ! -h $r_dir/libnvidia-$links.so.1 ]; then
-				ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
-				ln -sfr $r_dir/libnvidia-$links.so.$(new_version) $r_dir/libnvidia-$links.so.1
-				fixed_lib_log+=("$links,")
+				if [ -f $r_dir/libnvidia-$links.so.$(new_version) ]; then
+					ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
+					ln -sfr $r_dir/libnvidia-$links.so.$(new_version) $r_dir/libnvidia-$links.so.1
+					fixed_lib_log+=("$links,")
+				fi
 			fi
 		done
 		if [ ${#fixed_lib_log[*]} -gt 0 ]; then
@@ -1414,6 +1434,9 @@ nv_build_options(){
 	if [ $(chk_version) -ge 430 ]; then
 		nv_xorg_dir=$xorg_def
 	fi
+	if [ $(chk_version) -ge 430 ]; then
+		wine_special='--wine-prefix='$nv_root'/nvidia.'$(new_version)
+	fi
 	if [ $(chk_version) -ge 515 ]; then
 		extract_open=1; ask_open_build=1
 	fi
@@ -1479,7 +1502,7 @@ nv_cmd_dkms_conf(){
 
 		EOT
 		o=1
-		mods_list+=( "uvm" )\r
+		mods_list+=( "uvm" )
 		mods_list+=( "modeset" )
 		mods_list+=( "drm" )
 		for mods in ${mods_list[@]}; do
@@ -1541,7 +1564,44 @@ nv_cmd_dkms_conf(){
 		done
 	fi
 }
+nv_dkms_mok_key(){
+	## something can go wrong during module signing, need to figure out.
+	# 	/lib/modules/6.1.10-100.fc36.x86_64/build/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub /var/lib/dkms/nvidia/390.157/build/nvidia.ko
+	# 	strip -g /var/lib/dkms/nvidia/390.157/build/nvidia.ko
+
+	## for an unknown reason (at least not found) it happens that DKMS MOK keys are not generated.
+	## and prevent DKMS compilation to succeed. Then, if not found we're create new self-signed ones.
+	mok_signing_key="/var/lib/dkms/mok.key"
+	mok_certificate="/var/lib/dkms/mok.pub"
+	## this part is more or less taken from dkms script. Thankfully.
+	if [ ! "$mok_signing_key" ] || [ ! "${mok_certificate}" ]; then
+		echo "# DKMS MOK key/certificate are missing, generating new one for modules signin process."
+		$d_ssl req -new -x509 -nodes -days 36500 -subj "/CN=DKMS module signing key" \
+		-newkey rsa:2048 -keyout "$mok_signing_key" \
+		-outform DER -out "$mok_certificate" &>/dev/null
+		if [ ! -f "$mok_signing_key" ]; then
+			echo "# MOK $mok_signing_key key not found and/or can't be generated, modules won't be signed"
+			## send ERROR and abort.
+			w_text=$( cat <<-ERROR
+				${r}MODULES SIGNATURE ERROR${end}.
+				$(new_version) compilation can't be done successfully.
+
+				$mok_signing_key and $mok_certificate can't be found
+				and attempt to create new ones failed.
+
+				Very sorry about that.
+			ERROR
+			)
+			$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --icon-name=xkill --error --no-wrap \
+			--ok-lable="OK" --text="${v}$w_text${end}"
+			kill $zen_pid
+		fi
+		$d_sys restart dkms.service
+	fi
+}
 nv_build_dkms(){
+	## test and fix mok keys if needed.
+	nv_dkms_mok_key
 	unset drv_src
 	## all script here is inserted in xterm for better display of process.
 	## known bug : it appears on unknown reason that DKMS script do not install modules.
@@ -1647,13 +1707,13 @@ nv_build_dkms(){
 				ADD
 			)
 			## remove previous known and unknown version if any before installing new one.
+			## TODO add a more strict filter on already present modules.
 			cat <<-SEQ
 			#mod_installed=\$(find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version)
 			mod_installed(){ # used by nv_build_dkms only
 				test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version
 			}
 			old_inst=\$(sed -n "s/\\.//g;p" <<< \$(mod_installed))
-
 			if [ $(nv_old) -gt 0 ]; then
 				if [ $(nv_old) = \$old_inst ]; then
 					if [ $(nv_old) -ne $(nv_new) ]; then
@@ -1768,10 +1828,10 @@ nv_build_dkms(){
 			if [ -s /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log ]; then
 				test -d $nvlog/dkms/\$_dkms/ || mkdir -p $nvlog/dkms/\$_dkms/
 				cp -f /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log $nvlog/dkms/\$_dkms/
-				dkms_log_file=$nvlog/dkms/\$_dkms/make.log
-				echo -e "dkms_log_file=\$dkms_log_file" >> $tmp_b
+				make_log_file=$nvlog/dkms/\$_dkms/make.log
+				echo -e "make_log_file=\$make_log_file" >> $tmp_b
 				printf "${pur}* \$_dkms $(new_version) log found.\n${nc}"
-				printf "${pur}* \$_dkms make log copied to \$dkms_log_file.\n${nc}"
+				printf "${pur}* \$_dkms make log copied to \$make_log_file.\n${nc}"
 			else
 				printf "${pur}# No $(new_version) \$_dkms build log found.\n${nc}"
 			fi
@@ -1807,7 +1867,24 @@ nv_cmd_make_src(){
 		drv_src=( nvidia )
 	fi
 	[ -f $tmp_b ]&& echo -e "show_dkms=' (from source)'" > $tmp_b
+	## prepare modules signing (with dmsk mok files)
+	nv_dkms_mok_key
+# 	signing(){ $(nv_module_signing); }
 	mod_check(){
+		module_signing=$(
+			cat <<-SIGN
+			if [ -f "\$(find -L $kernel_src -name "sign-file")" ]; then
+				## list modules.
+				for mod in \$(ls -1 *.ko); do
+					printf "${pur}# Signing \$mod ...\n${nc}"; sleep 1
+					## find the sign-file script in kernel source
+					\$(find -L $kernel_src -name "sign-file") sha512 $mok_signing_key $mok_certificate \$mod
+					## strip on uncompressed modules only
+					strip -g \$mod
+				done
+			fi
+			SIGN
+		)
 		copy_mods=$(
 			cat <<-CHECK
 				printf "${xB}# Installing ${red}$(new_version) \$module${nc}${xB} in $kernel_path:\n${nc}"
@@ -1830,7 +1907,8 @@ nv_cmd_make_src(){
 				sleep 2
 				#progress_msg(){ echo -en "\\r* Exec $KERNEL modules reload (\$m sec.)"; }
 				#m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
-				$( exec_depmod "$KERNEL" )
+				#\$( exec_depmod "$KERNEL" )
+				depmod -a $KERNEL
 				$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
 				pass=\$?
 				[ -f $tmp_b ]&& echo -e "pass=\$pass" >> $tmp_b
@@ -1839,13 +1917,16 @@ nv_cmd_make_src(){
 		)
 		## rebuild initramfs in case of trouble booting.
 		cat <<-SEQ
-			#if [ -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
-			if [ ! -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
+			if [ -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
+			#if [ ! -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
 				printf "${red} ------- $module Compilation done -------- \n${nc}"
 				sleep 2
-				clear
-				$headings
+				#clear
+				#$headings
+				#sleep 2
+				printf "${pur}# Signing \$module modules.\n${nc}"
 				sleep 2
+				$module_signing
 				if [ $use_open -eq 1 ]; then
 					if [[ \$module =~ ^open ]]; then
 						$copy_mods
@@ -1878,14 +1959,13 @@ nv_cmd_make_src(){
 # 	}
 	post_treatment(){
 		cat <<-MSG
-		printf "\n${xB}# Checking ${red}$(new_version) \$_dkms${nc}${xB} build log presence.\n${nc}"
+		printf "\n${xB}# Checking ${red}$(new_version) \$module${nc}${xB} build log presence.\n${nc}"
 		if [ -s /usr/src/\$module-$(new_version)/make.log ]; then
 			[ -d $nvlog/source/\$module ]|| mkdir -p $nvlog/source/\$module
 			cp -f /usr/src/\$module-$(new_version)/make.log $nvlog/source/\$module
-			src_log_file=$nvlog/source/\$module/make.log
-			[ -f $tmp_b ]&& echo -e "src_log_file=\$src_log_file" >> $tmp_b
+			make_log_file=$nvlog/source/\$module/make.log
+			[ -f $tmp_b ]&& echo -e "make_log_file=\$make_log_file" >> $tmp_b
 			printf "${pur}* \$module $(new_version) log found.\n${nc}"
-			printf "${pur}* \$module make log copied to \$src_log_file.\n${nc}"
 		else
 			printf "${pur}* No $(new_version) \$module build log found.\n${nc}"
 		fi
@@ -1901,10 +1981,11 @@ nv_cmd_make_src(){
 	fi
 	headings="printf \"${xB}# Installing from $(new_version) \$module sources:\n\n${nc}\""
 	xt_content=$( cat <<-XT
+		#set -x
 		for module in ${drv_src[@]} ; do
 			$headings
 			if [ -d /usr/src/\$module-$(new_version) ]; then
-				cd /usr/src/\$module-$(new_version)
+				pushd /usr/src/\$module-$(new_version)
 				printf "${xB}# Build ${red}$(new_version) \$module${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
 				printf "${red} ------- \$module compilation start ------- \n${nc}"
 				sleep 2
@@ -1918,6 +1999,7 @@ nv_cmd_make_src(){
 				$(mod_check)
 				sleep 2
 				$(post_treatment)
+				popd
 			else
 				echo "\n${xB}# Source ${red}$(new_version) \$module${nc}${xB} unaviable.\n# Check your kernel source three.${nc}"
 				[ -f $tmp_b ]&& echo -e "pass=1" >> $tmp_b
@@ -1975,7 +2057,7 @@ nv_cmd_update(){
 		[ $from_install = 1 ] && nv_cmd_dkms_conf
 		nv_build_dkms
 		. $tmp_b
-		make_log=$dkms_log_file
+		make_log=$make_log_file
 		if [ $pass -eq 1 ]; then
 			echo "# DKMS compilation ERROR !!"; sleep 2
 		fi
@@ -1984,7 +2066,7 @@ nv_cmd_update(){
 			echo "# Nvidia MODULES compilation from source..."; sleep 1
 			nv_cmd_make_src
 			. $tmp_b
-			make_log=$src_log_file
+			make_log=$make_log_file
 		fi
 	fi
 	if [ $pass -eq 0 ]; then
@@ -2008,8 +2090,8 @@ nv_cmd_update(){
 			echo "# ERROR ! $KERNEL modules do not match $(new_version). Abort."; sleep 3; exit 0
 		fi
  	fi
+ 	install_log_messages
  	blacklist_nouveau
-	install_error_log
 }
 nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 ## INFOS ABOUT NVIDIA-INSTALLER OPTIONS :
@@ -2046,7 +2128,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 	$add_glvnd $force_glvnd --install-compat32-libs \
 	--compat32-prefix=$nv_root/nvidia.$(new_version) $compat32 $compat64 \
 	--x-prefix=/usr --x-library-path=$nv_root/nvidia.$(new_version) --x-module-path=$nv_xorg_dir/modules \
-	--opengl-prefix=$nv_root/nvidia.$(new_version) --wine-prefix=$nv_root/nvidia.$(new_version) --utility-prefix=$install_dir \
+	--opengl-prefix=$nv_root/nvidia.$(new_version) $wine_special --utility-prefix=$install_dir \
 	$docs $profile --tmpdir=$buildtmp --log-file-name=$lib_logfile
 	printf \"$esc_message\" ; sleep $xt_delay"
 	## link to sys.
@@ -2058,11 +2140,28 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 install_log_messages(){
 	## install log messages
 	if [ $pass -eq 0 ]; then
-		echo "# Modules build done."; sleep 1
+		echo "# Modules build done."; sleep 2
 		report_log+=("${vB}Driver build$show_dkms:\t${end}${gB} success\t\t${end}> ${y}Installation complete with no error${end}\n")
 	else
-		echo "# Modules build ERROR."; sleep 1
+		echo "# Modules build ERROR."; sleep 2
 		report_log+=("${vB}Driver build:\t\t${end}${rB} failure\t\t${end}> ${y}ERROR, 'make' exit with 'failed' state${end}\n")
+		w_text=$( cat <<-ERROR
+			${r}MODULES BUILD RETURN ERRORS.${end}.
+			$(new_version) compilation failed.
+			Source make.log has been saved in <i>$make_log_file</i>.
+
+			Do you want to read $make_log_file ?
+		ERROR
+		)
+		$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --icon-name=xkill --question --no-wrap \
+		--ok-label="Yes" --cancel-label="No thanks, shits happens" \
+		--text="${v}$w_text${end}"
+		fatal_error=$?
+		kill $zen_pid
+		if [ $fatal_error = 0 ]; then
+			$d_zen --width=800 --height=400 --title="Zenvidia" --text-info \
+			--ok-label="Close" --cancel-label='' --filename="$make_log_file"
+		fi
 	fi
 	## realtime report messages.
 	if [ $is_RT -eq 1 ]; then
@@ -2072,27 +2171,6 @@ install_log_messages(){
 	if [ $open_drv -eq 1 ]; then
 		if [ $use_open -eq 1 ]; then append="open driver loaded"; else append="close source loaded"; fi
 		report_log+=("${vB}Open Driver:\t\t${end}$gB compiled\t\t${end}>${y} $append${end}\n")
-	fi
-}
-install_error_log(){
-	if [ $(grep -c "ERROR" $dkms_log_file) -gt 0 ]; then
-		# on driver complation break, abort and go back to main menu.
-		w_text=$( cat <<-ERR
-			${vB}DRIVER INSTALL SEND FATAL ERROR !${end}
-
-			${v}Modules failed to compil.
-			Read make log file to know more abor errors.${end}
-		ERR
-		)
-		$d_zen --width=450 --title="Zenvidia" --warning --no-wrap \
-		--text="$w_text" --icon-name=xkill --cancel-label="Display Log file" --ok-label="$MM"
-		if [ $? = 1 ]; then
-			## display log file
-			$d_zen --width=700 --height=400 --title="Zenvidia $make_log" --text-info --filename="$make_log"
-		fi
-		base_menu
-	else
-		inst_mod_version=$($d_modinfo -F version nvidia -k $KERNEL)
 	fi
 }
 install_report_log(){
@@ -2164,11 +2242,6 @@ install_drv(){
 		## temp value to n
 		p=$n
 		echo "# ($n%) - Starting install"; sleep 1
-		## create base libs install directories
-
-		for d in {$nv_root/$predifined_dir,$nv_root/nvidia.$(new_version)/$master$ELF_32,$nv_root/nvidia.$(new_version)/$master$ELF_64,$nv_xorg_dir}; do
-			[ -d $d ] || mkdir -p $d
-		done
 		cd $nv_root
 		# nv_cmd processes (install without X crash )
 		echo "# ($n%) - Package compil and install"; sleep 1
@@ -2179,7 +2252,7 @@ install_drv(){
 # 		n=$[ $p+$n ]; echo "$n" # 3 # n=$[ $n+6 ]
 		n=$[ $n+6 ]; echo "$n" # 3 # n=$[ $n+6 ]
 # 		p=$[ $p+$n ]; n=$p; echo "$n"
-
+		install_log_messages
 		if [ $pass -eq 0 ]; then
 		## rebuild initramfs or modprobe reload.
 		## exec_mod_reload works with update driver tools, but not when fresh install.
@@ -2188,14 +2261,22 @@ install_drv(){
 # 				echo "# - Exec $KERNEL modules reload "; sleep 2
 # 				exec_mod_load
 # 			else
-			progress_msg(){ echo "# ($m%) - Exec $KERNEL modules init/reload"; echo "$m"; }; m=$n; do_slp=1
-			exec_initramfs
-			. $tmp_c
+		## progress count depends of CPU calculation power. If CPU is too slow, the cound is too high
+		## and goes beyond zenity 100 max count. So, global evaluation is made here.
+# 		progress_msg(){ echo "# ($m%) - Exec $KERNEL modules init/reload"; echo "$m"; }; m=$n; do_slp=1
+# 		exec_initramfs
+# 		. $tmp_c
+		progress_msg(){ echo "# ($m%) - Exec $KERNEL modules init/reload"; echo "$m"; }; m=0; do_slp=1
+		exec_initramfs
+		n=$[ $n+20]
 # 			fi
 		fi
 		echo "$n"
-		install_log_messages
-		install_error_log
+		inst_mod_version=$($d_modinfo -F version nvidia -k $KERNEL)
+		## create base libs install directories
+		for d in {$nv_root/$predifined_dir,$nv_root/nvidia.$(new_version)/$master$ELF_32,$nv_root/nvidia.$(new_version)/$master$ELF_64,$nv_xorg_dir}; do
+			[ -d $d ] || mkdir -p $d
+		done
 		# nvidia-installer librairies log file
 		lib_logfile=$nvlog/libinstall-$(new_version).log
 		## install default libs with nvidia-installer
@@ -2214,8 +2295,9 @@ install_drv(){
 		if [[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -lt 40 ]]|| \
 		[[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -lt 40 ]]; then
 			$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --error --no-wrap \
-			--text="${vB}LIBS INSTALL CONTROL RETURN ERRORS.${end}$v.\nCheck $lib_logfile for more details.${end}"
-			if [ $? = 0 ]; then base_menu; fi
+			--text="${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
+			kill $zen_pid
+# 			if [ $? = 0 ]; then base_menu; fi
 		else
 			report_log+=("${vB}Libraries install:\t${end}${gB} success\t\t${end}> ${y}normal install process${end}.\n")
 		fi
@@ -2449,8 +2531,9 @@ upgrade_kernel(){
 	fi
 	if [ $upgrade_other = 1 ]; then
 		kernel_path="/lib/modules/$KERNEL/$(module_dest_location)/"
-		kernel_src="/usr/src$alt/$KERNEL"
+# 		kernel_src="/usr/src$alt/$KERNEL"
 	fi
+	kernel_src="/usr/src$alt/$KERNEL"
 	drv_release=$(ls $nvdl/ | grep "$(new_version)")
 	confirm_msg="${v}Kernel update ${j}$KERNEL${end} :$d${end}"
 	val_title="Zenvidia"
