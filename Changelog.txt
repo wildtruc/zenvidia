@@ -86,7 +86,7 @@
  - Fixed daily zenvidia internal zen_notify check file owner that prevent zen_notif itself to update the daily check file (case no file found at first start).
  - Remove a useless zen_notify autostart desktop entry checker.
  - Rework check update from net part to be better displayed and get the possibility to download/install the best driver for old hardware if found.
-* 2023-02-11 - v2.0.15
+* 2023-02-15 - v2.0.15
  - Add xdpyinfo to initial install list (need by xorg configurator to get DPI depht).
  - Missing a space in initial grub config regex. Fixed.
  - Fixed a mistaken typo in dkms conf lower than 515 serie.
