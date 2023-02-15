@@ -81,9 +81,16 @@
  - NOTE : It look like that the default font used in Zenvidia is not install by default in all distro (Google-Noto-Sans) and because of this, zenity doesn't display correctly tab and so on. Further research is need to fix this.
 * 2023-02-07 - v2.0.13
  - Missing loop in hardware_compat in case on multi GPU devices detection.
-* 2023-02-011 - v2.0.14
- - Add warning and auto drivers setting for Optimus in case of multi and non Nvidia devices detection. (xorg part still todo, maybe). Default Basic conf has been change accordingly and zenvidia local conf need to be update (seed README.md for manially update details).
+* 2023-02-11 - v2.0.14
+ - Add warning and auto drivers setting for Optimus in case of multi and non Nvidia devices detection. (xorg part still todo, maybe). Default Basic conf has been change accordingly and zenvidia local conf need to be update (seed README.md for manually update details).
  - Fixed daily zenvidia internal zen_notify check file owner that prevent zen_notif itself to update the daily check file (case no file found at first start).
  - Remove a useless zen_notify autostart desktop entry checker.
- - Rework check update from net part to be better displayed and get the possibility to downlaod/install the best driver for old hardware if found.
-
+ - Rework check update from net part to be better displayed and get the possibility to download/install the best driver for old hardware if found.
+* 2023-02-11 - v2.0.15
+ - Add xdpyinfo to initial install list (need by xorg configurator to get DPI depht).
+ - Missing a space in initial grub config regex. Fixed.
+ - Fixed a mistaken typo in dkms conf lower than 515 serie.
+ - Fixed a check for older installed version in dkms compilation that was buggy on first fresh install.
+ - Compilation error message display wasn't working as expected. Hopefuly fixed.
+ - Compiling directly from source wasn't updated for too long and missing many vars from other previous fix. Add a signing modules too. Openssl added to package list installer.
+ - NOTE : Compiling and installing older drivers like 390 serie and below is more messy than expected. There more work to do. At this state they do install, but system wont load them correctly (optimus case). Plus, dkms didn't find MOK signing key in the first place and just remove compiled modules at the end of the process; dkms script is really not made for what we are asking it to do. It finally works by adding a pre check function for mok files and creation if not found; it's also used now for source direct compilation. I sadly think this not the end of the tunnel.

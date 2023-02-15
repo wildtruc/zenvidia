@@ -24,7 +24,10 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
-v2.0.14 NOTES :
+v2.0.15 NOTES :
+ - Drivers serie from and below 390 have some issue on loading because dev is not created. working in progress.
+
+ v2.0.14 NOTES :
  - Add warning and auto drivers setting for Optimus in case of multi and non Nvidia devices detection. Default Basic conf has been change accordingly and zenvidia local config need to be update.
 
  **Remind you that a Optimus manager is required for prime, offload, etc.**
