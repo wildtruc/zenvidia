@@ -354,6 +354,8 @@ zen_colors(){
 	# Big
 	bf='<span font="'$size1'">'
 	nf='<span font="'$size0'">'
+	mf='<span font="'$(($size0+2))'">'
+	sf='<span font="'$(($size0-2))'">'
 	# Bold
 	vB='<span color="'$main'" weight="bold" font="'$size0'" font_family="'$font0'">'
 	yB='<span color="'$log_msg'" weight="bold" font_family="'$font0'">'
@@ -363,6 +365,7 @@ zen_colors(){
 	# grey dash
 	# 	ge='<span color="#68686F" weight="bold">' #68686F
 	ge='<span color="#68686F">'
+	nr='<span color="#000000">'
 	## xterm colors
 	xt_colors='-fg '$fg_xterm' -bg '$bg_xterm
 	xN='\e[0m'
@@ -439,13 +442,22 @@ dep_control(){
 			$d_zen $context --width=$w_width --text="${v}$w_text${end}" \
 			--window-icon=$img_zen_desktop --ok-label="$label"
 			if [ $? = 0 ]&&[ $UID = 0 ]; then
-				(
-				for pkg in ${deplist[@]}; do
-					echo "# Installing $pkg"
-					$PKG_INSTALLER $pkg_opts$pkg_cmd $pkg
-				done
-# 				xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; printf \"$esc_message\"; sleep $xt_delay"
-				) | $d_zen --progress --pulsate --auto-close --width=$w_width --text="Installing missing dependencies..."
+# 				(
+# 				for pkg in ${deplist[@]}; do
+# 					echo "# Installing $pkg"
+# 					$PKG_INSTALLER $pkg_opts$pkg_cmd $pkg
+# 				done
+# # 				xterm $xt_options -e "$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]}; printf \"$esc_message\"; sleep $xt_delay"
+# 				) | $d_zen --progress --pulsate --auto-close --width=$w_width --text="Installing missing dependencies..."
+
+				(	$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]} | \
+					while read line; do echo "# ${ge}${sf}${line}${end}${end}"; done
+					echo -e "# "
+					$esc_message
+					$x_sleep ) | \
+				$d_yad --width=600 --height=300 --title "Zenvidia" --window-icon=$img_zen_desktop \
+				--progress --center --hide-text --enable-log='' --log-expanded --log-height=300 \
+				--text="${v}Installing missing dependencies${end}" $x_hold
 				sed -i "s/resolve_dep=.*/resolve_dep=1/" $script_conf
 			else
 				exit 0
@@ -486,13 +498,22 @@ compil_vars(){
 	primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
 	[ $xt_hold = 0 ]|| x_hold=' -hold'
+# 	if [ $xt_hold = 1 ]; then
+# 		esc_message="$xB\n# Close xterm window to escape.\n$xN"
+# 		x_hold=' -hold'
+# 		x_sleep=''
+# 	else
+# 		esc_message="$xB\n# Terminal will auto-close in $xt_delay seconds.\n$xN"
+# 		x_hold=''
+# 		x_sleep="sleep $xt_delay"
+# 	fi
 	if [ $xt_hold = 1 ]; then
-		esc_message="$xB\n# Close xterm window to escape.\n$xN"
-		x_hold=' -hold'
+		esc_message="# ${nr}*****  Close window to escape *****${end}"
+		x_hold=''
 		x_sleep=''
 	else
-		esc_message="$xB\n# Terminal will auto-close in $xt_delay seconds.\n$xN"
-		x_hold=''
+		esc_message="# ${nr}*****  Window will auto-close in $xt_delay seconds  *****${end}"
+		x_hold='--auto-close'
 		x_sleep="sleep $xt_delay"
 	fi
 	xt_options=$xt_colors''$x_hold' -fn 8x13 -geometry 80x24+'$[ ( ($term_x_dsp-660)/2) ]'+0'
@@ -935,6 +956,9 @@ nv_new(){
 		echo "$(version)"| sed -n "s/\.//g;p"
 	fi
 }
+mod_installed(){ # used by nv_build_dkms only
+ 	test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\|ko.xz]" -print0 | xargs -0 modinfo -F version
+}
 chk_version(){ echo "$(new_version)"| cut -d'.' -f1; }
 ## initramfs tools detect and config.
 initramfs_tools(){
@@ -1240,7 +1264,7 @@ clean_old_version(){ # post install part.
 				do_slp=1; progress "$p_dkms remove -m nvidia/$(old_version) --all"
 			fi
 			if [ -d /usr/src/$rep_clean-$(old_version) ]; then
-				echo "# - Cleaning $rep_clean $(old_version) SRC tree"; sleep 2
+				echo "# - Cleaning $rep_clean $(old_version) source tree"; sleep 2
 				rm -rf /usr/src/open-nvidia-$(old_version)
 			fi
 		done
@@ -1564,6 +1588,22 @@ nv_cmd_dkms_conf(){
 		done
 	fi
 }
+nv_module_signing(){ # on TEST
+	## something can go wrong during module signing, need to figure out.
+	# 	/lib/modules/6.1.10-100.fc36.x86_64/build/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub /var/lib/dkms/nvidia/390.157/build/nvidia.ko
+	# 	strip -g /var/lib/dkms/nvidia/390.157/build/nvidia.ko
+	## this operation occur before compression and copy to modules dir.
+	if [ $(find -L $kernel_src -name "sign-file") -gt 0 ]; then
+		## list modules.
+		for mod in $(ls -1 *.ko); do
+			printf "${pur}# Signing $mod ...\n${nc}"; sleep 1
+			## find the sign-file script in kernel source
+			$(find -L $kernel_src -name "sign-file") sha512 $mok_signing_key $mok_certificate $mod
+			## strip on uncompressed modules only
+			strip -g $mod
+		done
+	fi
+}
 nv_dkms_mok_key(){
 	## something can go wrong during module signing, need to figure out.
 	# 	/lib/modules/6.1.10-100.fc36.x86_64/build/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub /var/lib/dkms/nvidia/390.157/build/nvidia.ko
@@ -1599,11 +1639,10 @@ nv_dkms_mok_key(){
 		$d_sys restart dkms.service
 	fi
 }
-nv_build_dkms(){
+build_dkms(){
 	## test and fix mok keys if needed.
-	nv_dkms_mok_key
+ 	nv_dkms_mok_key
 	unset drv_src
-	## all script here is inserted in xterm for better display of process.
 	## known bug : it appears on unknown reason that DKMS script do not install modules.
 	## exploring some solutions, but not sure of them.
 	if [ $open_drv = 1 ]; then
@@ -1613,253 +1652,266 @@ nv_build_dkms(){
 	fi
 	show_dkms=' (dkms)'
 	[ -f $tmp_b ] && echo -e "show_dkms=' (dkms)'" >> $tmp_b
-		echo "# Build & install DKMS modules..."; sleep 1
-		mod_check(){
-		## for an unkonw reason, in some rare case, dkms even if build and install retrun succes doesn't install the drivers.
-		## thus, we install those driver manually with cp.
-			mod_move=$(
-			cat <<-CHECK
-				if [ -f nvidia.*[ko\\|ko.xz] ]; then
-					printf "${blu}#${red} Error${blu} : No \$_dkms $(new_version) modules found in kernel path $kernel_path.\n${nc}"
-					sleep 2
-					printf "${blu}# Copying \$_dkms modules in $kernel_path from DKMS repository.\n${nc}"
-					#echo -e "moving"
-					cp -vf nvidia.ko $kernel_path/nvidia.ko
-					if [[ -s nvidia-uvm.ko ]]; then cp -vf nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-					if [[ -s uvm/nvidia-uvm.ko ]]; then cp -vf uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-					if [[ -s nvidia-modeset.ko ]]; then cp -vf nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
-					if [[ -s nvidia-drm.ko ]]; then cp -vf nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
-					echo -e "${pur}- Compressing \$_dkms modules if needed."
-					test $is_RT -eq 0 || xz -T12 $kernel_path/*.ko
-					if [[ -s $kernel_path/nvidia.*[ko\\|ko.xz] ]]; then
-						echo -e "${pur}- Exec $KERNEL modules depmod"
-						sleep 2
-						progress_msg(){ echo -en "\\r- Exec $KERNEL modules depmod (\$m sec.)"; }
-						m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
-						$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
-						pass=\$?
-					else
-						pass=1
-					fi
-					if [ \$pass = 0 ]; then
-						vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print \$1}')
-						printf "${blu}# All Clear modules loaded ($(new_version) modules moved from dkms dir)${nc}.\n\n"
-						echo -e "pass=\$pass" >> $tmp_b
-					else
-						printf "${red} ------------- ERROR -------------- ${nc}\n"
-						printf "${red} -------- Version mismatch -------- ${nc}\n"
-						echo -e "pass=1" >> $tmp_b
-					fi
-				else
-					printf "${red} ------------- ERROR -------------- ${nc}\n"
-					printf "${red} ---- Driver not found in path ---- ${nc}\n"
-					echo -e "pass=1" >> $tmp_b
-				fi
+		mod_move(){
+			## if modules detected in dkms version tree, move.
+			if [ -f nvidia.*[ko\|ko.xz] ]; then
+				echo -e "#${r} Error : No $_dkms ${j}$(new_version)${end} modules found in kernel path $kernel_path.${end}"
+				sleep 2
+				echo -e "#${v} Workaround : Copying ${y}$_dkms${end} modules in $kernel_path from DKMS repository.${end}"
+				#echo -e "# moving"
+				echo -e "# ${ge}* Compressing $_dkms modules if needed."
+# 				test $is_RT -eq 0 ||
+				xz -T12 *.ko | \
+				while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+				cp -vf nvidia.ko.xz $kernel_path/nvidia.ko.xz
+				if [[ -s nvidia-uvm.ko.xz ]]; then cp -vf nvidia-uvm.ko.xz $kernel_path/nvidia-uvm.ko.xz; fi
+				if [[ -s uvm/nvidia-uvm.ko.xz ]]; then cp -vf uvm/nvidia-uvm.ko.xz $kernel_path/nvidia-uvm.ko.xz; fi
+				if [[ -s nvidia-modeset.ko.xz ]]; then cp -vf nvidia-modeset.ko.xz $kernel_path/nvidia-modeset.ko.xz; fi
+				if [[ -s nvidia-drm.ko.xz ]]; then cp -vf nvidia-drm.ko.xz $kernel_path/nvidia-drm.ko.xz; fi
 
-			CHECK
-			)
-			cat <<-FILTER
-				if [ -d /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module ]; then
-					pushd /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module
-					printf "${pur}# Checking $(new_version) in DKMS $KERNEL path{nc}\n"
-					$mod_move
-					popd
-				elif [ -d /var/lib/dkms/\$_dkms/$(new_version)/build ]; then
-					pushd /var/lib/dkms/\$_dkms/$(new_version)/build
-					printf "${pur}# Checking $(new_version) in DKMS $KERNEL build path${nc}\n"
-					$mod_move
-					popd
+				if [[ -s $kernel_path/nvidia.*[ko\|ko.xz] ]]; then
+					echo -e "# ${ge}* Exec $KERNEL modules depmod"
+					sleep 2
+					progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
+					progress /usr/sbin/depmod -an $KERNEL | \
+					while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+					rm -f $tmp_c
+					$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
+					pass=$?
 				else
-					printf "${pur}# Nothing to do${nc}\n"
+					pass=1
 				fi
-			FILTER
+				if [ $pass = 0 ]; then
+					vermagic=$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\|ko.xz]| awk '{print $1}')
+					echo -e "# ${y}* All Clear modules loaded ($(new_version) modules moved from dkms dir)${end}."
+					echo -e "pass=$pass" >> $tmp_b
+				else
+					echo -e "#${r} --- ERROR ---  Driver not found in path --- ${end}"
+					echo -e "pass=1" >> $tmp_b
+					echo -e "# ${r}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
+					with_error="${r} (ERROR, safe modules not copied)${end}"
+				fi
+			else
+				echo -e "#${r} --- ERROR ---  Driver not found in path ---- ${end}"
+				echo -e "pass=1" >> $tmp_b
+				echo -e "# ${r}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
+				with_error="${r} (ERROR, no safe modules found)${end}"
+			fi
+		}
+		mod_check(){
+		## when previous driver is higher than in install one's, dkms, even if build and install return succes, doesn't install
+		## the drivers. Thus, we install those driver manually with cp.
+			if [ -d /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module ]; then
+				pushd /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module
+				echo -e "# ${y}* Checking $(new_version) in DKMS $KERNEL path${end}" #7
+				echo $(($n+$o)); o=$(($n+$o))
+				mod_move
+				popd
+			elif [ -d /var/lib/dkms/$_dkms/$(new_version)/build ]; then
+				pushd /var/lib/dkms/$_dkms/$(new_version)/build
+				echo -e "# ${y}* Checking $(new_version) in DKMS $KERNEL build path${end}" #7
+				echo $(($n+$o)); o=$(($n+$o))
+				mod_move
+				popd
+			else
+				echo -e "# ${r}* No modules found in DKMS build path${end}" #7
+				echo $(($n+$o)); o=$(($n+$o))
+				echo -e "# ${r}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
+				with_error="${r} (ERROR, no modules found)${end}"
+			fi
 		}
 		remove_add(){
 			# ATTENTION Remove driver tree only ? or remove all ?
-			remove_seq=$(
-			cat <<-RM
+			remove_seq(){
 				#$headings
-				printf "${xB}# Removing previous ${red}$(old_version) \$_dkms${nc}${xB} DKMS modules from DKMS tree.\n${nc}"
+				echo -e "#${v} Removing previous ${j}$(old_version)${end} ${y}$_dkms${end} DKMS modules from DKMS tree.${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #4
 				sleep 2
-				printf "${pur}"
-				#echo -e "remove \$_dkms"
+				#echo -e "# remove $_dkms"
 				if [ $(nv_old) -gt $(nv_new) ]; then
-					$p_dkms remove -m \$_dkms/$(old_version) --all
+					#echo -e "# remove seq all"
+					$p_dkms remove -m $_dkms/$(old_version) --all | \
+					while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+					echo -e "# "
 				else
-					$p_dkms remove -m \$_dkms/$(old_version) -k $KERNEL
+					#echo -e "# remove seq kernel"
+					$p_dkms remove -m $_dkms/$(old_version) -k $KERNEL | \
+					while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+					echo -e "# "
 				fi
-				printf "${nc}"
 				sleep 2
-# 				clear
-				RM
-			)
-			add_seq=$(
-			cat <<-ADD
-				#$headings
-				printf "${xB}# Add ${red}$(new_version) \$_dkms${nc}${xB} modules to DKMS tree.\n${nc}"
+			}
+			add_seq(){
+				echo -e "#${v} Add ${j}$(new_version)${end} ${y}$_dkms${end} modules to DKMS tree.${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #4
 				sleep 2
-				printf "${pur}"
-				#echo -e "add \$_dkms"
-				$p_dkms add -m \$_dkms/$(new_version) -k $KERNEL
-				printf "${nc}"
+				#echo -e "# add $_dkms"
+				$p_dkms add -m $_dkms/$(new_version) -k $KERNEL | \
+				while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+				echo -e "# "
 				sleep 2
-# 				clear
-				ADD
-			)
+			}
 			## remove previous known and unknown version if any before installing new one.
 			## TODO add a more strict filter on already present modules.
-			cat <<-SEQ
-			#mod_installed=\$(find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version)
-			mod_installed(){ # used by nv_build_dkms only
-				test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\\|ko.xz]" -print0 | xargs -0 modinfo -F version
+			mod_installed=$(mod_installed)
+			old_inst(){ # used by nv_build_dkms only
+				test "$mod_installed" && sed -n "s/\.//g;p" <<< $mod_installed || echo "0"
 			}
-			old_inst=\$(sed -n "s/\\.//g;p" <<< \$(mod_installed))
-			if [ $(nv_old) -gt 0 ]; then
-				if [ $(nv_old) = \$old_inst ]; then
-					if [ $(nv_old) -ne $(nv_new) ]; then
-						$remove_seq
-					fi
-				fi
+			## is a old modules installed ?
+			if [ $(nv_old) -gt 0 ] && ( [ $(nv_old) = $(old_inst) ] && [ $(nv_old) -ne $(nv_new) ] ); then
+					#echo -e "# remove seq 1"
+					remove_seq
 			else
-				## is the modules version present in dkms tree ?
-				if [ "\$old_inst" ]; then
-					if [ \$($p_dkms status -m \$_dkms/\$(mod_installed) -k $KERNEL| egrep -c "built|installed") -gt 0 ]; then
-						if [[ \$old_inst != $(nv_new) ]]; then
-							$remove_seq
+			## if not :
+			## is the modules version present in dkms tree ?
+				if [ "$(old_inst)" ] && [ $(old_inst) -gt 0 ]; then
+					## check its status.
+					if [ $($p_dkms status -m $_dkms/$mod_installed -k $KERNEL| egrep -c "built|installed") -gt 0 ]; then
+						# if build or installed, and not same as new one, check status ans 'remove' it.
+						if [[ $(old_inst) -ne $(nv_new) ]]; then
+							#echo -e "# remove seq 2"
+							remove_seq
 						fi
 					else
-					## if not, just remove them, and make a depmod to clear things.
-						if [ \$old_inst -ne $(nv_new) ]; then
-							printf "${pur}- Removing out of DKMS tree \$(mod_installed) \$_dkms from kernel modules path.\n${nc}"
+						## if not in the dkms tree, just remove them, and make a depmod to clear things.
+						if [ $(old_inst) -ne $(nv_new) ]; then
+							echo -e "#${ge}* Removing out of DKMS tree $mod_installed $_dkms from kernel modules path.${end}"
+							echo $(($n+$o)); o=$(($n+$o)) #3
 							sleep 2
-							#echo -e "rm mods"
+							#echo -e "# ** rm mods"
 							rm -f $kernel_path/*
-							printf "${pur}- Executing clean depmod before next step.${nc}\n"
+							echo -e "# ${ge}* Executing clean depmod before next step.${end}"
 							sleep 2
-							/usr/sbin/depmod -a $KERNEL
-							printf "${pur}- Done.${nc}\n"
+							#echo -e "# ** exec depmod"
+							progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
+							progress /usr/sbin/depmod -an $KERNEL | \
+							while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+							rm -f $tmp_c
+							#/usr/sbin/depmod -a $KERNEL
+							echo -e "# ${ge}* Done.${end}"
 							sleep 2
 						fi
 					fi
 				else
-					printf "${pur}- No previous driver found. Installing $(new_version) \$_dkms.\n${nc}"
+					echo -e "# ${ge}* No previous driver found. Installing $(new_version) $_dkms.${end}"
+					echo $(($n+$o)); o=$(($n+$o)) #3
 					sleep 2
 				fi
 			fi
-			if [ \$($p_dkms status -m \$_dkms/$(new_version) -k $KERNEL| egrep -c "added|built|installed") -eq 0 ]; then
-				$add_seq
+			if [ $($p_dkms status -m $_dkms/$(new_version) -k $KERNEL| egrep -c "added|built|installed") -eq 0 ]; then
+				add_seq
 			fi
-			SEQ
 		}
 		build_seq(){
-			build_seq_1=$(
-			cat <<-BLD
-			#$headings
-			printf "${xB}# Building ${red}$(new_version) \$_dkms${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
-			sleep 2
-			#echo -e "build \$_dkms"
-			if [ -f /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.*[ko\\|ko.xz] ]; then
-				printf "${blu}# All Clear for $(new_version) \$_dkms already build.${nc}\n"
-			else
-				printf "${pur}"
-				$p_dkms build -m \$_dkms/$(new_version) -k $KERNEL $force
-				printf "${nc}"
-				printf "${blu}# All Clear for $(new_version) \$_dkms build.${nc}\n"
-			fi
-			printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
-			sleep 2
-			#clear
-			BLD
-			)
-			build_seq_2=$(
-			cat <<-BLD
-			#$headings
-			printf "${xB}# Build & Install ${red}$(new_version) \$_dkms${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
-			sleep 2
-			printf "${pur}"
-			#echo -e "install classic \$_dkms"
-			$p_dkms install -m \$_dkms/$(new_version) -k $KERNEL $force
-			printf "${nc}"
-			sleep 2
-			$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
-			pass=\$?
-			echo -e "pass=\$pass" >> $tmp_b
-			printf "${xB}# Checking ${red}$(new_version) \$_dkms${nc}${xB} modules in $kernel_path:\n${nc}"
-			if [ \$pass = 0 ]; then
-				echo -e "Check validated (pass=\$pass)\n"
-			else
-				echo -e "Check unvalidated (pass=\$pass)\n"
-			fi
-			sleep 2
-			if [ \$pass = 1 ]; then
-				$(mod_check)
-			else
-				vermagic=\$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\\|ko.xz]| awk '{print $1}')
-				printf "${blu}# All Clear for $(new_version) \$_dkms in $KERNEL kernel.${nc}\n\n"
-				printf "${red} --------- \$_dkms script ended ---------- \n\n${nc}"
+			build_seq_1(){
+				echo -e "#${v} Building ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #5
 				sleep 2
-			fi
-			#clear
-			BLD
-			)
-			cat <<-SEQ
-			if [[ \$_dkms =~ ^open ]]; then
-				if [ $use_open = 0 ]; then
-					$build_seq_1
+				#echo -e "# build $_dkms"
+				if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.*[ko\|ko.xz] ]; then
+					echo -e "# ${y}* All Clear for $(new_version) $_dkms already build.${end}"
 				else
-					$build_seq_2
+					$p_dkms build -m $_dkms/$(new_version) -k $KERNEL $force 2>&1 | \
+					while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+					echo -e "# "
+					echo -e "# ${y}* All Clear for $(new_version) $_dkms is build.${end}"
 				fi
-			elif [[ \$_dkms =~ ^nvidia ]]; then
+				echo -e "#${y} ---  $_dkms script ended  --- ${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #6
+				sleep 2
+			}
+			build_seq_2(){
+				echo -e "#${v} Build and Install ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL ${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #5
+				sleep 2
+				#echo -e "# install classic $_dkms"
+				$p_dkms install -m $_dkms/$(new_version) -k $KERNEL $force 2>&1 | \
+				while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+				echo -e "# "
+				sleep 2
+				$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
+				pass=$?
+				echo -e "pass=$pass" >> $tmp_b
+				echo -e "#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} modules in $kernel_path ${end}"
+				echo $(($n+$o)); o=$(($n+$o)) #6
+				if [ $pass = 0 ]; then
+					echo -e "# ${ge}* Check validated (pass=$pass)${end}"
+				else
+					echo -e "# ${ge}* Check unvalidated (pass=$pass)${end}"
+				fi
+				sleep 2
+				if [ $pass = 1 ]; then
+					mod_check
+				else
+					vermagic=$($d_modinfo -F vermagic $kernel_path/nvidia.*[ko\|ko.xz]| awk '{print $1}')
+					echo -e "# ${y}* All Clear for $(new_version) $_dkms in $KERNEL kernel.${end}"
+					echo $(($n+$o)); o=$(($n+$o)) #7
+					sleep 2
+				fi
+				echo -e "# ${y} ---  $_dkms script ended  --- ${end}"
+			}
+			if [[ $_dkms =~ ^open ]]; then
+				if [ $use_open = 0 ]; then
+					build_seq_1
+				else
+					build_seq_2
+				fi
+			elif [[ $_dkms =~ ^nvidia ]]; then
 				if [ $open_drv = 1 ]; then
 					if [ $use_open = 0 ]; then
-						$build_seq_2
+						build_seq_2
 					else
-						$build_seq_1
+						build_seq_1
 					fi
 				else
-					$build_seq_2
+					build_seq_2
 				fi
 			fi
-			SEQ
 		}
 		post_treatment(){
-			cat <<-MSG
-			printf "${xB}# Checking ${red}$(new_version) \$_dkms${nc}${xB} build log presence.\n${nc}"
-			if [ -s /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log ]; then
-				test -d $nvlog/dkms/\$_dkms/ || mkdir -p $nvlog/dkms/\$_dkms/
-				cp -f /var/lib/dkms/\$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log $nvlog/dkms/\$_dkms/
-				make_log_file=$nvlog/dkms/\$_dkms/make.log
-				echo -e "make_log_file=\$make_log_file" >> $tmp_b
-				printf "${pur}* \$_dkms $(new_version) log found.\n${nc}"
-				printf "${pur}* \$_dkms make log copied to \$make_log_file.\n${nc}"
+			echo -e "#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} build log presence${end}"
+			echo $(($n+$o)); o=$(($n+$o))
+			if [ -s /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log ]; then
+				test -d $nvlog/dkms/$_dkms/ || mkdir -p $nvlog/dkms/$_dkms/
+				cp -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log $nvlog/dkms/$_dkms/
+				#echo -e "# copy log"
+				make_log_file=$nvlog/dkms/$_dkms/make.log
+				echo -e "make_log_file=$make_log_file" >> $tmp_b
+				echo -e "# ${ge}* $_dkms $(new_version) log found.${end}"
+				echo -e "# ${ge}* $_dkms make log copied to $make_log_file.${end}"
 			else
-				printf "${pur}# No $(new_version) \$_dkms build log found.\n${nc}"
+				echo -e "# ${ge}* No $(new_version) $_dkms build log found.${end}"
 			fi
-			if [[ \$_dkms =~ ^open ]]; then sleep 4; else sleep 2; fi
-			MSG
+			if [[ $_dkms =~ ^open ]]; then sleep 4; else sleep 2; fi
 		}
-		headings="printf \"${xB}# Installing $(new_version) \$_dkms DKMS modules:\n\n${nc}\""
-		xt_content=$( cat <<-XT
+		n=15
+		o=0
+		test ${#drv_src[*]} -gt 1 && n=$[ $n / ${#drv_src[*]} ]
 		#set -x
 		for _dkms in ${drv_src[@]} ; do
-			#printf "${xB}# Installing ${red}\$_dkms${xB} DKMS modules for $KERNEL :\n\n${nc}"
-			$headings
-			printf "${red} --------- \$_dkms script start ---------- \n\n${nc}"
+			echo -e "#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
+			echo $(($n+$o)); o=$(($n+$o)) #1
+			echo -e "#${y} ---  $_dkms script start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) #2
 			sleep 2
-			$(remove_add)
-			$(build_seq)
-			#$headings
-			$(post_treatment)
-			[[ \$_dkms =~ ^open ]]&& clear
+			remove_add
+			build_seq
+			post_treatment
+			echo -e "# "
 		done
-		printf "$esc_message"
+		echo -e "#${v} Done$with_error${end}"
+		echo -e "# "
+		echo -e $esc_message
 		$x_sleep
-		XT
-		)
-		xterm $xt_options -title Zenvidia_dkms_build -e "$xt_content"
+		echo 100
 }
-nv_cmd_make_src(){
-# 	if [[ $new_version != '' ]]; then version=$new_version; fi
+nv_build_dkms(){
+	echo "# Build & install DKMS modules..."; sleep 1
+	build_dkms | \
+	$d_yad --width=600 --height=300 --title "Zenvidia" --window-icon=$img_zen_desktop --progress --center --hide-text \
+ 	--enable-log='' --log-expanded --log-height=300 $x_hold \
+ 	--text="${v}Installing ${j}$(new_version)${end} driver over ${y}$KERNEL${end} kernel with DKMS${end}"
+}
+build_source(){
 	unset drv_src
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
@@ -1869,148 +1921,163 @@ nv_cmd_make_src(){
 	[ -f $tmp_b ]&& echo -e "show_dkms=' (from source)'" > $tmp_b
 	## prepare modules signing (with dmsk mok files)
 	nv_dkms_mok_key
-# 	signing(){ $(nv_module_signing); }
-	mod_check(){
-		module_signing=$(
-			cat <<-SIGN
-			if [ -f "\$(find -L $kernel_src -name "sign-file")" ]; then
-				## list modules.
-				for mod in \$(ls -1 *.ko); do
-					printf "${pur}# Signing \$mod ...\n${nc}"; sleep 1
-					## find the sign-file script in kernel source
-					\$(find -L $kernel_src -name "sign-file") sha512 $mok_signing_key $mok_certificate \$mod
-					## strip on uncompressed modules only
-					strip -g \$mod
-				done
+	module_signing(){
+		if [ -f "$(find -L $kernel_src -name "sign-file")" ]; then
+			## list modules.
+			for mod in $(ls -1 *.ko); do
+				echo -e "# ${ge}* Signing $mod ...${end}";
+				sleep 1
+				## find the sign-file script in kernel source
+				$(find -L $kernel_src -name "sign-file") sha512 $mok_signing_key $mok_certificate $mod
+				## strip on uncompressed modules only
+				strip -g $mod
+			done
+		fi
+	}
+	copy_mods(){
+		echo -e "#${v} $seq_type ${j}$(new_version)${end} ${y}$module${end} in $install_path:${end}"; echo $(($n+$o)); o=$(($n+$o)) # 5
+		sleep 2
+		test -d $install_path || mkdir -p $install_path
+		echo -e "# ${ge}* Compressing $module modules${end}" # 7
+# 			test $is_RT -eq 0 ||
+		xz -T12 *.ko | \
+		while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
+		echo -e "# ${ge}* Copying $module modules in $install_path${end}"; echo $(($n+$o)); o=$(($n+$o)) # 6
+# 		echo -e "# ${ge}* Making $module module copy.${end}" # 7
+			cp -f nvidia.ko.xz $install_path/nvidia.ko.xz
+			if [[ -s nvidia-uvm.ko.xz ]]; then cp -f nvidia-uvm.ko.xz $install_path/nvidia-uvm.ko.xz; fi
+			if [[ -s uvm/nvidia-uvm.ko.xz ]]; then cp -f uvm/nvidia-uvm.ko.xz $install_path/nvidia-uvm.ko.xz; fi
+			if [[ -s nvidia-modeset.ko.xz ]]; then cp -f nvidia-modeset.ko.xz $install_path/nvidia-modeset.ko.xz; fi
+			if [[ -s nvidia-drm.ko.xz ]]; then cp -f nvidia-drm.ko.xz $install_path/nvidia-drm.ko.xz; fi
+			## compress modules.
+# 			popd
+			if [ $dep_check = 1 ]; then
+				echo -e "# ${ge}* Executing $module $KERNEL depmod${end}"
+				#/usr/sbin/depmod $KERNEL -a
+# 				$( exec_depmod "$KERNEL" )
+				progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
+				progress /usr/sbin/depmod -an $KERNEL | \
+				while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+				rm -f $tmp_c
 			fi
-			SIGN
-		)
-		copy_mods=$(
-			cat <<-CHECK
-				printf "${xB}# Installing ${red}$(new_version) \$module${nc}${xB} in $kernel_path:\n${nc}"
-				sleep 2
-				printf "${pur}# Copying \$module modules in $kernel_path.\n${nc}"
-				echo -e "* Making $(new_version) \$module module copy."
-				cp -f nvidia.ko $kernel_path/nvidia.ko
-				if [[ -s nvidia-uvm.ko ]]; then cp -f nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-				if [[ -s uvm/nvidia-uvm.ko ]]; then cp -f uvm/nvidia-uvm.ko $kernel_path/nvidia-uvm.ko; fi
-				if [[ -s nvidia-modeset.ko ]]; then cp -f nvidia-modeset.ko $kernel_path/nvidia-modeset.ko; fi
-				if [[ -s nvidia-drm.ko ]]; then cp -f nvidia-drm.ko $kernel_path/nvidia-drm.ko; fi
-				## compress modules.
-				#test $is_RT -eq 0 || xz -T12 $kernel_path/*.ko
-				if [ $is_RT -eq 0 ];then
-					echo -e "* Compressing $(new_version) \$module for $KERNEL compatibility."
-					xz -T12 $kernel_path/*.ko
-				fi
-				printf "${pur}* Executing depmod.${nc}\n"
-				#/usr/sbin/depmod -a -kver $KERNEL
-				sleep 2
-				#progress_msg(){ echo -en "\\r* Exec $KERNEL modules reload (\$m sec.)"; }
-				#m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"; rm -f $tmp_c
-				#\$( exec_depmod "$KERNEL" )
-				depmod -a $KERNEL
-				$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
-				pass=\$?
-				[ -f $tmp_b ]&& echo -e "pass=\$pass" >> $tmp_b
-				printf "${nc}"
-			CHECK
-		)
-		## rebuild initramfs in case of trouble booting.
-		cat <<-SEQ
-			if [ -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
-			#if [ ! -e /usr/src/\$module-$(new_version)/nvidia.ko ]; then
-				printf "${red} ------- $module Compilation done -------- \n${nc}"
-				sleep 2
-				#clear
-				#$headings
-				#sleep 2
-				printf "${pur}# Signing \$module modules.\n${nc}"
-				sleep 2
-				$module_signing
-				if [ $use_open -eq 1 ]; then
-					if [[ \$module =~ ^open ]]; then
-						$copy_mods
-					else
-						printf "${xB}# Reserving: Not installing, ${red}$(new_version) \$module${nc}${xB} is not used.\n${nc}"
-					fi
+	}
+	mod_check(){
+		if [ -e /usr/src/$module-$(new_version)/nvidia.ko ]; then
+			echo -e "#${y} ---  $module Compilation done  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) # 4
+			sleep 2
+			echo -e "#${v} Signing ${j}$(new_version)${end} ${y}$module${end} modules.${end}"
+			module_signing; echo $(($n+$o)); o=$(($n+$o))
+			if [ $use_open -eq 1 ]; then
+				if [[ $module =~ ^open ]]; then
+					install_path=$kernel_path
+					dep_check=1
+					seq_type='Installing'
+					copy_mods
 				else
-					if [[ \$module =~ ^nvidia ]]; then
-						$copy_mods
-					else
-						printf "${xB}# Reserving: Not installing, ${red}$(new_version) \$module${nc}${xB} is not used.\n${nc}"
-					fi
+					echo -e "#${v} Reserving: Not installing, ${j}$(new_version)${end} ${y}$module${end} is not used.${end}"; echo $(($n*2+$o)); o=$(($n*2+$o)) # 5
+					install_path=/usr/lib/dkms/$module/$(new_version)/$KERNEL/$ARCH/module
+					dep_check=0
+					seq_type='Backup'
+					copy_mods
 				fi
 			else
-				printf "\n${red} --------------  ERROR  ---------------- \n${nc}"
-				printf "${red} --- No modules found in source path --- \n\n${nc}"
+				if [[ $module =~ ^nvidia ]]; then
+					install_path=$kernel_path
+					dep_check=1
+					seq_type='Installing'
+					copy_mods
+				else
+					echo -e "#${v} Reserving: Not installing, ${j}$(new_version)${end} ${y}$module${end} is not used.${end}"; echo $(($n*2+$o)); o=$(($n*2+$o)) # 5
+					install_path=/usr/lib/dkms/$module/$(new_version)/$KERNEL/$ARCH/module
+					dep_check=0
+					seq_type='Backup'
+					copy_mods
+				fi
 			fi
-		SEQ
-	}
-# 	initram(){
-# 		cat <<-INI
-# 			progress_msg(){ echo "# (\$m%) - Rebuilding INITRAMFS (required)"; echo "\$m"; }; m=1
-# 			printf "\n${xB}# Rebuilding INITRAMFS image.${nc}\n"
-# 			printf "${pur}"
-# 			echo -e "* Making $KERNEL initramfs image."
-# 			#$INITRAM --kver $KERNEL
-# 			exec_mod_load
-# 			printf "${nc}"
-# 		INI
-# 	}
-	post_treatment(){
-		cat <<-MSG
-		printf "\n${xB}# Checking ${red}$(new_version) \$module${nc}${xB} build log presence.\n${nc}"
-		if [ -s /usr/src/\$module-$(new_version)/make.log ]; then
-			[ -d $nvlog/source/\$module ]|| mkdir -p $nvlog/source/\$module
-			cp -f /usr/src/\$module-$(new_version)/make.log $nvlog/source/\$module
-			make_log_file=$nvlog/source/\$module/make.log
-			[ -f $tmp_b ]&& echo -e "make_log_file=\$make_log_file" >> $tmp_b
-			printf "${pur}* \$module $(new_version) log found.\n${nc}"
 		else
-			printf "${pur}* No $(new_version) \$module build log found.\n${nc}"
+			echo -e "#${r} ---  ERROR  ---  No modules found in source path  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) # 4
+			with_error=" ${r}with ERRORs${end}"
 		fi
-		if [[ \$module =~ ^open ]]; then sleep 4; else sleep 2; fi
-		MSG
 	}
-	## Compilation start here.
+	post_treatment(){
+		echo -e "#${v} Checking ${j}$(new_version)${end} ${y}$module${end} build log presence.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 8
+		if [ -s /usr/src/$module-$(new_version)/make.log ]; then
+			[ -d $nvlog/source/$module ]|| mkdir -p $nvlog/source/$module
+			cp -f /usr/src/$module-$(new_version)/make.log $nvlog/source/$module
+			make_log_file=$nvlog/source/$module/make.log
+			[ -f $tmp_b ]&& echo -e "make_log_file=$make_log_file" >> $tmp_b
+			echo -e "#${ge} * $module $(new_version) log found.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 9
+			echo -e "#${ge} * $module make log copied to $make_log_file.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 10
+		else
+			echo -e "#${ge} * No $(new_version) $module build log found.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 9
+		fi
+		if [ $dep_check = 1 ]; then
+			$d_modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
+			pass=$?
+		else
+			pass=0
+		fi
+		if [ $pass = 0 ]; then
+			echo -e "#${ge} * $module control passed (pass=$pass).${end}"; echo $(($n+$o)); o=$(($n+$o)) # 11
+		else
+			echo -e "#${ge} * $module control not passed (pass=$pass).${end}"; echo $(($n+$o)); o=$(($n+$o)) # 11
+			echo -e "#${r} ---  ERROR  ---  No modules found in destination path  --- ${end}";
+			with_error=" ${r}with ERRORs${end}"
+		fi
+		[ -f $tmp_b ]&& echo -e "pass=$pass" >> $tmp_b
+		if [[ $module =~ ^open ]]; then sleep 4; else sleep 2; fi
+	}
+
 	if [ $upgrade_other = 1 ]; then
 		make_env='env KERNEL_UNAME='$KERNEL' KERNEL_SOURCES='$kernel_src
 	fi
 	if [ $(chk_version) -lt 355 ]; then
-		opts_355="cd uvm/; make clean; make -j$proc; cd ../"
+		opts_355="cd uvm/; make -j$proc; cd ../"
 	fi
-	headings="printf \"${xB}# Installing from $(new_version) \$module sources:\n\n${nc}\""
-	xt_content=$( cat <<-XT
-		#set -x
-		for module in ${drv_src[@]} ; do
-			$headings
-			if [ -d /usr/src/\$module-$(new_version) ]; then
-				pushd /usr/src/\$module-$(new_version)
-				printf "${xB}# Build ${red}$(new_version) \$module${nc}${xB} DKMS modules for $KERNEL:\n${nc}"
-				printf "${red} ------- \$module compilation start ------- \n${nc}"
-				sleep 2
-				make clean
-				printf "${pur}"
-				echo -e "* Making compilation."
-				$make_env make -j$proc
-				$opts_355
-				printf "${nc}"
-				sleep 2
-				$(mod_check)
-				sleep 2
-				$(post_treatment)
-				popd
-			else
-				echo "\n${xB}# Source ${red}$(new_version) \$module${nc}${xB} unaviable.\n# Check your kernel source three.${nc}"
-				[ -f $tmp_b ]&& echo -e "pass=1" >> $tmp_b
-			fi
-			[[ \$module =~ ^open ]]&& clear
-		done
-		printf "$esc_message"
-		$x_sleep
-	XT
-	)
-	xterm $xt_options -title Zenvidia_source_compilation -e "$xt_content"
+	n=10
+	o=0
+	test ${#drv_src[*]} -gt 1 && n=$[ $n / ${#drv_src[*]} ]
+	for module in ${drv_src[@]} ; do
+		pushd /usr/src/$module-$(new_version)
+		sleep 1
+		echo -e "# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"; echo $(($n+$o)); o=$(($n+$o)) # 1 10
+# 		echo -e "# "
+		sleep 2
+		if [ -d /usr/src/$module-$(new_version) ]; then
+			echo -e "#${y} ---  $module compilation start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) # 2 20
+			sleep 2
+			echo -e "#${ge} Compilation $make_env.${end}" # 3 30
+			$make_env make -j$proc | fmt -w 120 | \
+			while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; echo "${line}" &>> make.log; done
+			$opts_355
+			sleep 2
+			mod_check
+			sleep 2
+			post_treatment
+		else
+			echo -e "# ${v}Source ${j}$(new_version)${end} ${y}$module${end} unaviable.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 2
+			echo -e "# ${v}Check your kernel source three.${end}"; echo $(($n+$o)); o=$(($n+$o)) # 3
+			[ -f $tmp_b ]&& echo -e "pass=1" >> $tmp_b
+			with_error=" ${r}with ERRORs${end}"
+		fi
+		make clean
+		echo -e "# "
+		popd
+	done
+	echo -e "#${v} Done$with_error.${end}"
+	sleep 2
+	echo -e "# "
+	echo -e $esc_message
+	$x_sleep
+	echo 100
+	. $tmp_b
+}
+nv_cmd_make_src(){
+	echo "# Build & install modules from source..."; sleep 1
+	build_source | \
+	$d_yad --width=600 --height=300 --title "Zenvidia" --window-icon=$img_zen_desktop --progress --center --hide-text \
+ 	--enable-log='' --log-expanded --log-height=300 $x_hold \
+ 	--text="${v}Installing ${y}$KERNEL${end} kernel modules from ${j}$(new_version)${end} source directory${end}"
 }
 nv_cmd_install_driver(){
 		## prevent installer to doing think for 'upgrade an other kernel'.
@@ -2120,19 +2187,25 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 #	--utility-prefix=$install_dir --utility-libdir=$install_dir/$master$ELF_64 \
 # 	temp="--tmpdir=$buildtmp"
 
-	cd $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)
-
-	xterm $xt_options -title Zenvidia_install_libs -e "
+	pushd $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)
+	( echo "20"
 	$install_bin -s -z $no_net --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion $gl_headers \
 	$add_glvnd $force_glvnd --install-compat32-libs \
 	--compat32-prefix=$nv_root/nvidia.$(new_version) $compat32 $compat64 \
 	--x-prefix=/usr --x-library-path=$nv_root/nvidia.$(new_version) --x-module-path=$nv_xorg_dir/modules \
 	--opengl-prefix=$nv_root/nvidia.$(new_version) $wine_special --utility-prefix=$install_dir \
-	$docs $profile --tmpdir=$buildtmp --log-file-name=$lib_logfile
-	printf \"$esc_message\" ; sleep $xt_delay"
+	$docs $profile --tmpdir=$buildtmp --log-file-name=$lib_logfile 2>&1 | fmt -w 100 | \
+	while read -r line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+	echo -e "# "
+	echo -e $esc_message
+	$x_sleep
+	echo "100"
+	) | $d_yad --width=600 --height=300 --title "Zenvidia" --window-icon=$img_zen_desktop --progress --center --hide-text \
+ 	--enable-log='' --log-expanded --log-height=300 $x_hold \
+ 	--text="${v}Installing ${j}$(new_version)${end} librairies to $nv_root/nvidia.$(new_version)${end}"
+	popd
 	## link to sys.
-	cd $nv_root
 	ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia
 }
 ## ### INSTALL MODULE AND LIBRARIES PROCESS ###
@@ -2214,6 +2287,7 @@ install_drv(){
 		for e in ${pci_dev_nb[@]}; do
 			if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
 				$(hardware_compat)
+				. $tmp_b
 			fi
 		done
 		echo "$install_msg" ; n=$[ $n+6 ]; echo "$n"; sleep 2 # 1
@@ -2406,7 +2480,6 @@ extract_build(){
 	#cd $nvdir
 	popd
 }
-
 ## BACKUP & PROGRESS COUNT ###
 tar_count(){
 	( eval "$1" &>/dev/null ) & \
@@ -2744,7 +2817,7 @@ hardware_compat(){
 	perl -n -pe "s|(<(/)?t[r,d,a,b](ble\|ody)?(>\| id=\")?)||;s|(\">\|</td>)\n|,|; \
 	s|.*legacy_(.*.xx)\">.*|* \1|;s|.*<[/]?[dtpc].*$||p"| \
 	sed -n "/^[[:space:]]*$/d;s/^\ //i;p" > $upt_compat_list
-
+	## add a separator at the end.
 	echo -e "------" >> $upt_compat_list
 
 	## here start the compatibility tool.
@@ -2781,7 +2854,7 @@ hardware_compat(){
 	if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
 		## send message for the install_drv section.
 		if [ $from_install = 1 ]; then
-			install_msg="# Compatiblity found in $(echo "$DRV"| cut -d. -f1) serie, proceed to install"
+			echo -e "install_msg=\"# Compatiblity found in $(echo "$DRV"| cut -d. -f1) serie, proceed to install\"" > $tmp_b
 		else
 			legacy=0
 			echo -e "comp_result=+\"$DRV,$legacy\"" >> $upt_comp_tmp
@@ -2791,11 +2864,10 @@ hardware_compat(){
 			if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$comp_file) -gt 0 ]; then
 				## message for install_drv section.
 				if [ $from_install = 1 ]; then
-					install_msg="# Your $pci_brand is not compatible with $DRV, look in $comp_file serie instead."
 					error_log=$(cat <<-ERR
 						${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}
 						${v}The ${j}$pci_class${end} is not compatible with ${j}$DRV${end} driver.
-						look in ${j}$comp_file${end} serie instead.
+						Check in ${j}$comp_file${end} serie instead.
 						Abort.${end}
 					ERR
 					)
@@ -2808,11 +2880,10 @@ hardware_compat(){
 				family=$comp_file
 			fi
 		done
-		## define vazrs for the update/isntall section.
+		## define vars for the update/isntall section.
 		if [ $family ]; then
 			if [ $family -ne $(chk_version) ]; then
 				family_last=$(cat "$upt_local_conf" | grep "$family" | sed -n '$p')
-# 				legacy_found=1
 				legacy=1
 				((comp_display++))
 			else
@@ -2821,7 +2892,6 @@ hardware_compat(){
 			family_check=1
 		else
 			## send fatal in no driver support.
-			install_msg="# Your $pci_brand is not supported by NVIDIA's drivers."
 			if [ $from_install = 1 ]; then
 				error_log=$(cat <<-ERR
 					${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}
@@ -2834,7 +2904,6 @@ hardware_compat(){
 				--text="$error_log" \
 				--icon-name=xkill --ok-label="Got it"
 				kill $zen_pid
-# 				base_menu
 			else
 				legacy=0
 			fi
