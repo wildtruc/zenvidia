@@ -126,6 +126,7 @@ source_ctrl(){
 	fi
  	rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
 	tmp_git_src=$(mktemp -d --tmpdir tmp_git.XXX)
+	test -f $local_src/zen_git.log || touch $local_src/zen_git.log
 	IFS=$(echo -en "\n\b")
 	CHECK_GIT_REPO(){
 		local_date=$(env LANG=En_en date +%Y''%m''%d)
@@ -135,19 +136,27 @@ source_ctrl(){
 		git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
 		# extract version line
 		git_rm_version=$(git log origin -n 1 | egrep -o "v[0-9].[0-9].[0-9]{,2}")
-		git_local_verion=$(cat $local_nvdir/zen_version)
+		git_local_version=$(cat $local_nvdir/zen_version)
  		git_rm_fetch_log=$(git log origin -n 1 | sed -n "/-/,/-/p")
 		# before acting, we need to know the last pull record in local dir.
 		if [ $rep_git_local ]; then
 			pushd $rep_git_local
 			git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
 			git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
+			if [ ! "$git_local_version" ]; then
+				git_local_version=$(git log origin -n 1 | egrep -o "v[0-9].[0-9].[0-9]{,2}")
+				test "$git_local_version" || git_local_version=0
+				echo -e "$git_local_version" > $local_nvdir/zen_version
+			fi
 			popd
+		else
+			git_pull_date=0
+			git_local_version=0
 		fi
 		# then, we need to know if log is about version update or issue warning message.
 		# log and issue is mandatory formated with a '-' in commit message.
 		if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
-			if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_verion" ]; then
+			if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_version" ]; then
 				if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
 					if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
 						cat <<-LOG >> $local_src/zen_git.log

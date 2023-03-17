@@ -95,3 +95,10 @@
  - Compiling directly from source wasn't updated for too long and missing many vars from other previous fix. Add a signing modules too. Openssl added to package list installer.
  - Change xterm compilation/installation window to 'yad' log view window. This way is more clear and flexible for coding and fix.
  - NOTE : Compiling and installing older drivers like 390 serie and below is more messy than expected. There more work to do. At this state they do install, but system wont load them correctly (optimus case). Plus, dkms didn't find MOK signing key in the first place and just remove compiled modules at the end of the process; dkms script is really not made for what we are asking it to do. It finally works by adding a pre check function for mok files and creation if not found; it's also used now for source direct compilation. I sadly think this not the end of the tunnel.
+* 2023-03-17 - v2.0.16
+ - Update driver result wasn't properly diplayed (reversing official, beta) and end question was misplaced in chain resulting in the wrong window installation model. Fixed, but some filter still need to be tested and checked, especially for old driver versions.
+ - Error in grub conf upodate regex preventing code to update the conf. Fixed.
+ - Archive restoration was removing nvidia libs directory when restoring in fresh distro install process because the driver restored was the same as previuosly installed in /usr/local partition. Fixed.
+ - Yad was replacing all depencies installation, that was a mistake. Xterm is now automaticaly installed if missing and used for basic fresh install process; Yad is still use for futur depencies addition. All starting process has been re-ordered to fit this correctly.
+ - Note : Still working arround old driver and PRIME process. There is some progresses, but it appears that PRIME displaying context differ with Desktop Environment (grrr).
+ - APOLOGIES : My condition slow down severly the work to do and makes me doing stupide mistakes. I am very sorry about that.
