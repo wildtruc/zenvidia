@@ -96,6 +96,7 @@ dep_exec_check(){
 	d_zen=$(command -v zenity) || deplist+=("zenity")
 	d_xdpy=$(command -v xdpyinfo) || deplist+=("xdpyinfo")
 	d_ssl=$(command -v openssl) || deplist+=("openssl")
+	d_randr=$(command -v xrandr) || deplist+=("xrandr")
 	d_nv_installer=$(command -v nvidia-installer)
 	d_nv_settings=$(command -v nvidia-settings)
 	d_nv_probe=$(command -v nvidia-modprobe)
@@ -393,6 +394,7 @@ PCI_ID(){
 		vnd_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $3}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
 		if [[ "${vnd_id[$i]}" =~ "10de" ]]; then
 			dev+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}'| sed -En "s/^.*\[(.*)\] \[.*\].*$/\1/p")")
+			dev_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
 			((optimus++))
 		else
 			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic")
@@ -1208,6 +1210,7 @@ xorg_conf(){ # TEST TODO multi devices check and config.
 
 			XF
 			fi
+			## here second card Device section. (open ?)
 		done
 	}
 	sec_option_df(){
@@ -1225,7 +1228,7 @@ xorg_conf(){ # TEST TODO multi devices check and config.
 			## inclusion
 			x_dpi=$dpi_w" x "$dpi_h
 		else
-			## falback value.
+			## fallback value.
 			x_dpi="96 x 96"
 		fi
 		## get display current def and freq
@@ -1265,8 +1268,10 @@ xorg_conf(){ # TEST TODO multi devices check and config.
 			EndSection
 
 		XF
+		## here second card option merge to Device section.
 	}
 	sec_layout(){
+		## layout section may differ with escond card (optimus)
 		cat <<-XF >> $x_conf_dir/xorg.conf.nvidia
 			Section "ServerLayout"
 			   Identifier	"Layout0"
@@ -1319,6 +1324,12 @@ xorg_conf(){ # TEST TODO multi devices check and config.
 ## ### AFTER INSTALL ###
 clean_old_version(){ # post install part.
 	( unset drv_src
+		dkms_clean(){
+			$p_dkms remove -m nvidia/$(old_version) --all
+			if [ -d /var/lib/dkms/$rep_clean/$(old_version) ]; then
+				rm -rf /var/lib/dkms/$rep_clean/$(old_version)
+			fi
+		}
 		if [ $open_drv = 1 ]; then
 			drv_src=( open-nvidia nvidia )
 		else
@@ -1327,11 +1338,11 @@ clean_old_version(){ # post install part.
 		for rep_clean in ${drv_src[*]}; do
 			if [ -d /var/lib/dkms/$rep_clean/$(old_version) ]; then
 				progress_msg(){ echo "# ($m sec.) - Cleaning $rep_clean $(old_version) DKMS tree"; echo "$m"; }; m=1
-				do_slp=1; progress "$p_dkms remove -m nvidia/$(old_version) --all"
+				do_slp=1; progress "$(dkms_clean)"
 			fi
 			if [ -d /usr/src/$rep_clean-$(old_version) ]; then
 				echo "# - Cleaning $rep_clean $(old_version) source tree"; sleep 2
-				rm -rf /usr/src/open-nvidia-$(old_version)
+				rm -rf /usr/src/$rep_clean-$(old_version)
 			fi
 		done
 	) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --progress  \
@@ -1467,27 +1478,33 @@ post_install(){
 	n=$[ $n+2 ]; echo "$n" # 12
 	echo "# ($n%) - Blacklist conf update if needed"; sleep 2
 	nv_blacklist_modules_conf
-# 	## old driver version (here optimus laptop case) doesn't create nvidia devs. ATTENTION IN PROGRESS
-# 	if [ $(chk_version) -le 390 ]; then
-# 		legacy_file=/etc/modprobe.d/nvidia-legacy.conf
-# 		## check and define DM conf file here.
-# 		## ...
-# # 		if [ $opti_preset = 1 ]; then
-# 			unset nv_mods
-# 			test $use_drm -eq 1 && nv_mods+=('nvidia-drm')
-# 			test $use_uvm -eq 1 && nv_mods+=('nvidia-uvm')
-# 			cat <<-CONF >> $legacy_file
-# 				install nvidia $d_probe -i nvidia && $d_probe -a nvidia-modeset ${nv_mods[*]}; $d_nv_probe -c0 -u -m
-# 			CONF
-# # 			echo -e "install nvidia $d_probe -i nvidia && $d_probe -a nvidia-modeset ${nv_mods[*]}; $d_nv_probe -c0 -u -m" \
-# # 			> /etc/modprobe.d/nvidia-legacy.conf
-# # 		fi
+	## old driver version (here optimus laptop case) doesn't create nvidia devs. ATTENTION IN PROGRESS
+	if [ $(chk_version) -le 390 ]; then
+		## partly inspired by Alexandre Freire dos Santos work in Batocera.PLUS
+		## https://github.com/AlexxandreFS/Batocera.PLUS/blob/master/script/nvidia-driver-udev-rules.sh
+		## thanks to him.
+		unset nv_mod_opts
+		test $use_drm -eq 1 && nv_mod_opts+=('-m')
+		test $use_uvm -eq 1 && nv_mod_opts+=('-u')
+		for dev in ${dev_id[@]}; do
+			#SUPPORTED_GPUS_JSON=$nvi_docs'/supported-gpus/supported-gpus.json'
+			UDEV_RULES='/etc/udev.d/01-nvidia-driver.rules'
+			test -f ${UDEV_RULES} || touch ${UDEV_RULES}
+			cat <<-UDEV >> ${UDEV_RULES}
+			ACTION=="add", DEVPATH=="/bus/pci/drivers/nvidia", RUN+="$d_nv_probe -c 0 ${nv_mod_opts[*]}"
+			UDEV
+		done
+		## check for DM here
+		## TODO, in progress.
+# 		if [ $opti_preset = 1 ]; then
 # 			cat <<-CONF >> $dm_conf
 # 				xrandr --setprovideroutputdevice modesetting NVIDIA-0
-# 				xrandr --output LVDS-1-1 --primary
-# 				wrandr --output VGA-0 --off
+# 				#xrandr --output LVDS-1-1 --primary
+# 				#xrandr --output VGA-0 --off
+# 				xrandr --auto
 # 			CONF
-# 	fi
+# 		fi
+	fi
 	n=$[ $n+2 ]; echo "$n" # 13
 	## NVIDIA_GLX-1.0 changelog file is replace even if the file is older than the installed one.
 	## To prevent overwwrite in case of downgrade, file copied in zenvidia doc dir, then update
@@ -3075,7 +3092,8 @@ check_update(){
 win_update(){
 	## define window messages and display compatibilities.
 	in_local_repos=0
-	in_install=0
+	in_dl_repos=0
+	in_installed=0
 	in_compat_list=0
 # 	end_msg="What do you want to do ?"
 	unset DOWN_list main_msg more_msg
@@ -3098,7 +3116,7 @@ win_update(){
 
 		case $_insta in
 			0) set_in='' ;;
-			1) set_in=" (installed)"; ((in_install++)) ;;
+			1) set_in=" (installed)"; ((in_installed++)) ;;
 		esac
 		if [ "$_vclass" ]; then comp_v="(VDPAU class $_vclass)"; fi
 		case $_dl_ok in
@@ -3132,7 +3150,7 @@ win_update(){
 		esac
 		case $_exist in
 			0) in_repos='is not in your repository'
-				DOWN_list+=("false"); DOWN_list+=("$_drive"); DOWN_list+=("($_drv_title)")
+				DOWN_list+=("false"); DOWN_list+=("$_drive"); DOWN_list+=("($_drv_title)"); ((in_dl_repos++))
 			;;
 			1) in_repos='is in your repository'; ((in_local_repos++))
 			;;
@@ -3143,59 +3161,24 @@ win_update(){
 		main_msg+=("\n${v}The $set_beta version is :${end}${ge} ${tab} - - - - - - ${end}${y}$_drive${end}")
 		more_msg+=("\n${j}$_drive${end}${vB} $in_repos.${end}${v}$set_in${end}$dl_warn")
 		## define the appropriate UI.
-		## V 1
-# 		case $in_local_repos in
-# 			0) ui_mod=1 ;; # dl/inst selector
-# 			1) ui_mod=1    # dl/inst selector
-# 				start_msg="${more_msg[@]}"
-# 				if [ $_insta = 1 ]; then
-# 						if [ $in_compat_list = 1 ]; then
-# 							ui_mod=0
-# 							end_msg='Nothing to do.'
-# 						fi
-# 				else
-# 					if [ $legacy_drv = 0 ]; then
-# 						ui_mod=2
-# 					else
-# 						if [ $in_compat_list = 1 ]; then
-# 							ui_mod=2
-# 						fi
-# 					fi
-# 				fi
-# 			;;
-# 			2) ui_mod=2 # inst local selector
-# 				if [ $legacy_drv = 1 ]; then
-# 					if [ $_insta = 1 ]; then
-# 						if [ $in_compat_list = 1 ]; then
-# 							ui_mod=0 ; end_msg='Nothing to do.'
-# 						fi
-# 					fi
-# 				fi
-# 			;;
-# 		esac
-		## v 2
-		## evaluate the number of package in loaca repos.
-		## and display the appropriate ui.
 		case $in_local_repos in
-			## for package not in reposetory
-# 			0) ui_mod=1 ;; # dl/inst selector
-			## for package in reposetory
 			0|1) ui_mod=1    # dl/inst selector
 				start_msg="${more_msg[@]}"
 				case $_dev_comp in
 					0) ui_mod=0; end_msg='Nothing to do.' ;;
-					1) if [ $_exist = 1 ]&&[ $_insta = 0 ]; then ui_mod=2; fi
-						if [ $_insta = 1 ]; then ui_mod=0; end_msg='Nothing to do.'; fi
+					1) if [ $in_dl_repos -eq 0 ]; then
+								ui_mod=2
+						fi
+						if [ $in_installed -eq 1 ]; then ui_mod=0; end_msg='Nothing to do.'; fi
 					;;
 				esac
 			;;
 			2|3) ui_mod=2 # inst local selector
+				start_msg="${more_msg[@]}"
 				case $_dev_comp in
 					0) ui_mod=0; end_msg='Nothing to do.' ;;
-					1) if [ $_exist = 0 ]; then ui_mod=1; fi
-
-						if [ $legacy_drv = 1 ]&&[ $_insta = 1 ]; then
-							ui_mod=0 ; end_msg='Nothing to do.'
+					1) if [ $in_dl_repos -gt 0 ]; then
+							ui_mod=1
 						fi
 					;;
 				esac
@@ -3597,9 +3580,10 @@ remove_baks(){
 	if [ $? = 1 ]; then manage_pcks; fi
 	# check that list not empty before proceed.
 	if [[ $rm_bak ]]; then
+		rem_list=$(echo -n "$rm_bak"| sed -En "s/ /\n/g;p")
 		w_text=$( cat <<-MSG
-			Selected to be removed:
-			${j}$rm_bak${end} driver(s).
+			Selected driver(s) to be removed:
+			${j}$rem_list${end}
 
 			Please, confirm.
 		MSG
