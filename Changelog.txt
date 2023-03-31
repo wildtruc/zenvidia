@@ -102,3 +102,7 @@
  - Yad was replacing all depencies installation, that was a mistake. Xterm is now automaticaly installed if missing and used for basic fresh install process; Yad is still use for futur depencies addition. All starting process has been re-ordered to fit this correctly.
  - Note : Still working arround old driver and PRIME process. There is some progresses, but it appears that PRIME displaying context differ with Desktop Environment (grrr).
  - APOLOGIES : My condition slow down severly the work to do and makes me doing stupide mistakes. I am very sorry about that.
+* 2023-03-31 - v2.0.17
+ - As expected, install check UI was not enought set properly. This not glorious, but probably fixed now. (I hate my contition)
+ - dkms repos cleaning wasn't remove previous driver dir because install process already removed the current driver, and thus dkms said that the driver was already removed (sic). Add a hard remove at the end of the post install processes.
+ - Few others fixes (check git diff).
