@@ -103,6 +103,15 @@
  - Note : Still working arround old driver and PRIME process. There is some progresses, but it appears that PRIME displaying context differ with Desktop Environment (grrr).
  - APOLOGIES : My condition slow down severly the work to do and makes me doing stupide mistakes. I am very sorry about that.
 * 2023-03-31 - v2.0.17
- - As expected, install check UI was not enought set properly. This not glorious, but probably fixed now. (I hate my contition)
+ - As expected, install check UI was not enought set properly. This not glorious, but probably fixed now. (I hate my condition)
  - dkms repos cleaning wasn't remove previous driver dir because install process already removed the current driver, and thus dkms said that the driver was already removed (sic). Add a hard remove at the end of the post install processes.
  - Few others fixes (check git diff).
+* 2023-05-15 - v2.1.5
+ - Add a rescan of the pci bus in case dGPU power switch off (ex: nvidia-xrun) during pci bus detection.
+ - Add a special alternative xorg config for iGPU/dGPU case. PAY ATTENTION: this feature actualy only prepare the xorg file for prime, nvidia-xrun and others offload cases, manually edit or dedicated optimus manager is still needed to really switch to dGPU support. iGPU is set as default.
+ - Add an udev rule for 430 serie and older. In old series driver, kernel wasn't creating device system linking correctly. This workaround try to fix this (not garanted. nvidia-xrun could meet some issues and removed udev rule may be needed).
+ - Add a remove nvidia driver function that completly remove nvidia's installation.
+ - Add Xorg auto config tool to Xorg management menu.
+ - Fix a non updated variable from old zenvidia version in grub postinstall config, nvidia-drm option set has been migrate to modprobe option to Simplify drm set option edit.
+ - Note : It appears also that nvidia-xrun xinitrc work for old nvida-prime-select switch system for old driver series. Working on it.
+ - Few other minor fixes.
