@@ -46,6 +46,8 @@ driver_up=0
 zen_up=0
 
 driver_ctrl(){
+## default driver caracters max count.
+nb=9
 ## get all driver list.
 wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
 ## get latest.txt file.
@@ -57,38 +59,47 @@ cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
 LAST_DRV=$(cat $last_update | awk '{ print $1 }')
 LAST_BETA=$(cat $last_beta)
 
-## driver version could be in the form xxx.xx.xx or xxx.xx
-## it is needed to short it to max 6 carater to make a real diff between versions.
+## driver version could be in the form xxx.xxx.xxx or xxx.xx
+## it is needed to short it to number only.
+offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
+beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
 if [ -s $nvdir/version.txt ]; then
-	ver_n=$(cat $nvdir/version.txt| wc -m)
-	if [ $ver_n -le 6 ]; then
-		version=$(cat $nvdir/version.txt| sed -n "s|\.||g;p")00
-	else
-		version=$(cat $nvdir/version.txt| sed -n "s|\.||g;p")
-	fi
+	version=$(cat $nvdir/version.txt)
+# 	ver_n=$(cat $nvdir/version.txt| sed -n "s|\.||g;p" | wc -m)
 else
 	version=$(modinfo -F version nvidia)
-	ver_n=$(wc -m <<< $version)
-	if [ $ver_n -le 6 ]; then
-		version=$(modinfo -F version nvidia| sed -n "s|\.||g;p")00
-	else
-		version=$(modinfo -F version nvidia| sed -n "s|\.||g;p")
-	fi
+# 	ver_n=$(( $(sed -n "s|\.||g;p" <<< $version | wc -m)-1 ))
 fi
-bet_n=$(wc -m <<< "$LAST_DRV")
-off_n=$(wc -m <<< "$LAST_BETA")
-## line is count as caracter, so 6 become 7.
-if [ $off_n -le 7 ]; then
-	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")00
-elif [ $bet_n -le 7 ]; then
-	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")00
-else
-	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
-	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
-fi
+## read from standard output print a extra line. We remove it with -1 in calculs.
+ver_n=$(( $(sed -n "s|\.||g;p" <<< $version | wc -m)-1 ))
+ver_short=$(echo "$version"| sed -n "s|\.||g;p")
+ver_diff=$(($nb-$ver_n))
+n=0
+until [ $n = $ver_diff ]; do
+	ver_short=$(echo $ver_short'0')
+	((n++))
+done
+bet_n=$(( $(wc -m <<< "$offi_short")-1))
+off_n=$(( $(wc -m <<< "$beta_short")-1))
+
+off_diff=$(($nb-$off_n))
+bet_diff=$(($nb-$bet_n))
+n=0
+until [ $n = $off_diff ]; do
+	offi_short=$(echo $offi_short'0')
+	((n++))
+done
+n=0
+until [ $n = $bet_diff ]; do
+	beta_short=$(echo $beta_short'0')
+	((n++))
+done
+# eval if beta is different than offi.
+[ $beta_short -ne $offi_short ]|| beta_short=0
 # be sure that version found are a non 0 value.
 [ $beta_short -gt 0 ]|| beta_short=0
-[ $version -gt 0 ]|| version=0
+[ $ver_short -gt 0 ]|| ver_short=0
+
 if [ $beta_short -gt 0 ]&&[ $beta_short -ne $offi_short ]; then
 	DRV_LIST=( "$LAST_DRV, official driver,$offi_short" "$LAST_BETA, beta driver,$beta_short" )
 else
@@ -101,7 +112,7 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 		driver=$(printf "$drv_line"|cut -d',' -f1)
 		release=$(printf "$drv_line"|cut -d',' -f2)
 		drv_short=$(printf "$drv_line"|cut -d',' -f3)
-		if [ $drv_short -gt $version ]; then
+		if [ $drv_short -gt $ver_short ]; then
 			if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
 			if [[ $(egrep -c "$driver" $drv_list) -gt 0 ]]; then
 				_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
@@ -111,7 +122,7 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			((cnt++))
 		fi
 	done
-	if [[ $drv_short -gt $version || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
+	if [[ $drv_short -gt $ver_short || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
 		notif_msg+='Nvidia driver '
 		driver_up=1
 	fi

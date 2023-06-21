@@ -1,5 +1,5 @@
 # Zenvidia
-This is a bash/zenity script for managing **NVIDIA©** propriatary drivers.
+This is a bash/zenity script for managing **NVIDIA©** propriatary and open source drivers.
 
 Actual version pretty name : **2.0**
 

@@ -115,3 +115,5 @@
  - Fix a non updated variable from old zenvidia version in grub postinstall config, nvidia-drm option set has been migrate to modprobe option to Simplify drm set option edit.
  - Note : It appears also that nvidia-xrun xinitrc work for old nvida-prime-select switch system for old driver series. Working on it.
  - Few other minor fixes.
+* 2023-06-21 - v2.1.7
+ - Difference between official and beta driver was wrongly interpreted in both zenvdia and zen_notif. Fixed.
