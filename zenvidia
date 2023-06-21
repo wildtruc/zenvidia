@@ -2371,7 +2371,7 @@ install_report_log(){
 install_drv(){
 	## tell script that all post_install process came from global install.
 	from_install=1
-	## vars for auto confirmation window sets below 'win_confirm' FIXME
+	## vars for auto confirmation window sets below 'win_confirm'
 	confirm_msg="$menu_msg\n${v}Installing driver${end} ${j}$(new_version)${end} ${v}for hardware :${end} ${j}$dev_name${end}."
 	val_confirm="Install"
 	val_back="$MM"
@@ -3076,7 +3076,7 @@ check_update(){
 				# mark driver stocked in local repos.
 				in_pack=$(ls -1 $nvdl/ | grep -c "$DRV")
 				test "$DRV" == "$LAST_IN" && _installed=1 || _installed=0
-				if [ "$LAST_BETA" ]; then
+				if [ "$LAST_BETA" ]&&[ "$LAST_BETA" != "$LAST_DRV" ]; then
 					if [ $legacy_drv = 1 ]; then
 						test "$DRV" == "$LAST_BETA" && _is_beta=0 || _is_beta=1
 					else
