@@ -4475,7 +4475,7 @@ nv_config(){
 	$su_cmd "$(def_user)" $d_nv_settings -p "$gpu_set"
 	menu_modif
 }
-zen_notif_setup(){ # optionnaly TODO use notif_desk_opt vars instead.
+zen_notif_setup(){ ## optionnaly TODO use notif_desk_opt vars instead.
 	setup_validation(){
 		notif=$($d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia notification" --question --no-wrap \
 		--text="${vB}Autostart launcher will be set to :\n<b>></b>${end} ${j}$_notif${end}" \
