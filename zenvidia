@@ -182,6 +182,17 @@ distro_version(){ # var
 		;;
 	esac
 }
+win_warning(){
+	if [ $zenity_ver -le 3420 ]; then
+		win_icon='--window-icon='$img_zen_desktop
+		icon_name='--icon-name'
+	else
+		win_icon=''
+		icon_name='--icon'
+	fi
+	$d_zen --width=450 --title="$_zen_title" $win_icon --warning --no-wrap \
+	--text="$w_text" $icon_name=$icone --ok-label="$w_label"
+}
 set_su(){
 	w_text=$(cat <<-WRN
 	<b><big>Zenvida didn't find any Distro config file for $plug_version</big></b>
@@ -191,8 +202,10 @@ set_su(){
 	<i>( ex: sudo -l, sudo -u, etc )</i>
 	WRN
 	)
-	zenity --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --warning --no-wrap \
-	--text="$w_text" --icon-name=important --ok-label="Go it!"
+	icone='important'
+	w_label='Got it!'
+	win_warning
+
 	if [ "$plug_version" == "unknown" ]; then
 		w_text=$( cat <<-MSG
 			Enter name and <b>sudo</b> type command line arguments.
@@ -205,7 +218,7 @@ set_su(){
 		MSG
 		)
 	fi
-	set_args=$(zenity --height=100 --width=100 --title="Zenvidia" --window-icon=$img_zen_desktop --forms \
+	set_args=$($d_zen --height=200 --width=100 --title="$_zen_title" --window-icon=$img_zen_desktop --forms \
 	--text="$w_text" --separator=';' $zen_entry --add-entry="sudo command")
 	if [ $? = 0 ]; then
 		[ "$set_args" != '' ] || exit 0
@@ -284,9 +297,9 @@ distro(){
 				You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>
 				WRN
 				)
-				$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --warning --no-wrap \
-				--text="$w_text" --icon-name=xkill --ok-label="Let's go!"
-
+				icone='xkill'
+				w_label="Let's go"
+				win_warning
 				## edit new config file.
 				edit_plug_conf=$( $d_zen --width=640 --height=400 --title="Zenvidia $plug_version edition" \
 				--window-icon=$img_zen_desktop --text-info --editable \
@@ -306,7 +319,7 @@ distro(){
 					Then going back to the saved config file in $(user_CF_DIR)
 					WRN
 					)
-					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+					$d_zen --width=450 --title="$_zen_title" --error --no-wrap \
 					--text="$w_text" --icon-name=xkill --ok-label="Snif!"
 						exit 0
 					fi
@@ -499,8 +512,13 @@ dep_control(){
 					$info
 				DEP
 				)
+				if [ $zenity_ver -le 3420 ]; then
+					win_icon='--window-icon='$img_zen_desktop
+				else
+					win_icon=''
+				fi
 				$d_zen $context --width=400 --text="${v}$w_text${end}" \
-				--window-icon=$img_zen_desktop --ok-label="$label"
+				$win_icon --ok-label="$label"
 				if [ $? = 0 ]; then
 					if [[ "$context" =~ "warning" ]]; then exit 0; fi
 					(	$PKG_INSTALLER $pkg_opts$pkg_cmd ${deplist[*]} 2>&1 | \
@@ -532,7 +550,7 @@ connection_control(){
 		MSG
 		)
 		$d_zen --width=300 --window-icon=$img_zen_desktop --error --text="${v}$w_text${end}"
-	fi ) | $d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --progress --pulsate --auto-close \
+	fi ) | $d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --progress --pulsate --auto-close \
 	--text="${v}Connection control...${end}"
 	if [ $cnx = 0 ]; then cnx_msg="OK"; else cnx_msg="NONE"; fi
 }
@@ -602,7 +620,7 @@ nv_open_modules_set(){
 	if [ $open_wrn = 1 ]; then
 		if [ $extract_open = 1 ]; then
 			if [ $use_open -ne 1 ]; then
-				_title="Open Modules build selection"
+				_title="$_zen_title"
 				_text=$(cat <<-MSG
 					${jB}Nvidia Open Source Modules${end}
 					${vB}Since 515 driver series, it is possible to use nvidia open source drivers
@@ -688,7 +706,7 @@ nv_modules_set(){
 					Do you want to preset Optimus ?${end}
 				TXT
 				)
-				$d_zen --question --window-icon=$img_zen_desktop --title="Zenvidia modules set" --icon-name=dialog-warning \
+				$d_zen --question --window-icon=$img_zen_desktop --title="$_zen_title" --icon-name=dialog-warning \
 				--text="$modules_msg" --no-wrap --cancel-label="No thanks, I'll figure it out later" --ok-label="Yes, please"
 				if [ $? = 0 ]; then
 					opti_preset=1
@@ -719,12 +737,12 @@ nv_modules_set(){
 	TXT
 	)
 	if [ $no_warn = 0 ]; then
-		$d_zen --question --window-icon=$img_zen_desktop --title="Zenvidia modules set" --icon-name=dialog-warning \
+		$d_zen --question --window-icon=$img_zen_desktop --title="$_zen_title" --icon-name=dialog-warning \
 		--text="$modules_msg" --no-wrap --cancel-label="I got it, don't show me this message again" --ok-label="I got it"
 		no_warn=$?
 		sed -Ei "s/^(no_warn)=[0-9]$/\1=$no_warn/g" $basic_conf
 	fi
-	_title="Modules build selection"
+	_title="$_zen_title"
 	_text=$(cat <<-TXT
 		${yB}${bf}Nvidia Optional Modules${end}${end}
 		${vB}By default Zenvidia will only use the main Nvidia driver.
@@ -788,7 +806,7 @@ rt_options(){
 	is_RT=$(grep -ic "CONFIG_PREEMPT_RT=y" /boot/config-$KERNEL)
 	if [ $is_RT = 1 ]; then
 		## user warning
-		_title="Modules build environment"
+		_title="$_zen_title"
 		_text=$( cat <<-TXT
 			${rBB}REALTIME Kernel Detected${end}
 			${vB}ATTENTION :${v} You are about to install driver on a realtime kernel.
@@ -983,7 +1001,7 @@ nv_open_switch(){ # TODO remove blank lines ?
 					Are you sure ?${end}
 				MSG
 				)
-				val_title="Driver Switch" #TEXT
+				val_title="$_zen_title" #TEXT
 				val_confirm="Yes, switch to $drv_on" #TEXT
 				val_back="No, reverse to $drv_off" #TEXT
 				val_cancel="reverse_conf" #TEXT
@@ -1044,7 +1062,7 @@ nv_open_switch(){ # TODO remove blank lines ?
 				sleep 2
 				echo "# Reboot for $drv_on to take effect."
 				sed -Ei "s/^(use_open)=.*$/\1=$use_open/" $basic_conf
-			} | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate \
+			} | $d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --progress --pulsate \
 			--text="${v}$switch_txt${end}"
 		fi
 	else
@@ -1055,7 +1073,7 @@ nv_open_switch(){ # TODO remove blank lines ?
 			Are you sure ?${end}
 			MSG
 			)
-			val_title="Driver Removal" #TEXT
+			val_title="$_zen_title" #TEXT
 			val_confirm="Yes, remove" #TEXT
 			val_back="No, preserve" #TEXT
 			val_cancel="reverse_conf" #TEXT
@@ -1098,7 +1116,7 @@ nv_open_switch(){ # TODO remove blank lines ?
 				sed -Ei "s/^(use_open)=.*$/\1=0/" $basic_conf
 				sleep 2
 				echo "# Reboot for change to take effect."
-			} | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia driver Switch" --progress --pulsate \
+			} | $d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --progress --pulsate \
 			--text="${v}Open Source Drivers deletion${end}"
 		fi
 	fi
@@ -1390,7 +1408,7 @@ clean_old_version(){ # post install part.
 				rm -rf /usr/src/$rep_clean-$(old_version)
 			fi
 		done
-	) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --progress  \
+	) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --progress  \
 		--text="# - Cleaning old $(old_version) source and DKMS tree" --auto-close
 }
 post_install(){ # PROGRESS : TODO optimus section.
@@ -1744,7 +1762,7 @@ nv_dkms_mok_key(){
 				Very sorry about that.
 			ERROR
 			)
-			$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --icon-name=xkill --error --no-wrap \
+			$d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --icon-name=xkill --error --no-wrap \
 			--ok-lable="OK" --text="${v}$w_text${end}"
 			kill $zen_pid
 		fi
@@ -2340,13 +2358,13 @@ install_log_messages(){
 			Do you want to read $make_log_file ?
 		ERROR
 		)
-		$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --icon-name=xkill --question --no-wrap \
+		$d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --icon-name=xkill --question --no-wrap \
 		--ok-label="Yes" --cancel-label="No thanks, shits happens" \
 		--text="${v}$w_text${end}"
 		fatal_error=$?
 		kill $zen_pid
 		if [ $fatal_error = 0 ]; then
-			$d_zen --width=800 --height=400 --title="Zenvidia" --text-info \
+			$d_zen --width=800 --height=400 --title="$_zen_title" --text-info \
 			--ok-label="Close" --cancel-label='' --filename="$make_log_file"
 		fi
 	fi
@@ -2377,7 +2395,7 @@ install_drv(){
 	val_back="$MM"
 	val_exit="menu_install"
 	val_cancel="base_menu" #TEXT
-	val_title="Zenvidia"
+	val_title="$_zen_title"
 	## check for for patch in new version.
 	nv_build_options
 	rt_options
@@ -2478,7 +2496,7 @@ install_drv(){
 		## control if libraries are properly installed
 		if [[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -lt 40 ]]|| \
 		[[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -lt 40 ]]; then
-			$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --error --no-wrap \
+			$d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --error --no-wrap \
 			--text="${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
 			kill $zen_pid
 # 			if [ $? = 0 ]; then base_menu; fi
@@ -2501,7 +2519,7 @@ install_drv(){
 			if [[ -f $nvdl/nv-update-$(new_version) ]] ; then
 				echo "# ($n%) - Driver $(new_version) release package backup success"; sleep 2
 			else
-				$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --error --no-wrap \
+				$d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --error --no-wrap \
 				--ok-label="Go it, let's go on."--text="\n${v}Driver ${j}$(new_version)${end} release repos backup mistake.${end}"
 			fi
 		else
@@ -2539,11 +2557,11 @@ install_drv(){
 				Can't tell.
 			RPT
 			)
-			$d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --error \
+			$d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --error \
  			--text="${v}$error_log${end}"
  			kill $zen_pid
 		fi
-		} | $d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --progress --percentage=1 --auto-close
+		} | $d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --progress --percentage=1 --auto-close
 		rm -f $tmp_b
 		base_menu
 	else
@@ -2557,7 +2575,7 @@ install_drv(){
 			${y}https://download.nvidia.com/XFree86/${end}
 		RPT
 		)
-		$d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --error \
+		$d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --error \
 		--text="${v}$error_log${end}"
 		if [ $? = 0 ]; then base_menu; fi
 	fi
@@ -2582,7 +2600,7 @@ extract_build(){
 			cp -f $nvtmp/$extracted_release/nvidia-installer .
 			echo -e "$(new_version)" > $nvdir/new_version.txt
 		else
-			$d_zen --width=450 --title="Zenvidia" --error \
+			$d_zen --width=450 --title="$_zen_title" --error \
 			--text="${j}${bf}Nvidia repository not found${end}${end}.${v} Extraction failure.${end}"
 			base_menu
 		fi
@@ -2649,6 +2667,8 @@ backup_old_version(){
 		tar_count "tar uf nvidia.$bak_version.tar /etc/X11/xorg.conf.nvidia"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/systemd/system/systemd-hibernate.service.wants"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/systemd/system/systemd-suspend.service.wants"
+		## take care of dkms auto install behaviour upon open source driver installation.
+		test -f /etc/dkms/no-autoinstall && tar_count "tar uf nvidia.$bak_version.tar /etc/dkms/no-autoinstall"
 		tar_count "tar uf nvidia.$bak_version.tar /lib/modules/$KERNEL/$(module_dest_location)/nvidia*"
 		tar_count "tar uf nvidia.$bak_version.tar /lib/firmware/nvidia/$bak_version"
 		tar_count "tar uf nvidia.$bak_version.tar $nv_root/nvidia"
@@ -2701,7 +2721,7 @@ upgrade_new_kernel(){
 		Pick the up to date kernel${end}
 	MSG
 	)
-	NEW_KERNEL=$($d_zen --height=300 --window-icon=$img_zen_desktop --title="Zenvidia" --list --radiolist --hide-header \
+	NEW_KERNEL=$($d_zen --height=300 --window-icon=$img_zen_desktop --title="$_zen_title" --list --radiolist --hide-header \
 	--text "$w_text" --column "1" --column "2" --separator=";" "${kern_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	if [ $(echo -e "$NEW_KERNEL"| egrep -c "[0-9]+") -gt 0 ]; then
@@ -2719,7 +2739,7 @@ upgrade_kernel(){
 	kernel_src="/usr/src$alt/$KERNEL"
 	drv_release=$(ls $nvdl/ | grep "$(new_version)")
 	confirm_msg="${v}Kernel update ${j}$KERNEL${end} :$d${end}"
-	val_title="Zenvidia"
+	val_title="$_zen_title"
 	val_confirm="$CC"
 	val_back="$MM"
 	val_cancel="base_menu" #TEXT
@@ -2729,12 +2749,12 @@ upgrade_kernel(){
 	cd $nvdl/
 	nv_cmd_update
 	if [ $pass -gt 0 ]||[ ! -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
-		$d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --error \
+		$d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --error \
 		--text="${j}INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')${end}."
 		exit 0
 	fi
 	new_version=$(version)
-	) | $d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --progress --pulsate --auto-close
+	) | $d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --progress --pulsate --auto-close
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/update-$KERNEL.log; fi
 	base_menu
 }
@@ -2762,7 +2782,7 @@ from_directory(){
 			$loaded
 		INFO
 		)
-		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="$_zen_title" $zen_opts \
 		--text="$w_text" $table_opts ${list_drv[@]})
 		if [ $? = 0 ]; then
 			if [ "$drv_pick" != '' ]; then
@@ -2792,7 +2812,7 @@ from_directory(){
 			$loaded
 		INFO
 		)
-		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		drv_pick=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="$_zen_title" $zen_opts \
 		--text="$w_text" $table_opts ${list_drv[@]})
 		if [ $? = 0 ]; then
 			if [ "$drv_pick" != '' ]; then
@@ -2824,7 +2844,7 @@ from_directory(){
 		INFO
 		)
 
-		from_cmd=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+		from_cmd=$($d_zen --width=400 --height=220 --window-icon=$img_zen_desktop --title="$_zen_title" $zen_opts \
 		--text="${v}$w_text${end}" $table_opts false 1 "$A" false 2 "$B" )
 		if [ $? = 1 ]; then base_menu; fi
 		case $from_cmd in
@@ -2844,7 +2864,7 @@ from_net(){
 		download_menu
 		run_pkg=$nvdl/nv-update-$LAST_PACK
 		if [ -f $buildtmp/$run_pack ]; then
-			$d_zen --info --window-icon=$img_zen_desktop --title="Zenvidia" --no-wrap --icon-name=swiss_knife \
+			$d_zen --info --window-icon=$img_zen_desktop --title="$_zen_title" --no-wrap --icon-name=swiss_knife \
 			--text="${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
 			mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
 			chmod 755 $nvdl/nv-update-$LAST_PACK
@@ -2864,15 +2884,23 @@ net_version_selector(){
 		   Look for a previous packeges available in Nvidia repos site.
 		HLP
 		)
+		if [ $zenity_ver -le 3420 ]; then
 		w_height='--height=300'
+		else
+			w_height='--height=400'
+		fi
 	else
 		hlp_tip="\n${vB}Select the driver version type to install${end}"
+		if [ $zenity_ver -le 3420 ]; then
 		w_height='--height=200'
+		else
+			w_height='--height=300'
+		fi
 	fi
 	menu_select=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Driver version type to install${end}\n${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	true 1 "Look for latest version" false 2 "Look for older version")
 	if [ $? = 1 ]; then base_menu; fi
 	case $menu_select in
@@ -2891,11 +2919,15 @@ check_for_older(){
 		old_pack_list+=("$pack_list")
 		n=$[ $n+1 ]
 	done
-	w_height='--height=300'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=300'
+	else
+		w_height='--height=400'
+	fi
 	older_pack=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Driver version type to install${end}\n${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" \
+	--column "set" --column "action" \
 	"${old_pack_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	LAST_DRV=$older_pack
@@ -2904,7 +2936,7 @@ check_for_older(){
 check_for_newer(){
 	(	wget -q -O $upcompat/last_update https://$nvidia_ftp-$ARCH/latest.txt
 		sleep 2
-	) | $d_zen --width=400 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate --auto-close \
+	) | $d_zen --width=400 --window-icon=$img_zen_desktop --title="$_zen_title" --progress --pulsate --auto-close \
 	--text="${v}NVIDIA Download center data check${end}"
 	LAST_DRV=$(cat $upcompat/last_update | awk '{ print $1 }')
 	legacy_drv=0
@@ -2913,7 +2945,7 @@ check_for_newer(){
 hardware_compat(){
 	{ wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
 		sleep 2
-	}| $d_zen --width=400 --window-icon=$img_zen_desktop --title="Zenvidia" --progress --pulsate \
+	}| $d_zen --width=400 --window-icon=$img_zen_desktop --title="$_zen_title" --progress --pulsate \
 	--auto-close --text="${v}NVIDIA Download center compatibility check (${j}$DRV${end})...${end}"
 
 	cat $upcompat/upt_compat | sed -n "/<h3>/,/Below are the legacy/{;/<tr\|<td\|<\/tr>/p}"| \
@@ -2984,7 +3016,7 @@ hardware_compat(){
 						Abort.${end}
 					ERR
 					)
-					$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+					$d_zen --width=450 --title="$_zen_title" --error --no-wrap \
 					--text="$error_log" \
 					--icon-name=xkill --ok-label="Got it"
 					kill $zen_pid
@@ -3016,7 +3048,7 @@ hardware_compat(){
 					Abort.${end}
 				ERR
 				)
-				$d_zen --width=450 --title="Zenvidia" --error --no-wrap \
+				$d_zen --width=450 --title="$_zen_title" --error --no-wrap \
 				--text="$error_log" \
 				--icon-name=xkill --ok-label="Got it"
 				kill $zen_pid
@@ -3059,6 +3091,11 @@ check_update(){
 	comp_display_legacy=0
 
 	w_height=355
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=355'
+	else
+		w_height='--height=455'
+	fi
 	unset dl_allow COMP_L COMP_I LOCAL_DRV comp_check comp_result
 	## desktop could have more than one device managed. So check.
 	for e in $pci_dev_nb; do
@@ -3227,21 +3264,23 @@ win_update(){
 
 	extra_msg="\n${more_msg[@]}\n\n${v}$end_msg${end}"
 	case $ui_mod in
-		0)	w_height=220
-			zen_opts='--info --icon-name=swiss_knife --ok-label=OK'
+		0)	zen_opts='--info --icon-name=swiss_knife --ok-label=OK'
 			table_opts=''
 			list_opts=''
 			;;
-		1)	w_height=220
-			zen_opts='--list --radiolist --hide-header'
-			table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
+		1)	zen_opts='--list --radiolist --hide-header'
+			table_opts='--column "set" --column "2" --column "action" --separator=";" --hide-column=2'
 			list_opts="false 1 Install false 2 Download ";;
-		2)	w_height=220
-			zen_opts="--question --ok-label=Install --cancel-label=Abort"
+		2)	zen_opts="--question --ok-label=Install --cancel-label=Abort"
 			table_opts=''
 			list_opts=''
 			;;
 	esac
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=180'
+	else
+		w_height='--height=280'
+	fi
 	w_text=$(cat <<-MSG
 		${jB}${bf}Available drivers${end}${end}
 
@@ -3252,8 +3291,7 @@ win_update(){
 		$extra_msg
 	MSG
 	)
-	w_height=180
-	sel_cmd=$($d_zen --width=300 --height=$w_height --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+	sel_cmd=$($d_zen --width=300 $w_height --window-icon=$img_zen_desktop --title="$_zen_title" $zen_opts \
 	--text="$w_text" $table_opts $list_opts )
 	if [ $? = 0 ]; then
 		case $ui_mod in
@@ -3299,7 +3337,7 @@ download_menu(){
 		)
 		output_type=1
 # 	fi
-	dl_cmd=$($d_zen $w_dim --window-icon=$img_zen_desktop --title="Zenvidia" $zen_opts \
+	dl_cmd=$($d_zen $w_dim --window-icon=$img_zen_desktop --title="$_zen_title" $zen_opts \
 	--text="$w_text" $table_opts "${DOWN_list[@]}" )
 	if [ $? = 1 ]; then
 		base_menu
@@ -3317,14 +3355,14 @@ download_only(){
 	cd $buildtmp
 	download_menu
 	if [ -f $buildtmp/$run_pack ]; then
-		$d_zen --info --window-icon=$img_zen_desktop --title="Zenvidia" --no-wrap --icon-name=swiss_knife \
+		$d_zen --info --window-icon=$img_zen_desktop --title="$_zen_title" --no-wrap --icon-name=swiss_knife \
 		--text="${v}Driver download ${j}$LAST_PACK${end} ended.\n$MM${end}"
 		test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
 		mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
 		chmod 755 $nvdl/nv-update-$LAST_PACK
 		base_menu
 	else
-		$d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --error \
+		$d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --error \
 		--text="${v}Driver download ${j}$LAST_PACK${end} failure.\n The package ${j}$run_pack${end} doesn't exist.\n$MM.${end}"
 		base_menu
 	fi
@@ -3360,7 +3398,7 @@ last_pack(){
 			drv_list+=("false")
 			drv_list+=("$line")
 		done
-		run_pack=$($d_zen --width=450 --height=300 --window-icon=$img_zen_desktop --title="Zenvidia" --list \
+		run_pack=$($d_zen --width=450 --height=300 --window-icon=$img_zen_desktop --title="$_zen_title" --list \
 		--text="${v}Choose the version to install${end}" --radiolist --hide-header \
 		--column "1" --column "2" "${drv_list[@]}" --separator=";")
 		if [ $? = 1 ]; then exit 0; fi
@@ -3370,7 +3408,7 @@ last_pack(){
 		fi
 		( 	test $run_pack_sha && $p_wget -c https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack_sha $buildtmp/ &>/dev/null
 			download_cmd | track
-		) | $d_zen --width=500 --window-icon=$img_zen_desktop --progress --auto-close --title="driver download $LAST_PACK"
+		) | $d_zen --width=500 --window-icon=$img_zen_desktop --progress --auto-close --title="$_zen_title"
 		err=$?
 		if test $err -gt 128; then
 			if pid=`ps -A | grep ."wget" | awk '{print $1}'`; then
@@ -3396,8 +3434,10 @@ last_pack(){
 		fi
 		return $err
    else
-		$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia" --warning \
-		--text="${rB}$fatal_dev\Remote directory is empty.\n${end}${v}Nvidia devs have probably forgoten to upload data.\nFeel free to try at a later time.${end}"
+		icone='xkill'
+		w_label="Got it!"
+		w_text="${rB}$fatal_dev\Remote directory is empty.\n${end}${v}Nvidia devs have probably forgoten to upload data.\nFeel free to try at a later time.${end}"
+		win_warning
 		base_menu
 	fi
 }
@@ -3432,7 +3472,7 @@ win_open_switch(){
 			<i>(driver license $($d_modinfo -F license nvidia -k $KERNEL) loaded)</i>${end}
 		MSG
 		)
-		_title="Zenvidia (tools)"
+		_title="$_zen_title"
 		driver_swt=$($d_zen --width=500 --list --window-icon=$img_zen_desktop --title="$_title" --text="$_text" \
 		--column="check" --column="hide" --column="driver" --radiolist --print-column=2 --hide-column=2 \
 		--separator='' --hide-header $PROP "0" "Load proprietary drivers" $OPEN "1" "Load Open Source Drivers")
@@ -3449,6 +3489,11 @@ win_open_switch(){
 ## PACKAGE MANAGING ###
 manage_pcks(){
 	w_height='--height=300'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=300'
+	else
+		w_height='--height=400'
+	fi
 	hlp_tip=''
 	w_text=$( cat <<-MSG
 
@@ -3474,12 +3519,16 @@ manage_pcks(){
 			Remove completly Nvidia Drivers installation and restore default Nouveau drivers.${end}
 		HLP
 		)
-		w_height='--height=400'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=400'
+		else
+			w_height='--height=500'
+		fi
 	fi
 	menu_packs=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Manage drivers packages${end}${end}$w_text$hlp_tip" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	false 1 "Remove downloaded package" false 2 "Backup tools" false 3 "Restore a backup" false 4 "Remove Nvidia and restore to default")
 	if [ $? = 1 ]; then menu_modif; fi
 	case $menu_packs in
@@ -3503,7 +3552,7 @@ remove_pcks(){
 	MSG
 	)
 	rm_packs=$($d_zen --width=400 --height=300 --window-icon=$img_zen_desktop --list --multiple \
-	--checklist --hide-header --title="Zenvidia (remove)" \
+	--checklist --hide-header --title="$_zen_title" \
 	--text "${v}$w_text${end}" \
 	--column "1" --column "2" --separator=" " \
 	"${packs_list[@]}" )
@@ -3517,7 +3566,7 @@ remove_pcks(){
 	)
 	# check that list not empty before proceed.
 	if [[ $rm_packs ]]; then
-		$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia (Remove downloaded package)" --question \
+		$d_zen --width=300 --window-icon=$img_zen_desktop --title="$_zen_title" --question \
 		--text="${vB}$w_text${end}" \
 		--ok-label="$CC" --cancel-label="$PM"
 		if [ $? = 0 ]; then
@@ -3535,7 +3584,7 @@ remove_pcks(){
 						Please, confirm.
 					INFO
 					)
-					$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia (Remove downloaded package)" --question \
+					$d_zen --width=300 --window-icon=$img_zen_desktop --title="$_zen_title" --question \
 					--text="${v}$w_text${end}"
 					if [ $? = 0 ]; then
 						if [[ $ver_pack = $ver_txt ]]; then
@@ -3547,7 +3596,7 @@ remove_pcks(){
 							Action skipped."
 							WRN
 							)
-							$d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Remove downloaded package)" \
+							$d_zen --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" \
 							--icon-name=xkill --error --no-wrap --text="${v}$w_text${end}" \
 							--ok-label="I understand my mistake"
 						else
@@ -3562,7 +3611,7 @@ remove_pcks(){
 					test -f $nvdl/nv-update-$pack_vers && rm -f $nvdl/nv-update-$pack_vers
 				fi
 			done
-			$d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Remove downloaded package)" \
+			$d_zen --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" \
 			--icon-name=swiss_knife --info --text="${vB}Driver(s):\n${j}$rm_packs${end}\npackage(s) removed.${end}" --no-wrap
 			manage_pcks
 		else
@@ -3585,7 +3634,7 @@ remove_baks(){
 	MSG
 	)
 	rm_bak=$($d_zen --width=400 --height=300 --window-icon=$img_zen_desktop --list --multiple \
-	--checklist --hide-header --title="Zenvidia (remove) backups" \
+	--checklist --hide-header --title="$_zen_title" \
 	--text "${v}$w_text${end}" \
 	--column "1" --column "2" --separator=" " \
 	"${bak_list[@]}" )
@@ -3600,14 +3649,14 @@ remove_baks(){
 			Please, confirm.
 		MSG
 		)
-		$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia (Remove backed up package)" --question \
+		$d_zen --width=300 --window-icon=$img_zen_desktop --title="$_zen_title" --question \
 		--text="${vB}$w_text${end}" \
 		--ok-label="$CC" --cancel-label="$PM"
 		if [ $? = 0 ]; then
 			for vers in ${rm_bak[@]}; do
 				test -f $nvbackup/$vers && rm -f $nvbackup/$vers
 			done
-			$d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Remove backed up package)" \
+			$d_zen --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" \
 			--icon-name=swiss_knife --info --text="${vB}Driver(s) Archive(s) removed.${end}" --no-wrap
 			manage_pcks
 		else
@@ -3627,7 +3676,7 @@ remove_nvidia(){
 		Please, confirm.
 	MSG
 	)
-	$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia (Remove driver installation)" --question \
+	$d_zen --width=300 --window-icon=$img_zen_desktop --title="$_zen_title" --question \
 	--text="${vB}$w_text${end}" --ok-label="$CC" --cancel-label="$PM"
 	if [ $? = 1 ]; then manage_pcks; fi
 	{
@@ -3693,7 +3742,7 @@ remove_nvidia(){
 		#depmod -a
 		progress_msg(){ echo "# Exec $KERNEL modules init/reload ($m sec.)"; }; m=0; do_slp=1
 		exec_initramfs
-		} | $d_zen --window-icon=$img_zen_desktop --width=450 --title="Zenvidia" --progress --pulsate --auto-close
+		} | $d_zen --window-icon=$img_zen_desktop --width=450 --title="$_zen_title" --progress --pulsate --auto-close
 		w_text=$( cat <<-MSG
 			${j}NVIDIA driver installation is now completaly removed${end}.
 
@@ -3701,12 +3750,18 @@ remove_nvidia(){
 
 		MSG
 		)
-		$d_zen --width=300 --window-icon=$img_zen_desktop --title="Zenvidia (Remove driver installation)" --warning \
-		--text="${vB}$w_text${end}" --ok-label="Got it"
+		icone='xkill'
+		w_label="Got it!"
+		w_text="${vB}$w_text${end}"
+		win_warning
 		base_menu
 }
 backup_tools(){
-	w_height='--height=130'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=180'
+	else
+		w_height='--height=280'
+	fi
 	hlp_tip=''
 	w_text=$( cat <<-MSG
 
@@ -3725,9 +3780,9 @@ backup_tools(){
 		)
 	fi
 	menu_backup=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Backup manager${end}${end}$hlp_tip$w_text" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	false 1 "Make a backup" false 2 "Remove a backup")
 	if [ $? = 1 ]; then menu_modif; fi
 	case $menu_backup in
@@ -3739,7 +3794,7 @@ backup_tools(){
 backup_pcks(){
 	bak_version=$(version)
 	if [ -f $nvbackup/nvidia.$bak_version.tar.gz ]; then
-		$d_zen --width=250 --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Backup)" --info \
+		$d_zen --width=250 --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" --info \
 		--icon-name=swiss_knife --no-wrap \
 		--text="${j}$bak_version${end}${v} is already backed up.\nNo reason to do it again.${end}"
 		if [ $? = 0 ]; then menu_modif; fi
@@ -3749,12 +3804,12 @@ backup_pcks(){
 			Please, confirm.
 		WRN
 		)
-		$d_zen --width=250 --height=100 --window-icon=$img_zen_desktop --title="Zenvidia (Backup)" --question \
+		$d_zen --width=250 --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" --question \
 		--text="${v}$w_text${end}" \
 		--ok-label="$CC" --cancel-label="$R"
 	fi
 	if [ $? = 0 ]; then
-		( backup_old_version ) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --progress  \
+		( backup_old_version ) | $d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --progress  \
 		--text="Backup : $bak_version backup archive creation" --auto-close
 		manage_pcks
 	else
@@ -3777,7 +3832,7 @@ restore_pcks(){
 			(<i>ex: systemctl disable lightdm.service</i>)${end}
 		WRN
 		)
-		$d_zen --error --title="Zenvidia $b_mod" --icon-name=xkill \
+		$d_zen --error --title="$_zen_title" --icon-name=xkill \
 		--text="$warning_msg" --no-wrap --ok-label="Thanks for the advice!"
 		base_menu
 	}
@@ -3797,7 +3852,7 @@ restore_pcks(){
 	MSG
 	)
 	drive_packs=$($d_zen --width=400 --height=300 --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia (restore)" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "$w_text" --column "1" --column "2" --separator=";" \
 	"${drive_list[@]}" )
 	if [ $? = 1 ]; then manage_pcks; fi
@@ -3811,7 +3866,7 @@ restore_pcks(){
 # 		old_back_version=$(cat $present_version)
 		if [ ! -d $nv_root/$drive_packs ]; then
 			confirm_msg="${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$(version)${end}."
-			val_title="Zenvidia $b_mod"
+			val_title="$_zen_title"
 			val_confirm="Yes, restore and replace."
 			val_back="$PM"
 			val_cancel="base_menu"
@@ -3874,7 +3929,7 @@ restore_pcks(){
 			if [ -d $nv_root/nvidia.$(old_version) ]&&[ "$(old_version)" != "$res_version" ]; then
 				rm -Rf $nv_root/nvidia.$(old_version)
 			fi
-			}| $d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --progress --pulsate --auto-close \
+			}| $d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --progress --pulsate --auto-close \
 			--text="${v}Restore driver $res_version and missing modules.${end}"
 		else
 			# current version overwrite ALERT message
@@ -3907,9 +3962,13 @@ edit_script_conf(){
 		orig_conf+=("($set_id);$set_val;$extra_val")
 	done
 	help_tip="${v}\nDefine options and functions you would like to use\n${end}"
-	w_height='--height='500
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=500'
+	else
+		w_height='--height=600'
+	fi
 	conf_base=$($d_zen --width=550 $w_height --window-icon=$img_zen_desktop --list \
-	--multiple --editable --checklist --title="Zenvidia" \
+	--multiple --editable --checklist --title="$_zen_title" \
 	--text "${j}${bf}Zenvidia Configuration${end}$help_tip${end}" \
 	--column "Set" --column "Definition" --column "Conf Set" --column "4" --column "Extra" \
 	--column "6" --hide-column=4,6 --print-column=3,4,5,6 \
@@ -3981,7 +4040,7 @@ edit_script_conf(){
 			Do you want to apply now ?${end}
 		WRN
 		)
-		$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --question --no-wrap \
+		$d_zen --width=450 --title="$_zen_title" --window-icon=$img_zen_desktop --question --no-wrap \
 		--text="$w_text" --icon-name=xkill --cancel-label="No, I'll apply later" --ok-label="Yes, apply"
 		if [ $? = 0 ]; then
 			nv_open_switch
@@ -4117,8 +4176,8 @@ edit_xorg_conf(){
 
 	HLP
 	)
-	menu_xorg=$($d_zen --width=400 --height=100 --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	menu_xorg=$($d_zen --width=400 --height=300 --window-icon=$img_zen_desktop --list \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Edit Xorg Config File${end}${end}\n$hlp_tip" \
 	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
 	TRUE 1 "Edit full Xorg config file" FALSE 2 "Manage Device Options only" FALSE 3 "Execute Xorg auto config")
@@ -4161,9 +4220,13 @@ edit_xorg_options(){
 
 	HLP
 	)
-	w_height='--height='500
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=500'
+	else
+		w_height='--height=600'
+	fi
 	options_conf=$($d_zen --width=550 $w_height --window-icon=$img_zen_desktop --list \
-	--multiple --editable --checklist --title="Zenvidia" \
+	--multiple --editable --checklist --title="$_zen_title" \
 	--text "${j}${bf}Zenvidia Configuration${end}${end}\n${v}$hlp_tip${end}" \
 	--column "Set" --column "Option" --column "Set" \
 	--column "4" --hide-column=4 \
@@ -4200,7 +4263,7 @@ edit_xorg_options(){
 	edit_xorg_conf
 }
 edit_xorg_full_text(){
-	edit_xorg=$($d_zen --width=500 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia" --text-info --editable \
+	edit_xorg=$($d_zen --width=500 --height=400 --window-icon=$img_zen_desktop --title="$_zen_title" --text-info --editable \
 	--text="${v}Edit xorg config file${end}" --filename="$xorg_cfg" \
 	--checkbox="Confirm to overwrite" )
 	if [[ $(printf "$edit_xorg"| sed -n '1p') != '' ]]; then
@@ -4219,11 +4282,11 @@ edit_distro_conf(){
 	Are you sure about what you are doing ?
 	WRN
 	)
-	$d_zen --width=450 --window-icon=$img_zen_desktop --title="Zenvidia" --question --no-wrap \
+	$d_zen --width=450 --window-icon=$img_zen_desktop --title="$_zen_title" --question --no-wrap \
 	--text="${vB}$w_text${end}" --ok-label="I live dangerously" --cancel-label="Well, I'm finally a coward"
 	if [ $? = 1 ]; then menu_modif; fi
 	## edit config file.
-	edit_plug_conf=$( $d_zen --width=640 --height=400 --window-icon=$img_zen_desktop --title="Zenvidia $plug_version edition" \
+	edit_plug_conf=$( $d_zen --width=640 --height=400 --window-icon=$img_zen_desktop --title="$_zen_title" \
 	--text-info --editable --filename="$(user_CF_DIR)/$plug_conf" \
 	--checkbox="Confirm to overwrite" --cancel-label="Abort (panic button)" --ok-label="Write")
 	if [ $? = 0 ]; then
@@ -4244,7 +4307,11 @@ read_about(){
 }
 read_nv_help(){
 	IFS=$(echo -en "\n\b")
-	w_height='--height=500'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=500'
+	else
+		w_height='--height=600'
+	fi
 	if [[ ${#chapter_index[@]} -le 1 ]]; then
 		unset chapter_index chapters_list
 		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/p" $nvi_docs/README.txt | sed -n "/^___.*$/,/^___.*$/p"| egrep "^Chapter|^Appendix")
@@ -4255,7 +4322,7 @@ read_nv_help(){
 	fi
 	## display index first
 	index=$( $d_zen --width=550 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --title="Zenvidia" \
+	--radiolist --title="$_zen_title" \
 	--text "${j}${bf}Nvidia Documentation ${end}$help_tip${end}" \
 	--column=" " --column "Chapters" \
 	"${chapter_index[@]}" )
@@ -4265,7 +4332,7 @@ read_nv_help(){
 		## then if chapter tag is not empty, dispaly chapter.
 		chap_end=$(egrep -A1 "$chap_start" <<< $chapters_list | sed -n 2p | sed -n "s/(.*)//g;p")
 		chap_brief="$chap_start : "$(sed -En "/^$chap_start/,/^$chap_end/p" $nvi_docs/README.txt | sed -En "/^____/,/^____/p")
-		$d_zen --width=600 --height=400 --title="Zenvidia" --text-info \
+		$d_zen --width=600 $w_height --title="$_zen_title" --text-info \
 		--ok-label="Back to index" --cancel-label="Exit to main" \
 		cat <<< "$chap_brief"
 		if [ $? -eq 1 ]; then menu_manage; else IFS=$ifs; read_nv_help; fi
@@ -4277,7 +4344,11 @@ read_nv_help(){
 read_changelog(){
 	unset entry_list entrylog_list
 	IFS=$(echo -en "\n\b")
-	w_height='--height=500'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=400'
+	else
+		w_height='--height=500'
+	fi
 	relist_title=''; catch_title=''; txt_val=0
 	brief(){
 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
@@ -4298,7 +4369,7 @@ read_changelog(){
 # 		else
 			log_brief=$(echo -e "Nvidia changelog ( $entrylog ) :\n\nNothing to display here.\n\nLog file empty.")
 		fi
-			$d_zen --width=600 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop --text-info \
+			$d_zen --width=600 $w_height --title="$_zen_title" --window-icon=$img_zen_desktop --text-info \
 			--ok-label="Back to list" --cancel-label="Exit to menu" \
 			cat <<< "$log_brief"
 			if [ $? -eq 1 ]; then
@@ -4325,7 +4396,7 @@ read_changelog(){
 			done
 		fi
 		entrylog=$( $d_zen --width=550 $w_height --window-icon=$img_zen_desktop --list \
-		--radiolist --title="Zenvidia" \
+		--radiolist --title="$_zen_title" \
 		--text "${j}${bf}Nvidia Change Logs list $relist_title${end}${end}" $cancel_btn \
 		--column=" " --column "Versions" \
 		"${entrylog_list[@]}" )
@@ -4396,6 +4467,11 @@ read_zen_changelog(){
 	fi
 	IFS=$(echo -en "\n\b")
 	w_height='--height=260'
+	if [ $zenity_ver -le 3420 ]; then
+		w_height='--height=300'
+	else
+		w_height='--height=400'
+	fi
 	brief(){
 		log_version=$(echo "$entrylog"| egrep -o "v[0-9].[0-9](.[0-9]{1,2})?")
 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
@@ -4408,7 +4484,7 @@ read_zen_changelog(){
 		else
 			log_brief=$(echo -e "Zenvidia changelog ( $log_verion ) :\n\nNothing to display here.\nLog file empty.")
 		fi
-			zenity --width=600 --height=320 --title="Zenvidia" --text-info \
+			zenity --width=600 $w_height --title="$_zen_title" --text-info \
 			--ok-label="Back to list" --cancel-label="Exit to main" \
 			cat <<< "$log_brief"
 			if [ $? -eq 1 ]; then
@@ -4426,7 +4502,7 @@ read_zen_changelog(){
 			done
 		fi
 		entrylog=$( zenity --width=550 $w_height --list \
-		--radiolist --title="Zenvidia" \
+		--radiolist --title="$_zen_title" \
 		--text "${j}${bf}Zenvidia Change Logs list ${end}${end}" $cancel_btn \
 		--column=" " --column "Versions" \
 		"${entrylog_list[@]}" )
@@ -4475,9 +4551,9 @@ nv_config(){
 	$su_cmd "$(def_user)" $d_nv_settings -p "$gpu_set"
 	menu_modif
 }
-zen_notif_setup(){ ## optionnaly TODO use notif_desk_opt vars instead.
+zen_notif_setup(){ # optionnaly TODO use notif_desk_opt vars instead.
 	setup_validation(){
-		notif=$($d_zen --height=100 --window-icon=$img_zen_desktop --title="Zenvidia notification" --question --no-wrap \
+		notif=$($d_zen --height=100 --window-icon=$img_zen_desktop --title="$_zen_title" --question --no-wrap \
 		--text="${vB}Autostart launcher will be set to :\n<b>></b>${end} ${j}$_notif${end}" \
 		--ok-label="Ok" --cancel-label="$PM")
 		if [ $? = 1 ]; then menu_modif; fi
@@ -4497,10 +4573,18 @@ zen_notif_setup(){ ## optionnaly TODO use notif_desk_opt vars instead.
 		one of the sets below</i>.${end}
 		HLP
 		)
-		w_height='--height=350'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=350'
+		else
+			w_height='--height=450'
+		fi
 	else
 		hlp_tip=''
-		w_height='--height=300'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=300'
+		else
+			w_height='--height=400'
+		fi
 	fi
 	st=1
 	c_set_opt=$(cat $notif_desk_file |grep "Exec"| perl -p -e "s|^.*-+([a-z])|\1|")
@@ -4522,8 +4606,8 @@ zen_notif_setup(){ ## optionnaly TODO use notif_desk_opt vars instead.
 	MSG
 	)
 	menu_notif=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia notification" --text "$w_text$hlp_tip" \
-	--column "1" --column "2" --column "3" --hide-column=2 \
+	--radiolist --hide-header --title="$_zen_title" \
+	--column "set" --column "2" --column "action" --hide-column=2 \
 	"${setup_list[@]}")
 	if [ $? = 1 ]; then menu_modif; fi
 	case $menu_notif in
@@ -4549,10 +4633,18 @@ menu_install(){
 		   Install and download will be executed in the next step.
 		HLP
 		)
-		w_height='--height=300'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=300'
+		else
+			w_height='--height=400'
+		fi
 	else
 		hlp_tip="\n${vB}Select here the install type${end}"
-		w_height='--height=200'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=200'
+		else
+			w_height='--height=300'
+		fi
 	fi
 	install_list=("From a local package" "From NVIDIA server")
 	n=1
@@ -4563,9 +4655,9 @@ menu_install(){
 		n=$[ $n+1 ]
 	done 
 	menu_inst=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	"${ins_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	ui_mod=1
@@ -4579,7 +4671,11 @@ menu_install(){
 menu_update(){
 	check_version
 	if [ $hlp_txt = 1 ]; then
-		w_height='--height=450'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=450'
+		else
+			w_height='--height=550'
+		fi
 		hlp_tip=$(cat <<-HLP
 
 		<b>Select here the element to update or install</b>
@@ -4600,7 +4696,11 @@ menu_update(){
 		)
 	else
 		hlp_tip=''
-		w_height='--height=300'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=300'
+		else
+			w_height='--height=400'
+		fi
 	fi
 	nu=1
 	if [ $hlp_txt = 0 ]; then hlp_tip="\n${vB}\Select here the element to update or install${end}"; fi
@@ -4617,9 +4717,9 @@ menu_update(){
 		nu=$[ $nu+1 ]
 	done 
 	menu_upd=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Update Drivers or kernel modules${end}${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	"${up_list[@]}" )
 	if [ $? = 1 ]; then base_menu; fi
 	git_tmp=$(mktemp --tmpdir nv_git.XXXX)
@@ -4671,9 +4771,18 @@ menu_modif(){
 		HLP
 		)
 		w_height='--height=660'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=660'
+		else
+			w_height='--height=700'
+		fi
 	else
 		hlp_tip="\n${vB}Select here the element to modify or edit${end}"
-		w_height='--height=330'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=330'
+		else
+			w_height='--height=400'
+		fi
 	fi
 	nd=1
 	mod_menu_list=("Edit xorg config file" "Edit Zenvidia config" "Edit GUI Colors" "Nvidia-settings" "Edit Distro config" "Manage drivers packages"  "Zenvidia notification config")
@@ -4691,9 +4800,9 @@ menu_modif(){
 		nd=$[ $nd+1 ]
 	done
 	menu_mod=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Configuration and Tools${end}${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	"${mod_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	if [ $open_drv -gt 0 ]; then
@@ -4737,9 +4846,19 @@ menu_manage(){
 		TIP
 		)
 		w_height='--height=300'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=450'
+		else
+			w_height='--height=550'
+		fi
 	else
 		hlp_tip="\n${v}README and Help file from Nvidia $(version) and other.${end}"
 		w_height='--height=300'
+		if [ $zenity_ver -le 3420 ]; then
+			w_height='--height=300'
+		else
+			w_height='--height=400'
+		fi
 	fi
 	nm=1
 	unset mng_list
@@ -4750,9 +4869,9 @@ menu_manage(){
 		nm=$[ $nm+1 ]
 	done
 	menu_mng=$($d_zen --width=400 $w_height --window-icon=$img_zen_desktop --list \
-	--radiolist --hide-header --title="Zenvidia" \
+	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Help and Documentation${end}${end}${v}$hlp_tip${end}" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	"${mng_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
 	case $menu_mng in
@@ -4906,8 +5025,9 @@ is_SU(){
 	See ${j}<b>Zenvidia</b>${end} <i>(admin)</i> desktop entry instead.
 	WRN
 	)
-	$d_zen --width=450 --title="Zenvidia" --window-icon=$img_zen_desktop --warning --no-wrap \
-	--text="${v}$w_text${end}" --icon-name=swiss_knife --ok-label="Got it"
+	icone='swiss_knife'
+	w_label='Got it!'
+	win_warning
 }
 ### MAIN MENUS ###
 base_menu(){
@@ -4938,7 +5058,6 @@ base_menu(){
 	}
 	# remove deplist list in case of relaunching first because an update asking to
 	unset deplist
-	w_height=300
 	hlp_tip_txt=$( cat <<-HLP
 		Help tips text is currently set. You can unset it at any
 		moment in: ${j}Configuration and Tools${end} menu » ${j}Edit script config${end}.\n\n"
@@ -4949,7 +5068,8 @@ base_menu(){
 	else
 		drv_installed=$(version)
 	fi
-	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }
+# 	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; w_height=$(($w_height+50)); }
+	[ $hlp_txt = 0 ]|| { hlp_wrn="$hlp_tip_txt"; }
 	window_text=$( cat <<-MSG
 		                            ${rBB}ZENVIDIA${end}
 		                         ${y}${nf}Close and Open Source
@@ -4969,8 +5089,8 @@ base_menu(){
 		${v}$hlp_wrn$ansWN${end}
 	MSG
 	)
-	menu_cmd=$($d_zen --title="Zenvidia" --list --window-icon=$img_zen_desktop \
-	--radiolist --hide-header --column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	menu_cmd=$($d_zen --title="$_zen_title" --height=600 --width=300 --list --window-icon=$img_zen_desktop \
+	--radiolist --hide-header --column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	--text="$window_text" \
 	false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
 	if [ $? = 1 ]; then exit 0; fi
@@ -4988,7 +5108,7 @@ install_controls(){
 		dir_msg="${j} OK${end}"
 	else		
 		dir_msg="${j}ERROR\n${y}Zenvidia repository is missing${end}${end}"
-		$d_zen --width=400 --window-icon=$img_zen_desktop --error --no-wrap --title="Zenvidia" \
+		$d_zen --width=400 --window-icon=$img_zen_desktop --error --no-wrap --title="$_zen_title" \
 		--text="$dir_msg"
 	fi
 	# check/change run packages permission
@@ -5141,6 +5261,14 @@ compil_vars
 PCI_ID
 ## check/install dependies
 dep_control
+## zenity version above 3.92 is using gtk 4 gnome shell like theme.
+## display is wierd and need to be adapted. Fall back to yad is probably the best to do.
+zenity_ver=$($d_zen --version| sed -n "s/\.//g;p")
+if [ $zenity_ver -le 3420 ]; then
+	_zen_title='Zenvidia'
+else
+	_zen_title=''
+fi
 ## configuration file check
 if [ ! -s $script_conf ]; then $d_zen --window-icon=$img_zen_desktop --width=250 --error --icon-name=xkill --text="Script's config file missing."; exit 0; fi
 
