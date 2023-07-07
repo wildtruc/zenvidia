@@ -24,6 +24,10 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.11 NOTES :
+ - The new version of zenity (v3.92.0) bring display issues that gtk theme look to not support. window's height and width have been updated to reflect previous and new version. User will probably need to modify fonts colors.
+ - Because this is a fast fix, it may be possible that not all height and width have been updated.
+
 v2.0.15 NOTES :
  - Drivers serie from and below 390 have some issue on loading because dev is not created. working in progress.
  - xterm compilation window has be moved to Yad log window.

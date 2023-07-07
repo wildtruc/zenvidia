@@ -34,7 +34,7 @@ deficon=swiss_knife
 ifs=$IFS
 
 [ -d $nvtmp ] || mkdir -p $nvtmp
-ARCH=$(uname -p)
+ARCH=$HOSTTYPE
 drv_temp=$(mktemp --tmpdir zen_notif-XXXX)
 drv_list=$nvtmp/drvlist
 last_update=$nvtmp/last_update
