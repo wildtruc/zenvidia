@@ -121,9 +121,9 @@
  - When backing up driver, the no-autoinstall dkms option wasn't saved. Fixed.
 * 2023-07-07 - v2.1.11
  - After upgrade to version 3.92.0, Zenity has changed for GTK4 and doesn't display current theme anymaore (under Gnome, maybe. Mate here). GTK4 is a bit weird with Zenvidia, so choose was made to doesn't display window decoration title. The optional idea to migrate to Yad is open.
- - Zen Notify, was using "uname -p" to get host type, but it doesn't since distro upgrade (fedora 38 here). Fixed.
+ - Zen Notify, was using 'uname -p' to get host type, but it doesn't since distro upgrade (fedora 38 here). Fixed.
  - It appears that zenity new version create a selinux alert through gdb in su mode (maybe a gdb only, mayber fedora only ?). User need to add exception for selinux.
  - zenity width and height have been modified to reflect zenity display change occordingly to zenity distro version.
  - Added a win_warnig fucntion to reflect zenity actual and future changes.
-
-
+* 2023-07-16 - v2.1.12
+ - Fixed missing zenity tags from the previous update issue.
