@@ -37,7 +37,7 @@ nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
 zen_docs="$install_dir/share/doc/zenvidia"
 docs="--documentation-prefix=$install_dir"
 profile="--application-profile-path=$install_dir/share/nvidia"
-icon_stock=/usr/local/share/pixmaps
+icon_stock=$install_dir/share/pixmaps
 img_zen_desktop=$icon_stock/swiss_knife.png
 img_zen_bar=swiss_knife
 # user_DL_DIR=$(su "$(who | awk '{print $1}')" xdg-user-dir DOWNLOAD)
@@ -758,7 +758,7 @@ nv_modules_set(){
 	black_file=/etc/modprobe.d/nvidia-blacklist.conf
 	unset driver_var black_conf modprobe_conf
 	driver_var=$($d_zen --width=500 $win_icon --list --title="$_title" --text="$_text" \
-	--column="check" --column="hide" --column="driver" --checklist --multiple --print-column=2 --hide-column=2 \
+	--column="check" --column="2" --column="driver" --checklist --multiple --print-column=2 --hide-column=2 \
 	--separator=' ' --hide-header \
 	$UVM "use_uvm" "Unified Memory Module (nvidia-uvm)" $DRM "use_drm" "Optimus Prime Sync DRM Module (nvidia-drm)")
 	if [ $? = 1 ]; then base_menu; fi
@@ -793,11 +793,11 @@ nv_modules_set(){
 }
 gcc_options(){
 	# test driver code compilator version __GNUC__, __GNUC_MINOR__
-	test $(egrep -c "gcc_mismatch" $basic_conf) -gt 0 && (
+	test $(grep -E -c "gcc_mismatch" $basic_conf) -gt 0 && (
 		if [ $gcc_mismatch = 1 ]; then ignore_mismatch="IGNORE_CC_MISMATCH=1"; else ignore_mismatch=''; fi
 		export IGNORE_CC_MISMATCH=$gcc_mismatch
 	)
-	proc=$(egrep -c "processor.*[0-9]{,2}" /proc/cpuinfo)
+	proc=$(grep -E -c "processor.*[0-9]{,2}" /proc/cpuinfo)
 }
 ## PAY ATTENTION : With RT kernel, drivers could install properly but they could also not init at Xorg start.
 ## Do not ever overwrite current used kernel by RT one.
@@ -1129,8 +1129,8 @@ blacklist_nouveau(){
  	drmset=' nvidia-drm.modeset'
 	test -f $(user_CF_DIR)/grub-orig && . $(user_CF_DIR)/grub-orig || grub_orig='.* '
 	if [ $(grep -c "GRUB_CMD.*nouveau" $grub_def) -gt 0 ]; then
-		if [ $(cat $grub_def| egrep -c "^GRUB_CMD.*$blacklist.*$") -eq 0 ]|| \
-		[ $(cat $grub_def| egrep -c "^GRUB_CMD.*$blacklist$drmset.*$") -eq 1 ]; then
+		if [ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist.*$") -eq 0 ]|| \
+		[ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist$drmset.*$") -eq 1 ]; then
 			echo "# - GRUB conf updated (nouveau driver blacklisting and options)."; sleep 2
 			## then, replace default env grub with new vars and update grub.cfg.
 			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist \3\"/" $grub_def
@@ -1192,6 +1192,57 @@ nv_blacklist_modules_conf(){
 		fi
 }
 ## configuration ###
+prime_setup(){ ## TODO UNUSED YET
+	## check for DM here.
+	## xorg defs are config in xorg_conf section.
+	if [ $opti_preset = 1 ]; then
+		xrandr_conf=$(
+			cat <<-CONF
+				xrandr --setprovideroutputdevice modesetting NVIDIA-0
+				xrandr --auto
+			CONF
+		)
+		if [ "$dm_serv" == "lightdm" ]; then
+			## add conf
+			echo -e "#! /bin/bash\n\n$xrandr_conf\n" > /etc/lightdm/prime_ini
+			chmod 755 /etc/lightdm/prime_ini
+			## change Seat /etc/lightdm/lightdm.conf
+			cp -f /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.bak
+			sed -Ei "s/^.*(display-setup-script)=.*/\1=\/etc\/lightdm\/prime_ini/" /etc/lightdm/lightdm.conf
+		elif [ "$dm_serv" == "sddm" ]; then
+			## modify conf /usr/share/sddm/scripts/Xsetup
+			cp -f /usr/share/sddm/scripts/Xsetup /usr/share/sddm/scripts/Xsetup.bak
+			echo -e "$xrandr_conf" > /usr/share/sddm/scripts/Xsetup
+		elif [ "$dm_serv" == "gdm" ]; then
+			# /usr/share/gdm/greeter/autostart/optimus.desktop
+			# /etc/xdg/autostart/optimus.desktop
+			desktop_conf=$(cat <<-CONF
+				[Desktop Entry]
+				Type=Application
+				Name=Optimus
+				Exec=sh -c "xrandr --setprovideroutputsource modesetting NVIDIA-0; xrandr --auto"
+				NoDisplay=true
+				X-GNOME-Autostart-Phase=DisplayServer
+			CONF
+			)
+			echo "$desktop_conf" > /usr/share/gdm/greeter/autostart/optimus.desktop
+			echo "$desktop_conf" > /etc/xdg/autostart/optimus.desktop
+
+	# 	elif [ "$dm_serv" == "" ]; then
+		fi
+		## TODO, in progress.
+	# 		if [ $opti_preset = 1 ]; then
+	# 			cat <<-CONF >> $dm_conf
+	# 				xrandr --setprovideroutputdevice modesetting NVIDIA-0
+	# 				xrandr --auto
+	# 			CONF
+	# 				#xrandr --output LVDS-1-1 --primary
+	# 				#xrandr --output VGA-0 --off
+	# 		fi
+	fi
+}
+## TODO ADD OPTI_SETUP here.
+
 xorg_conf(){
 ## creation order :
 ## 	sec_files		x 1
@@ -1295,12 +1346,15 @@ xorg_conf(){
 						   Driver	"modesetting"
 						   VendorName	"${vnd[$e]}"
 						   BusID	"PCI:$pci_slot"
+						   Option "TearFree" "true"
 					XF
 				fi
 			fi
 	}
 	sec_option_df(){
 	## compute X screen DPI ex : (1080x25.4)/286. From Nvidia Doc formula.
+		## FIXME function is apprently looping with multi devicees.
+
 		if [ /usr/bin/xdpyinfo ]; then
 			w_pix=$(printf "$x_pixel"| cut -d';' -f1)
 			h_pix=$(printf "$x_pixel"| cut -d';' -f2)
@@ -1318,7 +1372,7 @@ xorg_conf(){
 		## get display current def and freq
 		x_plore=$(xrandr --current | grep -m1 "*")
 		def=$(printf "$x_plore"| awk '{print $1}')
-		freq=$(printf "$x_plore"| sed -En "s/.* ([0-9]{2}\.[0-9]{2})\*.*$/\1/g;p")
+		freq=$(printf "$x_plore"| sed -En "s/.* ([0-9]{2,3}\.[0-9]{2})\*.*$/\1/g;p")
 		freq_prim=$(printf "$freq"| cut -d. -f1)
 		freq_scnd=$(printf "$freq"| cut -c 4)
 		if [ $freq_scnd -gt 5 ]; then freq=$(($freq_prim+1)); else freq=$freq_prim; fi
@@ -1374,6 +1428,7 @@ xorg_conf(){
 	}
 	x_conf_dir=/etc/X11
 	mv -f $x_conf_dir/xorg.conf.nvidia $x_conf_dir/xorg.conf.nvidia.bak
+
 	sec_files
 	sec_layout
 	for e in $pci_dev_nb; do
@@ -1525,18 +1580,12 @@ post_install(){ # PROGRESS : TODO optimus section.
 			ACTION=="add", DEVPATH=="/bus/pci/drivers/nvidia", RUN+="$d_nv_probe -c 0 ${nv_mod_opts[*]}"
 			UDEV
 		done
-		## check for DM here.
-		## xorg defs are config in xorg_conf section.
-
-		## TODO, in progress.
-# 		if [ $opti_preset = 1 ]; then
-# 			cat <<-CONF >> $dm_conf
-# 				xrandr --setprovideroutputdevice modesetting NVIDIA-0
-# 				xrandr --auto
-# 			CONF
-# 				#xrandr --output LVDS-1-1 --primary
-# 				#xrandr --output VGA-0 --off
-# 		fi
+	fi
+	## here systemctl power management.
+	if [ $opti_preset = 1 ]&&[ $enable_powerd = 1 ]; then
+		cp -f $install_dir/share/doc/NVIDIA_GLX-1.0/nvidia-dbus.conf to /etc/dbus-1/system.d
+		ln -sf $install_dir/bin/nvidia-powerd /usr/bin/nvidia-powerd
+		systemctl enable nvidia-powerd.service
 	fi
 	## if driver version greater than 430.xx, backup xorg modules content to default libs dirs. Just in case.
 	if [ $(chk_version) -ge 430 ]; then
@@ -1546,6 +1595,7 @@ post_install(){ # PROGRESS : TODO optimus section.
 			cp -f $xorg_def/modules/drivers/nvidia_drv.so $nv_root/nvidia.$(new_version)/xorg/modules/drivers/
 		fi
 	fi
+
 	n=$[ $n+2 ]; echo "$n" # 11
 	echo "# ($n%) - Blacklisting and other routines"; sleep 2
 	echo "# ($n%) - GRUB conf update if needed"; sleep 2
@@ -1609,6 +1659,7 @@ nv_build_options(){
 	fi
 	if [ $(chk_version) -ge 515 ]; then
 		extract_open=1; ask_open_build=1
+		enable_powerd=1
 	fi
 }
 nv_cmd_dkms_conf(){
@@ -1897,7 +1948,7 @@ build_dkms(){
 			## is the modules version present in dkms tree ?
 				if [ "$(old_inst)" ] && [ $(old_inst) -gt 0 ]; then
 					## check its status.
-					if [ $($p_dkms status -m $_dkms/$mod_installed -k $KERNEL| egrep -c "built|installed") -gt 0 ]; then
+					if [ $($p_dkms status -m $_dkms/$mod_installed -k $KERNEL| grep -E -c "built|installed") -gt 0 ]; then
 						# if build or installed, and not same as new one, check status ans 'remove' it.
 						if [[ $(old_inst) -ne $(nv_new) ]]; then
 							#echo -e "# remove seq 2"
@@ -1929,7 +1980,7 @@ build_dkms(){
 					sleep 2
 				fi
 			fi
-			if [ $($p_dkms status -m $_dkms/$(new_version) -k $KERNEL| egrep -c "added|built|installed") -eq 0 ]; then
+			if [ $($p_dkms status -m $_dkms/$(new_version) -k $KERNEL| grep -E -c "added|built|installed") -eq 0 ]; then
 				add_seq
 			fi
 		}
@@ -2722,9 +2773,9 @@ upgrade_new_kernel(){
 	MSG
 	)
 	NEW_KERNEL=$($d_zen --height=300 $win_icon --title="$_zen_title" --list --radiolist --hide-header \
-	--text "$w_text" --column "1" --column "2" --separator=";" "${kern_list[@]}")
+	--text "$w_text" --column "set" --column "action" --separator=";" "${kern_list[@]}")
 	if [ $? = 1 ]; then base_menu; fi
-	if [ $(echo -e "$NEW_KERNEL"| egrep -c "[0-9]+") -gt 0 ]; then
+	if [ $(echo -e "$NEW_KERNEL"| grep -E -c "[0-9]+") -gt 0 ]; then
 		upgrade_kernel
 	fi
 }
@@ -2762,7 +2813,7 @@ upgrade_kernel(){
 from_directory(){
 	nv_dir(){
 		unset list_drv
-		table_opts='--column "1" --column "2" --separator=";"'
+		table_opts='--column "set" --column "action" --separator=";"'
 		zen_opts='--list --radiolist --hide-header'
 		cd $nvdl; n=1
 		for local_drv in ${nvdl_list[@]}; do
@@ -2796,7 +2847,7 @@ from_directory(){
 	}
 	home_dir(){
 		unset list_drv
-		table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
+		table_opts='--column "set" --column "2" --column "action" --separator=";" --hide-column=2'
 		zen_opts='--list --radiolist --hide-header'
 		for local_drv in ${home_list[@]}; do
 			list_drv+=("false")
@@ -2832,7 +2883,7 @@ from_directory(){
 		A="Use Zenvidia stock directory"
 		B="Use a user local directory"
 		zen_opts='--list --radiolist --hide-header'
-		table_opts='--column "1" --column "2" --column "3" --separator=";" --hide-column=2'
+		table_opts='--column "set" --column "2" --column "action" --separator=";" --hide-column=2'
 		w_text=$(
 		cat <<-INFO
 			${j}<b>Local NVIDIA drivers STOCK</b>${end}
@@ -2969,9 +3020,9 @@ hardware_compat(){
 	## define the separation chapter series section.
 # 	COMPAT+=("Current NVIDIA GPUs")
 	COMPAT+=("<h3>")
-	COMPAT+=("$(egrep "\* *[0-9]{2,4}((.xx)|(\.*[0-9]{2,3}.xx))" $upt_compat_list)")
-	if [ $(ls -1 $nvcompat/series/ | egrep -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
-		rm -f $nvcompat/series/* | egrep "^[0-9]*\.[0-9]*\.[0-9]*$"
+	COMPAT+=("$(grep -E "\* *[0-9]{2,4}((.xx)|(\.*[0-9]{2,3}.xx))" $upt_compat_list)")
+	if [ $(ls -1 $nvcompat/series/ | grep -E -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
+		rm -f $nvcompat/series/* | grep -E "^[0-9]*\.[0-9]*\.[0-9]*$"
 	fi
 	for line in ${COMPAT[@]}; do
 		if [[ $line =~ ".xx" ]]; then
@@ -2984,7 +3035,7 @@ hardware_compat(){
 		test "$drv_end" = "$drv_class" && drv_end='-----'
 		## send result in separate compat files.
 		sed_output=( $( sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list) )
-		sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list | egrep "^devid" > $nvcompat/series/$drv_class
+		sed -En "/$line/,/$drv_end.xx/p" $upt_compat_list | grep -E "^devid" > $nvcompat/series/$drv_class
 	done
 	IFS=$ifs
 	## build compat file list from created.
@@ -2993,7 +3044,7 @@ hardware_compat(){
 	pci_class=${dev[$e]}
 	pci_brand=${slot_id[$e]}
 	## check compat.
-	if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
+	if [ $(grep -ic "devid$pci_brand" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
 		## send message for the install_drv section.
 		if [ $from_install = 1 ]; then
 # 			install_msg="# Compatiblity found in $(echo "$DRV"| cut -d. -f1) serie, proceed to install"
@@ -3004,7 +3055,7 @@ hardware_compat(){
 		fi
 	else
 		for comp_file in ${class_list[@]}; do
-			if [ $(grep -ic "$pci_brand.*$pci_class" $nvcompat/series/$comp_file) -gt 0 ]; then
+			if [ $(grep -ic "devid$pci_brand" $nvcompat/series/$comp_file) -gt 0 ]; then
 				## message for install_drv section.
 				if [ $from_install = 1 ]; then
 # 					install_msg="# Your $pci_brand is not compatible with $DRV, look in $comp_file serie instead."
@@ -3123,8 +3174,8 @@ check_update(){
 				else
 					_is_beta=0
 				fi
-				DEV_filter=$(cat $nvcompat/compat.$DRV| egrep -i "${dev[$e]}.*${slot_id[$e]}")
-				dev_compat=$(cat $nvcompat/compat.$DRV| egrep -ic "${dev[$e]}.*${slot_id[$e]}")
+				DEV_filter=$(cat $nvcompat/compat.$DRV| grep -E -i "devid${slot_id[$e]}")
+				dev_compat=$(cat $nvcompat/compat.$DRV| grep -E -ic "devid${slot_id[$e]}")
 				VDPAU_class=$(printf "$DEV_filter"|cut -d"," -f4) # J
 				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow")
 			done
@@ -3327,7 +3378,7 @@ download_menu(){
 # 		IFS=$(echo -en "\n\b")
 		w_dim='--width=300 --height=220'
 		zen_opts='--list --radiolist --hide-header'
-		table_opts='--column "1" --column "2" --column "3" --separator=";"'
+		table_opts='--column "set" --column "2" --column "action" --separator=";"'
 # 		list_opts="$(echo -e "")"
 		w_text=$( cat <<-INFO
 			${jB}${bf}Downloads${end}${end}
@@ -3385,7 +3436,7 @@ last_pack(){
 	}
 	$p_wget -q -O $nvtmp/bug_list https://$nvidia_ftp-$ARCH/$LAST_PACK/
 	if [ -s $nvtmp/bug_list ]; then
-		(	cat $nvtmp/bug_list | egrep -o "href='NVIDIA.*[0-9]+.*'"| perl -pe "s/^.*\'(.*)\'/\1/p" \
+		(	cat $nvtmp/bug_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| perl -pe "s/^.*\'(.*)\'/\1/p" \
 			> $nvtmp/selector
 			sleep 2
 		) | $d_zen --width=500 $win_icon --progress --pulsate --auto-close --text="${v}Remote content control...${end}"
@@ -3400,7 +3451,7 @@ last_pack(){
 		done
 		run_pack=$($d_zen --width=450 --height=300 $win_icon --title="$_zen_title" --list \
 		--text="${v}Choose the version to install${end}" --radiolist --hide-header \
-		--column "1" --column "2" "${drv_list[@]}" --separator=";")
+		--column "set" --column "action" "${drv_list[@]}" --separator=";")
 		if [ $? = 1 ]; then exit 0; fi
 		## from there, look into 'selector' file for sha256sum file.
 		if [ $(cat $nvtmp/selector| grep -c "sha256sum") -gt 0 ]; then
@@ -3452,7 +3503,7 @@ win_confirm(){
 	#	val_exit="" #EXIT CMD
 	confirm_w=$($d_zen --title="$val_title" $win_icon --list --radiolist \
 	--hide-header --text "$confirm_msg\n\n${v}What do you want to do ?${end}" --hide-column "2" \
-	--column "1" --column "2" --column "3" --separator=";" \
+	--column "set" --column "2" --column "action" --separator=";" \
 	false 1 "$val_confirm" false 2 "$val_back")
 	if [ $? = 1 ]; then ${val_cancel} ; fi
 	case $confirm_w in
@@ -3554,7 +3605,7 @@ remove_pcks(){
 	rm_packs=$($d_zen --width=400 --height=300 $win_icon --list --multiple \
 	--checklist --hide-header --title="$_zen_title" \
 	--text "${v}$w_text${end}" \
-	--column "1" --column "2" --separator=" " \
+	--column "set" --column "action" --separator=" " \
 	"${packs_list[@]}" )
 	if [ $? = 1 ]; then manage_pcks; fi
 	w_text=$( cat <<-MSG
@@ -3636,7 +3687,7 @@ remove_baks(){
 	rm_bak=$($d_zen --width=400 --height=300 $win_icon --list --multiple \
 	--checklist --hide-header --title="$_zen_title" \
 	--text "${v}$w_text${end}" \
-	--column "1" --column "2" --separator=" " \
+	--column "set" --column "action" --separator=" " \
 	"${bak_list[@]}" )
 	if [ $? = 1 ]; then manage_pcks; fi
 	# check that list not empty before proceed.
@@ -3853,7 +3904,7 @@ restore_pcks(){
 	)
 	drive_packs=$($d_zen --width=400 --height=300 $win_icon --list \
 	--radiolist --hide-header --title="$_zen_title" \
-	--text "$w_text" --column "1" --column "2" --separator=";" \
+	--text "$w_text" --column "set" --column "action" --separator=";" \
 	"${drive_list[@]}" )
 	if [ $? = 1 ]; then manage_pcks; fi
 	# check that list not empty before proceed.
@@ -3995,7 +4046,7 @@ edit_script_conf(){
 			value=1
 			bis_value=$(echo "$output"| cut -d';' -f3)
 			if [[ "$bis_value" ]]&&[[ "$bis_value" != '' ]]; then value=$bis_value; fi
-			if [ $(egrep -c "$set=$value" $basic_conf) -eq 0 ];then
+			if [ $(grep -E -c "$set=$value" $basic_conf) -eq 0 ];then
 				sed -Ei "s/^($set)=.*$/\1=$value/" $basic_conf
 				if [[ $set == "use_open" ]]; then export use_open=$value; fi
 			fi
@@ -4009,7 +4060,7 @@ edit_script_conf(){
 			bis_value=$(echo "$input"| cut -d';' -f3)
 			if [[ "$bis_value" ]]&&[[ "$bis_value" != '' ]]; then value=$bis_value; fi
 			if [[ $set != 'xt_delay' ]]; then
-				if [ $(egrep -c "$set=$value" $basic_conf) -eq 0 ];then
+				if [ $(grep -E -c "$set=$value" $basic_conf) -eq 0 ];then
 					sed -Ei "s/^($set)=.*$/\1=$value/" $basic_conf
 					if [[ $set == "use_open" ]]; then export use_open=$value; fi
 				fi
@@ -4088,8 +4139,8 @@ edit_color_conf(){
 			Do not forget Xterm only support a limited type of colors.${end}
 		TIP
 		)
-		style1=$(egrep -io "[a-z]*$" <<< $font1)
-		style0=$(egrep -io "[a-z]*$" <<< $font0)
+		style1=$(grep -E -io "[a-z]*$" <<< $font1)
+		style0=$(grep -E -io "[a-z]*$" <<< $font0)
 		font_color=$(
 		$d_yad --width=300 --height=300 --title "Zenvidia" --center \
 			--window-icon=$img_zen_desktop --text "$w_text" \
@@ -4137,13 +4188,13 @@ edit_color_conf(){
 			if [[ $type =~ font* ]]; then
 				font_n=$(echo "$type"| grep -o "[0-9]")
 				eval style=\$'style'$font_n
-				new_font=$(echo "${output_colors[$C]}"|egrep -io ".*[a-z]")
+				new_font=$(echo "${output_colors[$C]}"|grep -E -io ".*[a-z]")
 				new_style=$(echo "$new_font"|awk '{print $3}')
 				if [[ $new_style == '' ]]; then stylish=' '$style; else stylish=''; fi
 				output_conf+=("$type;$new_font$stylish")
 				shift 0
 			elif [[ $type =~ size* ]]; then
-				output_conf+=("$type;$(echo "${output_colors[$C]}"|egrep -o "[0-9].*$")")
+				output_conf+=("$type;$(echo "${output_colors[$C]}"|grep -E -o "[0-9].*$")")
 				((C++))
 			else
 				output_conf+=("$type;${output_colors[$C]}")
@@ -4179,7 +4230,7 @@ edit_xorg_conf(){
 	menu_xorg=$($d_zen --width=400 --height=300 $win_icon --list \
 	--radiolist --hide-header --title="$_zen_title" \
 	--text "${j}${bf}Edit Xorg Config File${end}${end}\n$hlp_tip" \
-	--column "1" --column "2" --column "3" --separator=";" --hide-column=2 \
+	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
 	TRUE 1 "Edit full Xorg config file" FALSE 2 "Manage Device Options only" FALSE 3 "Execute Xorg auto config")
 	if [ $? = 1 ]; then
 		if [ $from_install = 0 ]; then menu_modif; fi
@@ -4253,7 +4304,7 @@ edit_xorg_options(){
 		input_set=$(echo "$input"| cut -d';' -f1)
 		value=$(echo "$input"| cut -d';' -f2)
 		if [ $(grep -c "$input_set" <<< $options_conf) -eq 0 ]; then
-			if [ $(egrep -c "#.*Option.*\"$input_set\"" $xorg_cfg) -eq 0 ];then
+			if [ $(grep -E -c "#.*Option.*\"$input_set\"" $xorg_cfg) -eq 0 ];then
 				if [[ "$value" ]]; then reg_val=' (\".*\")' ; opt_val=" \"$value\""; else reg_val=''; opt_val=''; fi
 				sed -Ei "s/^(.*Option\t\"$input_set\")$reg_val/#\1$opt_val/" $xorg_cfg
 			fi
@@ -4314,7 +4365,7 @@ read_nv_help(){
 	fi
 	if [[ ${#chapter_index[@]} -le 1 ]]; then
 		unset chapter_index chapters_list
-		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/p" $nvi_docs/README.txt | sed -n "/^___.*$/,/^___.*$/p"| egrep "^Chapter|^Appendix")
+		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/p" $nvi_docs/README.txt | sed -n "/^___.*$/,/^___.*$/p"| grep -E "^Chapter|^Appendix")
 		for chapter in ${chapters_list[@]}; do
 			chapter_index+=("FALSE")
 			chapter_index+=("$chapter")
@@ -4330,7 +4381,7 @@ read_nv_help(){
 	if [ "$index" != '' ]; then
 		chap_start=$(printf "$index"| sed -n "s/(.*)//g;p")
 		## then if chapter tag is not empty, dispaly chapter.
-		chap_end=$(egrep -A1 "$chap_start" <<< $chapters_list | sed -n 2p | sed -n "s/(.*)//g;p")
+		chap_end=$(grep -E -A1 "$chap_start" <<< $chapters_list | sed -n 2p | sed -n "s/(.*)//g;p")
 		chap_brief="$chap_start : "$(sed -En "/^$chap_start/,/^$chap_end/p" $nvi_docs/README.txt | sed -En "/^____/,/^____/p")
 		$d_zen --width=600 $w_height --title="$_zen_title" --text-info \
 		--ok-label="Back to index" --cancel-label="Exit to main" \
@@ -4408,19 +4459,19 @@ read_changelog(){
 			fi
 		else
 			if [[ $entrylog != '' ]]; then
-				if [ $txt_val = 1 ]&&[ $(egrep -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
-					log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
+				if [ $txt_val = 1 ]&&[ $(grep -E -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
+					log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
 					log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
 					sed -n "s/^===.*$//g;p")
 				else
-					log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
+					log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
 					[ "$log_end" != "" ] || log_end="====.*$"
 					log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
 					sed -n "s/^===.*$//g;p")
 				fi
 
 				if [[ $relist_title != '' ]]; then
-					if [ $txt_val = 1 ]&&[ $(egrep -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
+					if [ $txt_val = 1 ]&&[ $(grep -E -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
 						log_brief=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
 						sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
 					else
@@ -4436,7 +4487,7 @@ read_changelog(){
 			fi
 		fi
 	}
-	entry_list=$(egrep -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
+	entry_list=$(grep -E -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
 	relist
 	if [[ $log_list =~ .*[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
 		unset entry_list entrylog_list entry_catch
@@ -4445,7 +4496,7 @@ read_changelog(){
 			txt_val=$(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$")
 			entry_list+=("First $entrylog Log")
 		fi
-		entry_catch=$(cat <<< $log_list | egrep ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"|sed -En "s/ ([0-9]{4})/\1/g;p")
+		entry_catch=$(cat <<< $log_list | grep -E ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"|sed -En "s/ ([0-9]{4})/\1/g;p")
 		for catch in ${entry_catch[*]}; do
 			entry_list+=("$catch")
 		done
@@ -4473,7 +4524,7 @@ read_zen_changelog(){
 		w_height='--height=400'
 	fi
 	brief(){
-		log_version=$(echo "$entrylog"| egrep -o "v[0-9].[0-9](.[0-9]{1,2})?")
+		log_version=$(echo "$entrylog"| grep -E -o "v[0-9].[0-9](.[0-9]{1,2})?")
 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
 			log_brief=$( cat <<-BRIEF
 			Zenvidia changelog : ( $log_version )
@@ -4515,7 +4566,7 @@ read_zen_changelog(){
 				else
 					entrylog=$(echo -e "$entrylog"| sed -En "s/^(.*-.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p") # from install dir
 				fi
-				log_end=$(egrep -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
+				log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
 				if [ "$log_end" != '' ]; then
 					if [ $log_from_local = 1 ]; then
 						log_end=$(echo -e "$log_end"| sed -En "s/^(.*:.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p") # from user dir
@@ -4527,9 +4578,9 @@ read_zen_changelog(){
 				fi
 				log_list=$(cat $log_pages | sed -En "/$entrylog/,/$log_end/p"	)
 				if [ $log_from_local = 1 ]; then
-					log_brief=$(egrep "^.*-" <<< $log_list) # from user dir
+					log_brief=$(grep -E "^.*-" <<< $log_list) # from user dir
 				else
-					log_brief=$(egrep "^[ ]{,3}-" <<< $log_list) # from install dir
+					log_brief=$(grep -E "^[ ]{,3}-" <<< $log_list) # from install dir
 				fi
 			else
 				IFS=$ifs; base_menu
@@ -4537,9 +4588,9 @@ read_zen_changelog(){
 		fi
 	}
 	if [ $log_from_local = 1 ]; then
-		entry_list=$(egrep -e "^*[Aa-Zz]{3} [0-9]{1,2} [0-9]{4} :" $log_pages) # from user dir
+		entry_list=$(grep -E -e "^*[Aa-Zz]{3} [0-9]{1,2} [0-9]{4} :" $log_pages) # from user dir
 	else
-		entry_list=$(egrep -e "^* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //p") # from install dir
+		entry_list=$(grep -E -e "^* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //p") # from install dir
 	fi
 	relist
 	brief
