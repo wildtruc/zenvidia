@@ -24,6 +24,9 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.15 NOTES :
+ - BUG: Zenity continue to do weird thing, it appears it wont display long text in 'text-info' option and close some nvidia help chapters unexpectedly. No clue.
+
 v2.1.11 NOTES :
  - The new version of zenity (v3.92.0) bring display issues that gtk theme look to not support. window's height and width have been updated to reflect previous and new version. User will probably need to modify fonts colors.
  - Because this is a fast fix, it may be possible that not all height and width have been updated.
