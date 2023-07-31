@@ -134,6 +134,9 @@
  - Makefile for install, update, etc processes wasn't lock to root user and resulted with wrong installation for some files and confuse zenvidia afterward when 'make install' were run again. This is hopefully fixed.
  - Fixed other missing zenity tags.
  - BUG: Zenity continue to do weird thing, it appears it wont display long text in 'text-info' option and close some nvidia help chapters unexpectedly. No clue.
-
+* 2023-07-31 - v2.1.16
+ - Zenvidia notify section displayed text and actual set was missing for an unknown reason. Fixed.
+ - Zen Notify desktop entry MATE specific delay set was missing. Fixed.
+ - NOTE : If your desktop manager is not GNOME or MATE, you have to setup manually displaying delay with your autostart desktop entry manager.
 
 
