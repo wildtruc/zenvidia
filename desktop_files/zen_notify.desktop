@@ -9,4 +9,4 @@ Name=Zenvidia notify
 Comment[fr_FR]=Outil de Notification Zenvidia pour les mises à jour.
 Comment=Zenvidia notification tool for updates.
 X-GNOME-Autostart-Delay=30
-
+X-MATE-Autostart-Delay=30
