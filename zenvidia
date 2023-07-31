@@ -476,7 +476,7 @@ dep_control(){
 		else
 			context='--warning'
 			label='Got it'
-			info="You need to restart with ${j}Zenvidia (admin)${end}\n\or use your pacakges manager to install them"
+			info="You need to restart with ${j}Zenvidia (admin)${end}\n\or use your packages manager to install them"
 			EXEC=$(
 				cat <<-DEP
 					echo -e "Zenvidia is start without admin priviledges."
@@ -492,7 +492,7 @@ dep_control(){
 			echo -e "${red}Script Dependencies Check${nc}\n"
 
 			echo -e "Required dependencies are not met.\n"
-			echo -e "$dep_text\n"
+			echo -e "${dep_text[*]}\n"
 			$EXEC
 		DEP
 		)
@@ -500,14 +500,14 @@ dep_control(){
 # 			if [ $UID = 0 ]; then
 # 				if [ $d_yad ]; then # test
 			if ! [ $d_yad ]; then
-				xterm $xt_options -e "$w_text"
+				$p_xterm $xt_options -e "$w_text"
 			else
 				w_text=$(
 				cat <<-DEP
 					${j}<b>Script Dependencies Check</b>${end}
 
 					Some required dependencies are not met.
-					$dep_text
+					${dep_text[*]}
 
 					$info
 				DEP
@@ -2985,7 +2985,7 @@ check_for_older(){
 	legacy_drv=1
 }
 check_for_newer(){
-	(	wget -q -O $upcompat/last_update https://$nvidia_ftp-$ARCH/latest.txt
+	(	$p_wget -q -O $upcompat/last_update https://$nvidia_ftp-$ARCH/latest.txt
 		sleep 2
 	) | $d_zen --width=400 $win_icon --title="$_zen_title" --progress --pulsate --auto-close \
 	--text="${v}NVIDIA Download center data check${end}"
@@ -2994,7 +2994,7 @@ check_for_newer(){
 }
 ## UPDATED RELEASE CHECK ###
 hardware_compat(){
-	{ wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
+	{ $p_wget -q -O $upcompat/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
 		sleep 2
 	}| $d_zen --width=400 $win_icon --title="$_zen_title" --progress --pulsate \
 	--auto-close --text="${v}NVIDIA Download center compatibility check (${j}$DRV${end})...${end}"
@@ -4643,10 +4643,16 @@ zen_notif_setup(){ # optionnaly TODO use notif_desk_opt vars instead.
 		m_set=$(printf "$n_set"|cut -d';' -f1)
 		c_set=$(printf "$n_set"|cut -d';' -f2)
 		o_set=$(printf "$n_set"|cut -d';' -f3)
-		setup_list+=("false")
+		if [[ $o_set == $c_set_opt ]]; then
+			c_set_cnf=$c_set
+			set_state='true'
+		else
+			set_state='false'
+		fi
+		setup_list+=("$set_state")
 		setup_list+=("$st")
 		setup_list+=("$m_set")
-		if [[ $o_set == $c_set_opt ]]; then c_set_cnf=$c_set; fi
+
 		((st++))
 	done
 	w_text=$(cat <<-MSG
@@ -4657,7 +4663,7 @@ zen_notif_setup(){ # optionnaly TODO use notif_desk_opt vars instead.
 	MSG
 	)
 	menu_notif=$($d_zen --width=400 $w_height $win_icon --list \
-	--radiolist --hide-header --title="$_zen_title" \
+	--radiolist --hide-header --title="$_zen_title" --text="$w_text" \
 	--column "set" --column "2" --column "action" --hide-column=2 \
 	"${setup_list[@]}")
 	if [ $? = 1 ]; then menu_modif; fi
@@ -5270,7 +5276,8 @@ libclass
 # check distro and load specific config.
 distro
 ## check dependies executables
-p_xterm=$(command -v xterm) || $PKG_INSTALLER $pkg_opts$pkg_cmd xterm
+p_xterm=$(command -v xterm) || ( echo -e "${red}XTERM missing, installing ...${nc}"; $PKG_INSTALLER $pkg_opts$pkg_cmd xterm; )
+#p_wget=$(command -v wget) || ( echo -e "${red}WGET missing, installing ...${nc}"; $PKG_INSTALLER $pkg_opts$pkg_cmd wget; )
 dep_exec_check
 
 # cmdline tool doesn't need to read config, so skip the step if in console only.
