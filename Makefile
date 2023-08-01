@@ -1,5 +1,5 @@
 # DEFINE FIRST THE CURRENT USER NAME
-C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "$p")
+C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
 #C_USER = $(shell who | cut -d' ' -f1 | sed -n "1p")
 # CHECK IF USER IS IN SU MODE
 S_USER = $(shell whoami)
@@ -34,7 +34,7 @@ install: run
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
-	git log origin/master -n 1 | egrep -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 
 uninstall: run
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
@@ -67,4 +67,4 @@ update: run
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	git log origin/master -n 1 | egrep -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
