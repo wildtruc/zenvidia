@@ -140,6 +140,9 @@
  - NOTE : If your desktop manager is not GNOME or MATE, you have to setup manually displaying delay with your autostart desktop entry manager.
 * 2023-08-01 - v2.1.17
  - Makefile current user detection mistake that resulting 'make update' and probably 'install' fails (thanks to my friend for sharing her laptop). Fixed.
-
  - Updated egrep to grep -E
+* 2023-08-08 - v2.1.18
+ - Changed the way of Super User detection at makefile process using 'stat' instead of 'pwd' and 'ls'.
+ - Modified zen_notify's way for version detection, previous was too strict. Updated 'egrep' to 'grep -E'.
+ - Zen Notify wasn't testing if local git repos were present or not. Done.
 

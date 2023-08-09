@@ -1,6 +1,6 @@
 # DEFINE FIRST THE CURRENT USER NAME
-C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
-#C_USER = $(shell who | cut -d' ' -f1 | sed -n "1p")
+#C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
+C_USER = $(shell stat -c %U ../zenvidia)
 # CHECK IF USER IS IN SU MODE
 S_USER = $(shell whoami)
 PREFIX = /usr/local
@@ -12,14 +12,14 @@ NVIDIA_BAK = $(PREFIX)/NVIDIA_DRIVERS
 
 .PHONY: install uninstall safeuninstall update
 
-run:
+check_su:
 ifneq ($(S_USER),root)
-	$(error "ERROR: You can't run this shell as $(C_USER). You must be ROOT"))
+	$(error "ERROR: You can't run this shell as $(S_USER). You must be ROOT"))
 endif
 
 all: install
 
-install: run
+install: check_su
 	mkdir -p $(INSTALL_DIR) $(CONF_DIR)
 	mkdir -p $(PREFIX)/share/{applications,pixmaps,doc/zenvidia}
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
@@ -36,7 +36,7 @@ install: run
 	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
 	git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 
-uninstall: run
+uninstall: check_su
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
 	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
@@ -45,10 +45,7 @@ uninstall: run
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
 
-safeuninstall: run
-	mkdir -p $(NVIDIA_BAK)
-	mv -Rf $(INSTALL_DIR)/release/ $(NVIDIA_BAK)/
-	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
+safeuninstall: check_su
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
 	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
 	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
@@ -56,7 +53,7 @@ safeuninstall: run
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
 
-update: run
+update: check_su
 	sudo -u $(C_USER) git pull
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
