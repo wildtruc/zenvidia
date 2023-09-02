@@ -24,6 +24,12 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.24 NOTES :
+ - Because of Zenity 3.92 (and at the moment also above) is meeting too mutch issues, it will gradually replace by Yad.
+ - It looks like that nvidia-drm.modeset grub option set to 1 could fix tearing. This accordingly to **[this article](https://daanberg.net/en/kennisbank/linux-nvidia-tearing-fix/)** combine with v_sync enable in nvidia-setting fix that issue. Drm modeset config has been modify to override all default set if basic conf drm_modset=1 is set. Please, check it.
+ - Accordingly, because some applications meet issues with antialliasing (like steam, cairo-dock, etc) and desktop session with v_sync, it is needed to set FSAA (antialliasing) and sync to vblank (yes) in nvidia-settings.
+ - It appears that nvidia-settings rc file was not load at session start. 535.104 looks like fixing this issue, but by security we add a autostart desktop file to load the file whatever the situation. If you don't want this or if it creates issue, remove it from HOME/.config/autostart directory.
+
 v2.1.15 NOTES :
  - BUG: Zenity continue to do weird thing, it appears it wont display long text in 'text-info' option and close some nvidia help chapters unexpectedly. No clue.
 

@@ -145,4 +145,16 @@
  - Changed the way of Super User detection at makefile process using 'stat' instead of 'pwd' and 'ls'.
  - Modified zen_notify's way for version detection, previous was too strict. Updated 'egrep' to 'grep -E'.
  - Zen Notify wasn't testing if local git repos were present or not. Done.
+* 2023-09-02 - v2.1.24
+ - It appears that zenity 3.92.0 progress windows simply ... crash in install case (but not only). Ii doesn't break the process, it just disappears. Install process display replaced by Yad for this version.
+ - Driver update windown converted to Yad.
+ - Driver switch converted to Yad (open/propriatary) with a few fixes.
+ - Last check window in driver install process was mistaken in case of install an older driver upon the last one. Hopefully fixed.
+ - Nvidia drm modeset driver was improperly set in some case. Fixed.
+ - It looks like that nvidia-drm.modeset grub option set to 1 could fix tearing. This accordingly to this article (https://daanberg.net/en/kennisbank/linux-nvidia-tearing-fix/) combine with v_sync enable in nvidia-setting fix that issue. Drm modeset config has been modify to override all default set if basic conf drm_modset=1 is set.
+ - It appears that nvidia-settings rc file was not load at session start. 535.104 looks like fixing this issue, but by security we add a autostart desktop file to load the file whatever the situation.
+ - Note 1 : (fedora 38 case) zenity has been updated to 3.99. At this point it didn't look to fix anything.
+ - Note 2 : nvidia-settings-rc autostart desktop file will install in 'make update' process. If you don't want this or if it creates issue, remove it from HOME/.config/autostart directory.
+ - Note 3 : accordingly to the above note, because some applications meet issues with FSAA (like steam, cairo-dock, etc) and desktop session with v_sync, it is needed to set FSAA (antialliasing) and sync to vblank (yes) in nvidia-settings.
+ - Because of the Yad migration, many commented codes are not cleaned yet. Il will be gradually in next releases.
 

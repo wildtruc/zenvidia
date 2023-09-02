@@ -63,47 +63,33 @@ LAST_BETA=$(cat $last_beta)
 ## it is needed to short it to number only.
 offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
 beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
+
 if [ -s $nvdir/version.txt ]; then
 	version=$(cat $nvdir/version.txt)
-# 	ver_n=$(cat $nvdir/version.txt| sed -n "s|\.||g;p" | wc -m)
 else
 	version=$(modinfo -F version nvidia)
-# 	ver_n=$(( $(sed -n "s|\.||g;p" <<< $version | wc -m)-1 ))
 fi
-## read from standard output print a extra line. We remove it with -1 in calculs.
-ver_n=$(( $(sed -n "s|\.||g;p" <<< $version | wc -m)-1 ))
-ver_short=$(echo "$version"| sed -n "s|\.||g;p")
-ver_diff=$(($nb-$ver_n))
-n=0
-until [ $n = $ver_diff ]; do
-	ver_short=$(echo $ver_short'0')
-	((n++))
-done
-bet_n=$(( $(wc -m <<< "$offi_short")-1))
-off_n=$(( $(wc -m <<< "$beta_short")-1))
+unset ver_array last_array DRV_LIST
+ver_array=( $(sed -n "s/\./ /g;p" <<< $version) )
 
-off_diff=$(($nb-$off_n))
-bet_diff=$(($nb-$bet_n))
-n=0
-until [ $n = $off_diff ]; do
-	offi_short=$(echo $offi_short'0')
-	((n++))
-done
-n=0
-until [ $n = $bet_diff ]; do
-	beta_short=$(echo $beta_short'0')
-	((n++))
-done
-# eval if beta is different than offi.
-[ $beta_short -ne $offi_short ]|| beta_short=0
-# be sure that version found are a non 0 value.
-[ $beta_short -gt 0 ]|| beta_short=0
-[ $ver_short -gt 0 ]|| ver_short=0
-
-if [ $beta_short -gt 0 ]&&[ $beta_short -ne $offi_short ]; then
-	DRV_LIST=( "$LAST_DRV, official driver,$offi_short" "$LAST_BETA, beta driver,$beta_short" )
+if [ $beta_short -ne $offi_short ]; then
+	rem_diff=1
+	last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_BETA) )
 else
-	DRV_LIST=( "$LAST_DRV, official drivers,$offi_short" )
+	rem_diff=0
+	last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_DRV) )
+fi
+
+drv_diff=0
+greater=0
+for ((i=0;i<=2;i++)) {
+		[ ${last_array[$i]} -eq ${ver_array[$i]} ] || drv_diff=1
+		[ ${last_array[$i]} -gt ${ver_array[$i]} ] && greater=1
+}
+if [ $rem_diff -eq 1 ]; then
+	DRV_LIST=( "$LAST_DRV, official driver" "$LAST_BETA, beta driver" )
+else
+	DRV_LIST=( "$LAST_DRV, official drivers" )
 fi
 if [ ${#DRV_LIST[@]} -gt 0 ]; then
 	IFS=$(echo -en "\n\b")
@@ -111,8 +97,7 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 	for drv_line in ${DRV_LIST[@]}; do
 		driver=$(printf "$drv_line"|cut -d',' -f1)
 		release=$(printf "$drv_line"|cut -d',' -f2)
-		drv_short=$(printf "$drv_line"|cut -d',' -f3)
-		if [ $drv_short -gt $ver_short ]; then
+		if [ $drv_diff -gt 0 ]; then
 			if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
 			if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
 				_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
@@ -122,7 +107,7 @@ if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			((cnt++))
 		fi
 	done
-	if [[ $drv_short -gt $ver_short || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
+	if [[ $greater -gt 0 || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
 		notif_msg+='Nvidia driver '
 		driver_up=1
 	fi

@@ -28,6 +28,7 @@ install: check_su
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(INSTALL_DIR)/ OLD-README.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
+	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
 	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t $(PREFIX)/share/pixmaps/ *.png
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
@@ -59,6 +60,7 @@ update: check_su
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
+	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
 	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t $(PREFIX)/share/pixmaps/ *.png
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
