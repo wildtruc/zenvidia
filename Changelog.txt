@@ -157,4 +157,8 @@
  - Note 2 : nvidia-settings-rc autostart desktop file will install in 'make update' process. If you don't want this or if it creates issue, remove it from HOME/.config/autostart directory.
  - Note 3 : accordingly to the above note, because some applications meet issues with FSAA (like steam, cairo-dock, etc) and desktop session with v_sync, it is needed to set FSAA (antialliasing) and sync to vblank (yes) in nvidia-settings.
  - Because of the Yad migration, many commented codes are not cleaned yet. Il will be gradually in next releases.
-
+* 2023-09-02 - v2.1.33
+ - Add a Zenvidia task menu with essential features. Zenvidia and zen_notify patched accordingly (zen_notify launch the taskbar menu script). Menu entries are automatically added when needed (ex: open driver switch).
+ - Yad update progress: Many functions have been modified and still under watch. Code is revisited meanwhile. (zenvidia will be upgrade v2.2 after entire Yad migration)
+ - Nvidia installer do not take care of /usr/libX/nvidia installation is set. Relink to /usr/libX/nvidia from setted directory was made in post install, but faulty because new version install /usr/libX/nvidia and new content no matter what, causing between other nvidia-settings to not find profiles documentation. This is fixed.
+ - The difference between open driver and closed source driver UVM module usage became too complex (open driver use it by default). Choice has been made to install all modules and avoid blacklist on UVM module and DRM molule. Code will be clean in next releases.

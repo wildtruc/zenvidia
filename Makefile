@@ -22,7 +22,7 @@ all: install
 install: check_su
 	mkdir -p $(INSTALL_DIR) $(CONF_DIR)
 	mkdir -p $(PREFIX)/share/{applications,pixmaps,doc/zenvidia}
-	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
+	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu
 	install -Dm644 -t $(INSTALL_DIR)/ *.conf
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
@@ -39,24 +39,24 @@ install: check_su
 
 uninstall: check_su
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
-	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
+	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start,zen_task_menu}
 	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
 	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
-	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill}.png
+	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill,nvidia-settings}.png
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
 
 safeuninstall: check_su
-	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start}
+	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start,zen_task_menu}
 	rm -f $(USER_DIR)/.config/autostart/zen_notify.desktop
 	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
-	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill}.png
+	rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill,nvidia-settings}.png
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
 
 update: check_su
 	sudo -u $(C_USER) git pull
-	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start
+	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu
 	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop

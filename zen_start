@@ -1,7 +1,8 @@
 #! /bin/bash
-pk_exec=$(find /usr/{bin,sbin,local/bin,local/sbin} -name pkexec)
+# pk_exec=$(find /usr/{bin,sbin,local/bin,local/sbin} -name pkexec)
+pk_exec=$(command -v pkexec)
 bash_opts='bash -x '
 if [ $EUID -gt 0 ]; then
-	$pk_exec /usr/local/bin/zenvidia
+	$pk_exec /usr/local/bin/zenvidia $1
 fi
 exit 0

@@ -25,6 +25,8 @@ script_conf=$nvdir/script.conf
 basic_conf=$local_nvdir/basic.conf
 nvtmp=$local_nvdir/notify
 deficon=swiss_knife
+## check if zen_taskbar_menu exit
+zen_bar=$(command -v zen_task_menu)
 [ $script_conf ] || exit 0
 . $script_conf
 . $basic_conf
@@ -46,73 +48,73 @@ driver_up=0
 zen_up=0
 
 driver_ctrl(){
-## default driver caracters max count.
-nb=9
-## get all driver list.
-wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
-## get latest.txt file.
-wget -q -O $last_update https://$nvidia_ftp-$ARCH/latest.txt
-## latest.txt fiel dfine current official version.
-## end of all driver list define the beta version if different from diiferent of official.
-cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $drv_list
-cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
-LAST_DRV=$(cat $last_update | awk '{ print $1 }')
-LAST_BETA=$(cat $last_beta)
+	## default driver caracters max count.
+	nb=9
+	## get all driver list.
+	wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
+	## get latest.txt file.
+	wget -q -O $last_update https://$nvidia_ftp-$ARCH/latest.txt
+	## latest.txt fiel dfine current official version.
+	## end of all driver list define the beta version if different from diiferent of official.
+	cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $drv_list
+	cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
+	LAST_DRV=$(cat $last_update | awk '{ print $1 }')
+	LAST_BETA=$(cat $last_beta)
 
-## driver version could be in the form xxx.xxx.xxx or xxx.xx
-## it is needed to short it to number only.
-offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
-beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
+	## driver version could be in the form xxx.xxx.xxx or xxx.xx
+	## it is needed to short it to number only.
+	offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
+	beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
 
-if [ -s $nvdir/version.txt ]; then
-	version=$(cat $nvdir/version.txt)
-else
-	version=$(modinfo -F version nvidia)
-fi
-unset ver_array last_array DRV_LIST
-ver_array=( $(sed -n "s/\./ /g;p" <<< $version) )
-
-if [ $beta_short -ne $offi_short ]; then
-	rem_diff=1
-	last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_BETA) )
-else
-	rem_diff=0
-	last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_DRV) )
-fi
-
-drv_diff=0
-greater=0
-for ((i=0;i<=2;i++)) {
-		[ ${last_array[$i]} -eq ${ver_array[$i]} ] || drv_diff=1
-		[ ${last_array[$i]} -gt ${ver_array[$i]} ] && greater=1
-}
-if [ $rem_diff -eq 1 ]; then
-	DRV_LIST=( "$LAST_DRV, official driver" "$LAST_BETA, beta driver" )
-else
-	DRV_LIST=( "$LAST_DRV, official drivers" )
-fi
-if [ ${#DRV_LIST[@]} -gt 0 ]; then
-	IFS=$(echo -en "\n\b")
-	cnt=0
-	for drv_line in ${DRV_LIST[@]}; do
-		driver=$(printf "$drv_line"|cut -d',' -f1)
-		release=$(printf "$drv_line"|cut -d',' -f2)
-		if [ $drv_diff -gt 0 ]; then
-			if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
-			if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
-				_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
-			else
-				_driver_notif+=( "$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
-			fi
-			((cnt++))
-		fi
-	done
-	if [[ $greater -gt 0 || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
-		notif_msg+='Nvidia driver '
-		driver_up=1
+	if [ -s $nvdir/version.txt ]; then
+		version=$(cat $nvdir/version.txt)
+	else
+		version=$(modinfo -F version nvidia)
 	fi
-	IFS=$ifs
-fi
+	unset ver_array last_array DRV_LIST
+	ver_array=( $(sed -n "s/\./ /g;p" <<< $version) )
+
+	if [ $beta_short -ne $offi_short ]; then
+		rem_diff=1
+		last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_BETA) )
+	else
+		rem_diff=0
+		last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_DRV) )
+	fi
+
+	drv_diff=0
+	greater=0
+	for ((i=0;i<=2;i++)) {
+			[ ${last_array[$i]} -eq ${ver_array[$i]} ] || drv_diff=1
+			[ ${last_array[$i]} -gt ${ver_array[$i]} ] && greater=1
+	}
+	if [ $rem_diff -eq 1 ]; then
+		DRV_LIST=( "$LAST_DRV, official driver" "$LAST_BETA, beta driver" )
+	else
+		DRV_LIST=( "$LAST_DRV, official drivers" )
+	fi
+	if [ ${#DRV_LIST[@]} -gt 0 ]; then
+		IFS=$(echo -en "\n\b")
+		cnt=0
+		for drv_line in ${DRV_LIST[@]}; do
+			driver=$(printf "$drv_line"|cut -d',' -f1)
+			release=$(printf "$drv_line"|cut -d',' -f2)
+			if [ $drv_diff -gt 0 ]; then
+				if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
+				if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
+					_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
+				else
+					_driver_notif+=( "$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
+				fi
+				((cnt++))
+			fi
+		done
+		if [[ $greater -gt 0 || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
+			notif_msg+='Nvidia driver '
+			driver_up=1
+		fi
+		IFS=$ifs
+	fi
 }
 source_ctrl(){
 	rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
@@ -158,7 +160,7 @@ source_ctrl(){
 					if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
 						if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
 							cat <<-LOG >> $local_src/zen_git.log
-								$git_rm_fetch_date :$git_rm_version
+								$git_rm_fetch_date : $git_rm_version
 								$git_rm_fetch_log
 							LOG
 						fi
@@ -177,10 +179,10 @@ source_ctrl(){
 					# is the log message an issue warning ?
 					if [ $issue = 0 ]; then
 						notif_msg+="$notif_txt "
-						_driver_notif+=("$line\zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
+						_driver_notif+=("${line}zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
 					else
 						notif_msg+="$notif_txt "
-						_driver_notif+=("$line\zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
+						_driver_notif+=("${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
 					fi
 				fi
 		}
@@ -197,9 +199,16 @@ source_ctrl(){
 }
 notifying(){
 	# only display notif if driver_ctrl or source_ctrl are true.
+	test -f $local_nvdir/taskbar_message || touch $local_nvdir/taskbar_message
+	echo -e "notif=0" > $local_nvdir/taskbar_message
 	if [[ $driver_up -gt 0 || $zen_up -gt 0 ]]; then
+
 		notify-send -t 5000 -u low -i $icon_set "${notif_msg[*]}update" "$(echo "${_driver_notif[@]}")"
+		echo -e "notif=1" > $local_nvdir/taskbar_message
+		echo -e "notif_text=\"${_driver_notif[@]}\"" >> $local_nvdir/taskbar_message
 	fi
+	## launch zen_taskbar.
+	if [ -e $zen_bar ]; then exec $zen_bar &  fi
 }
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"

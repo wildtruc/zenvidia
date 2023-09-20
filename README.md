@@ -24,6 +24,9 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.33 NOTES :
+ - A Task bar notification menu with most used Zenvida functions has been added. Hoping you'll find it usefull.
+
 v2.1.24 NOTES :
  - Because of Zenity 3.92 (and at the moment also above) is meeting too mutch issues, it will gradually replace by Yad.
  - It looks like that nvidia-drm.modeset grub option set to 1 could fix tearing. This accordingly to **[this article](https://daanberg.net/en/kennisbank/linux-nvidia-tearing-fix/)** combine with v_sync enable in nvidia-setting fix that issue. Drm modeset config has been modify to override all default set if basic conf drm_modset=1 is set. Please, check it.
