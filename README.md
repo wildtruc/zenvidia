@@ -24,6 +24,9 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.34 NOTES :
+ - URGENT FIX: Mistakes on last upoad. IFS restoration line for Yad process misplaced preventing some internal command to execute correcttly. My apologies.
+
 v2.1.33 NOTES :
  - A Task bar notification menu with most used Zenvida functions has been added. Hoping you'll find it usefull.
 
