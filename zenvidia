@@ -2485,7 +2485,7 @@ nv_cmd_update(){
  	install_log_messages
  	blacklist_and_grub_set
 }
-nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE  # TODO YAD
+nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE  ## TODO replace by win_yad_progress
 ## INFOS ABOUT NVIDIA-INSTALLER OPTIONS :
 #  --opengl-prefix=OPENGL-PREFIX
 #      The prefix under which the OpenGL components of the NVIDIA driver will be installed; the default is:
@@ -2511,7 +2511,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE  # TODO YAD
 #	--no-recursion --opengl-headers --install-libglvnd --glvnd-glx-client --force-libglx-indirect  --opengl-libdir=$master$ELF_64 \
 #	--utility-prefix=$install_dir --utility-libdir=$install_dir/$master$ELF_64 \
 # 	temp="--tmpdir=$buildtmp"
-	## TODO replace by win_yad_progress
+
 	y_text="Installing ${j}$(new_version)${end} librairies to $nv_root/nvidia.$(new_version)"
 	pushd $nvtmp/NVIDIA-Linux-$ARCH-$(new_version)
 	(
@@ -2591,7 +2591,7 @@ install_report_log(){ # TODO YAD
 	if [ $? = 0 ]; then edit_xorg_conf; fi
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
-install_drv(){ # TODO put tot win_yad_progress
+install_drv(){ # TODO put to win_yad_progress
 	## tell script that all post_install process came from global install.
 	from_install=1
 	## vars for auto confirmation window sets below 'win_confirm'
@@ -2791,10 +2791,7 @@ install_drv(){ # TODO put tot win_yad_progress
 				Can't tell.
 			RPT
 			)
-			qst=0; kill_yad=1
-			warn_image='xkill'
-			cancel_lbl="Abort!window-close"
-			ok_lbl=''
+			qst=0; kill_yad=1; warn_image='xkill'; cancel_lbl="Abort!window-close"; ok_lbl=''
 			win_yad_warns
 # 			$d_zen $win_icon --width=450 --title="$_zen_title" --error \
 #  			--text="${v}$error_log${end}"
@@ -2998,7 +2995,7 @@ backup_old_version(){
 }
 
 ## UPDATE DRIVER SECTION ###
-upgrade_new_kernel(){
+upgrade_new_kernel(){ # TODO YAD
 	unset kern_list
 	up_version=$(version)
 	ls_kern=$(ls -1 /boot| grep -v "rescue"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
@@ -3019,7 +3016,7 @@ upgrade_new_kernel(){
 		upgrade_kernel
 	fi
 }
-upgrade_kernel(){
+upgrade_kernel(){ # TODO YAD
 	if [[ $NEW_KERNEL ]];then
 		KERNEL=$NEW_KERNEL
 	fi
@@ -3118,7 +3115,7 @@ check_for_older(){ # TODO put Yad window function
 	legacy_drv=1
 }
 check_for_newer(){
-	y_text="NVIDIA Download center data check"og_options
+	y_text="NVIDIA Download center data check"
 	pulse=1; log=0; hold=0 ; hide_txt=1; [ $hold = 1 ] && win_log_options
 	{	timeout=30
 	{	$p_wget -q -O $upcompat/last_update https://$nvidia_ftp-$ARCH/latest.txt
@@ -3211,10 +3208,7 @@ hardware_compat(){
 # 					--text="$error_log" \
 # 					$icon_name=xkill --ok-label="Got it"
 # 					if [ $zen_pid -gt 0 ]; then kill $zen_pid; else kill $yad_pid; fi
-					qst=0
-					warn_image=xkill
-					cancel_lbl='Got it!gtk-ok'
-					kill_yad=1
+					qst=0; warn_image=xkill; cancel_lbl='Got it!gtk-ok'; kill_yad=1
 					win_yad_warns
 				fi
 				## serie driver class for the update/install section.
@@ -3244,11 +3238,7 @@ hardware_compat(){
 					Abort.${end}
 				ERR
 				)
-				qst=0
-				warn_image='xkill'
-				cancel_lbl='Got it!gtk-apply'
-				ok_lbl=''
-				kill_yad=1
+				qst=0; warn_image='xkill'; cancel_lbl='Got it!gtk-apply'; ok_lbl=''; kill_yad=1
 				win_yad_warns
 # 				$d_zen --width=450 --title="$_zen_title" --error --no-wrap \
 # 				--text="$error_log" \
@@ -3292,13 +3282,13 @@ check_update(){
 	comp_family=0
 	comp_display_legacy=0
 
-	w_height=355
-	if [ $zenity_ver -le 3420 ]; then
-		w_height='--height=355'
-	else
-		w_height='--height=455'
-	fi
-	unset dl_allow COMP_L COMP_I LOCAL_DRV comp_check comp_result
+# 	w_height=355
+# 	if [ $zenity_ver -le 3420 ]; then
+# 		w_height='--height=355'
+# 	else
+# 		w_height='--height=455'
+# 	fi
+# 	unset dl_allow COMP_L COMP_I LOCAL_DRV comp_check comp_result
 	## desktop could have more than one device managed. So check.
 	for e in $pci_dev_nb; do
 		if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
@@ -3472,27 +3462,31 @@ win_update(){ # TODO put Yad window function
 			table_opts=''
 			list_opts=''
 			;;
-		1)	zen_opts='--list --radiolist --no-headers --borders=15 --button=Abort:1 --button=Install:0'
+		1)	zen_opts='--list --radiolist --no-headers --borders=15 --button=Abort!undo-rtl:1 --button=Select!gtk-ok:0'
 			table_opts='--column set --column 2 --column action --separator= --hide-column=2 --print-column=2'
 			list_opts="true 1 Install false 2 Download ";;
-		2)	zen_opts="--image=dialog-question --borders=15 --button=Abort:1 --button=Install:0 "
+		2)	zen_opts="--image=dialog-question --borders=15 --button=Abort!undo-rtl:1 --button=Select!gtk-ok:0 "
 			table_opts=''
 			list_opts=''
 			;;
 	esac
+# 	case $ui_mod in
+# 		0|2) if [ $zenity_ver -le 3420 ]; then
+# 					w_height='--height=180'
+# 				else
+# 					w_height='--height=280'
+# 				fi
+# 		;;
+# 		1) if [ $zenity_ver -le 3420 ]; then
+# 				w_height='--height=450'
+# 			else
+# 				w_height='--height=550'
+# 			fi
+# 		;;
+# 	esac
 	case $ui_mod in
-		0|2) if [ $zenity_ver -le 3420 ]; then
-					w_height='--height=180'
-				else
-					w_height='--height=280'
-				fi
-		;;
-		1) if [ $zenity_ver -le 3420 ]; then
-				w_height='--height=450'
-			else
-				w_height='--height=550'
-			fi
-		;;
+		0|2) w_height='--height=100' ;;
+		1)   w_height='--height=200' ;;
 	esac
 	w_text=$(cat <<-MSG
 		${jB}${bf}Available drivers${end}${end}
@@ -3641,7 +3635,7 @@ from_net(){ # TODO YAD
 		new_version=$(printf "$run_pkg"| sed -n "s/^.*-//g;p")
 		install_drv
 }
-download_menu(){ # TODO YAD
+download_menu(){ # TODO YAD, zen_task_menu to adapt.
 # 	IFS=$(echo -en "\n\b")
 # 	if [ ${#DOWN_list[*]} -le 3 ]; then
 # 		w_dim='--width=200 --height=100'
@@ -3659,11 +3653,11 @@ download_menu(){ # TODO YAD
 # 		output_type=0
 # 	else
 # 		IFS=$(echo -en "\n\b")
-		w_dim='--width=300 --height=220'
-		zen_opts='--list --radiolist --hide-header'
-		table_opts='--column set --column 2 --column action --separator=";"'
-# 		list_opts="$(echo -e "")"
-		w_text=$( cat <<-INFO
+# 		w_dim='--width=300 --height=220'
+# 		zen_opts='--list --radiolist --hide-header'
+# 		table_opts='--column set --column 2 --column action --separator=";"'
+# # 		list_opts="$(echo -e "")"
+		l_text=$( cat <<-INFO
 			${jB}${bf}Downloads${end}${end}
 			${v}Select the drivers version you wish to install/download.
 			in the list below${end}
@@ -3671,17 +3665,40 @@ download_menu(){ # TODO YAD
 		)
 		output_type=1
 # 	fi
-	dl_cmd=$($d_zen $w_dim $win_icon --title="$_zen_title" $zen_opts \
-	--text="$w_text" $table_opts "${DOWN_list[@]}" )
+# 	dl_cmd=$($d_zen $w_dim $win_icon --title="$_zen_title" $zen_opts \
+# 	--text="$w_text" $table_opts "${DOWN_list[@]}" )
+
+	IFS=$(echo -en "\n\b")
+
+	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='300'; w_height='0'
+	menu_upd=$( win_yad_list "${DOWN_list[*]}" )
+
 	if [ $? = 1 ]; then
-		base_menu
+		IFS=$ifs; base_menu
 	else
 		if [ "$dl_cmd" ]; then
 			LAST_PACK=$dl_cmd
 		else
-			test ${#DOWN_list[*]} -le 3 && LAST_PACK=${DOWN_list[1]} || base_menu
+# 			test ${#DOWN_list[*]} -le 3 && LAST_PACK=${DOWN_list[1]} || { IFS=$ifs: base_menu ;}
+			if [ ${#DOWN_list[*]} -le 3 ]; then
+				LAST_PACK=${DOWN_list[1]}
+			else
+				IFS=$ifs; base_menu
+			fi
 		fi
 	fi
+	IFS=$ifs
+
+# 	if [ $? = 1 ]; then
+# 		base_menu
+# 	else
+# 		if [ "$dl_cmd" ]; then
+# 			LAST_PACK=$dl_cmd
+# 		else
+# 			test ${#DOWN_list[*]} -le 3 && LAST_PACK=${DOWN_list[1]} || base_menu
+# 		fi
+# 	fi
 # 	IFS=$ifs
 	last_pack
 }
@@ -3698,7 +3715,7 @@ download_only(){ # TODO YAD
 	else
 		$d_zen --width=450 $win_icon --title="$_zen_title" --error \
 		--text="${v}Driver download ${j}$LAST_PACK${end} failure.\n The package ${j}$run_pack${end} doesn't exist.\n$MM.${end}"
-		[ $_opt -gt 0 ] && exit 0 || base_menu
+:		[ $_opt -gt 0 ] && exit 0 || base_menu
 	fi
 }
 last_pack(){ # TODO put Yad window function ## TEST
@@ -3715,7 +3732,7 @@ last_pack(){ # TODO put Yad window function ## TEST
 # 		$d_zen --height=100 --error $win_icon $icon_name=xkill --no-wrap \
 # 		--text="${v}$w_text${end}" --ok-label="Heeeh !?"
 		warn_log="$w_text"
-		qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-close' ; kill_yad=0; warn_image='xkill'
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!window-close' ; kill_yad=0; warn_image='xkill'
 		win_yad_warns
 		if [ $? = 1 ]; then base_menu; fi
 	}
@@ -3735,7 +3752,7 @@ last_pack(){ # TODO put Yad window function ## TEST
 # 	--text="${v}Remote content control...${end}"
 
 	y_text="${v}Remote content control...${end}"
-	pulse=1; log=1; hold=0 ; hide_txt=1; [ $hold = 1 ] && win_log_options
+	pulse=1; log=0; hold=0 ; hide_txt=1; [ $hold = 1 ] && win_log_options
 	{ timeout=30
 	{	$p_wget -q -O $nvtmp/bug_list https://$nvidia_ftp-$ARCH/$LAST_PACK/ &
 		cat $nvtmp/bug_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| perl -pe "s/^.*\'(.*)\'/\1/p" \
@@ -3762,12 +3779,16 @@ last_pack(){ # TODO put Yad window function ## TEST
 
 		IFS=$(echo -en "\n\b")
 		l_text="${v}Choose the version to install${end}"
-		cancel_lbl='Back to main!gtk-undo-tlr'; ok_lbl='Select!gtk-ok'
-		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='450'; w_height='300'
-		run_pack=$(win_yad_list "${drv_list[@]}")
-		IFS=$ifs
-		if [ $? -eq 1 ]; then [ $_opt -gt 0 ] && exit 0 || base_menu; fi
+		cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'; l_tail=0
+		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='300'
+		run_pack=$(win_yad_list "${drv_list[*]}")
 
+		if [ $? -eq 1 ]; then
+			IFS=$ifs
+			[ $_opt -gt 0 ] && exit 0 || base_menu
+# 			if [ $_opt -gt 0 ]; then IFS=$ifs; exit 0; else IFS=$ifs; base_menu; fi
+		fi
+		IFS=$ifs
 		## from there, look into 'selector' file for sha256sum file.
 		if [ $(cat $nvtmp/selector| grep -c "sha256sum") -gt 0 ]; then
 			run_pack_sha=$run_pack.sha256sum
@@ -3944,13 +3965,15 @@ win_yad_list(){
 	# 	hid_col='0/1/2/1,2' 		#> unvisible columns
 	# 	edit_col='0/1/2/1,2' 	#> editable columns
 	# 	col_tip='0/1/2/etc' 		#> witch column to be used as tool tip text, must be set in hid_col var.
+	#  l_tail='0/1'				#> tail at the end of the list.
 	#
-	# ex : cancel_lbl='Back to main!gtk-undo-tlr'; ok_lbl='Select!gtk-ok'
+	# ex : col_name=( "[string]" "[string]")
+	#  cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'
 	# 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='600'; w_height='420'
 	# or : list_type='checklist'; columns=5; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' '5' );
 	# 	sel_col='0'; sep=';' ;hid_col='3,5'; edit_col=0; col_tip=3; w_width='550'; w_height='400'
 
-	unset col_list w_dim
+	unset col_list w_dim #buttons
 	for ((i=0; i<=$(($columns-1)); i++)) {
 # 		if [ ${#col_name[*]} -gt 0 ]; then id=${col_name[$(($i-1))]}; no_head=''; else id=$i; no_head='--no-headers'; fi
 		if [ ${#col_name[*]} -gt 0 ]; then id=${col_name[$i]}; no_head=''; else id=$i; no_head='--no-headers'; fi
@@ -3964,12 +3987,14 @@ win_yad_list(){
 	[ "$edit_col" != 0 ] && { edit_col='--editable-cols='$edit_col; editable='--editable'; } || edit_col=''
 	[ $col_tip -gt 0 ] && tip_col='--tooltip-column='$col_tip || col_tip=''
 	[ $sel_col -gt 0 ] && sel_col='--print-column='$sel_col || sel_col=''
+	[ $l_tail -gt 0 ] && l_tail='--tail' || l_tail=''
 	[[ "$list_type" =~ "checklist" ]] && list_type=( --checklist --multiple $editable ) || list_type='--radiolist'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
 	# an additional option could be pass in $2.
 	$d_yad ${w_dim[*]} --window-icon=$img_zen_desktop --title="Zenvidia" --borders=15 --center \
-	--list ${list_type[*]} $no_head --separator=$sep $tip_col $sel_col $edit_col \
+	--list ${list_type[*]} $no_head --separator=$sep $tip_col $sel_col $edit_col $l_tail \
 	${col_list[*]} --text="$l_text" ${buttons[*]} ${1} ${2}
+
 }
 win_yad_text(){
 	# 	log_brief="[output]"
@@ -3982,10 +4007,16 @@ win_yad_text(){
 	# 	w_wrap=0/1			#> wrap text to window.
 	# 	w_width='bool'		#> window width.
 	# 	w_height='bool'	#> window height.
-	# 	all_btn=0/1			#> display cancel button onlmy (0) or both (1).
+	# 	all_btn=0/1			#> display cancel button only (0) or both (1).
 	# 	ex : w_formatted=1; w_wrap=0; _width='600'; w_height='400'; all_btn=0
+	#
+	#  log_txt="[string]"; cancel_lbl="Exit!gtk-close"; ok_lbl="Back!edit-redo-rtl"
+	#	w_formatted=1; w_wrap=1; _width='600'; w_height='400'; all_btn=1
+	#	win_yad_text "$log_brief"
 
-	if [ -s $1 ]; then
+	unset w_dim #buttons
+# 	if [ -s $1 ]; then
+	if [ -f "$1" ]; then
 		input_way=$(< "$1")
 	else
 		input_way=$(cat <<< "$1")
@@ -4000,8 +4031,8 @@ win_yad_text(){
 	[ $all_btn = 1 ] && buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" ) || buttons="--button=$cancel_lbl:1"
 
 	$d_yad ${w_dim[*]} --title="Zenvidia" --window-icon=$img_zen_desktop --text="$log_txt" --borders=15 --center \
-	--text-info $w_formatted --margins=10 $w_wrap --hscroll-policy=never --fore=$fore_c --back=$back_c \
-	${buttons[*]} <<< "$input_way"
+	--text-info $w_formatted --margins=10 $w_wrap --hscroll-policy=never --fore=$fore_c --back=$back_c ${buttons[*]} \
+	<<< "$input_way"
 }
 win_open_switch(){
 	if [ $open_drv -gt 0 ]; then
@@ -5002,7 +5033,7 @@ read_nv_help(){
 		else
 			IFS=$ifs; read_nv_help
 		fi
-		IFS=$ifs
+# 		IFS=$ifs
  	else
 		IFS=$ifs
 		[ $_opt -gt 0 ] && exit 0 || menu_manage
@@ -5021,28 +5052,33 @@ read_changelog(){
 		else
 			log_brief=$(echo -e "\n\nNothing to display here.\n\nLog file empty.")
 		fi
-			[ $_opt -gt 0 ] && cancel_lbl='Exit!gtk-close' || cancel_lbl='Exit to main!gtk-undo-tlr'
-			ok_lbl='Back to index!edit-redo-rtl'
-			w_formatted=0; w_wrap=1; w_width='600'; w_height='400'; all_btn=1
-			win_yad_text "$log_brief"
-			if [ $? -eq 1 ]; then
-				IFS=$ifs
-				[ $_opt -gt 0 ] && exit 0 || menu_manage
+# 		if [ $catch_title != '' ]; then log_title="$catch_title"; else log_title="$entrylog"; fi
+# 		if [ $catch_title != '' ]; then log_title="$catch_title"; else log_title="$entrylog"; fi
+		log_txt="${bf}${j}Changelog : ${y}$entrylog${end}${end}${end}"
+		[ $_opt -gt 0 ] && cancel_lbl='Exit!window-close' || cancel_lbl='Back to menu!undo-tlr'
+		ok_lbl='Back to index!edit-redo-rtl'
+		w_formatted=0; w_wrap=1; w_width='600'; w_height='400'; all_btn=1
+		win_yad_text "$log_brief"
+		if [ $? -eq 1 ]; then
+			IFS=$ifs
+			[ $_opt -gt 0 ] && exit 0 || menu_manage
+# 				if [ $_opt -gt 0 ]; then IFS=$ifs; exit 0; else IFS=$ifs; menu_manage; fi
+		else
+			if [[ $relist_title != '' ]]; then
+				relist
 			else
-				if [[ $relist_title != '' ]]; then
-					relist
-				else
-					relist_title=''
-					IFS=$ifs ; read_changelog
-				fi
+				relist_title=''
+				IFS=$ifs ; read_changelog
 			fi
+		fi
+# 		IFS=$ifs
 	}
 	relist(){
 		if [[ $relist_title != '' ]]; then
 			cancel_lbl='Back to list!edit-redo-rtl'
 			ok_lbl='Read!gtk-ok'
 		else
-			[ $_opt -gt 0 ] && cancel_lbl='Exit!gtk-close' || cancel_lbl='Back to main!gtk-undo-tlr'
+			[ $_opt -gt 0 ] && cancel_lbl='Exit!window-close' || cancel_lbl='Back to main!undo-tlr'
 			ok_lbl='Select!gtk-ok'
 		fi
 		if [[ ${#entrylog_list[@]} -le 1 ]]; then
@@ -5051,15 +5087,17 @@ read_changelog(){
 				entrylog_list+=("$log_line")
 			done
 		fi
-		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0
+		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; l_tail=0
 		w_width='550'; w_height='420'
 		l_text="${j}${bf}Nvidia Change Logs list $relist_title${end}${end}"
 		entrylog=$( win_yad_list "${entrylog_list[*]}" )
 		if [ $? -eq 1 ]; then
+			IFS=$ifs
 			if [[ $relist_title != '' ]]; then
-				IFS=$ifs; read_changelog
+# 				IFS=$ifs; read_changelog
+				read_changelog
 			else
-				IFS=$ifs
+# 				IFS=$ifs
 				[ $_opt -gt 0 ] && exit 0 || menu_manage
 			fi
 		else
@@ -5088,7 +5126,8 @@ read_changelog(){
 					log_brief=$(cat <<< $log_list | sed -En "s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}" )
 				fi
 			else
-				[ $_opt -gt 0 ] && IFS=$ifs; exit 0 || IFS=$ifs; menu_manage
+				IFS=$ifs
+				[ $_opt -gt 0 ] && exit 0 || menu_manage
 			fi
 		fi
 	}
@@ -5113,8 +5152,9 @@ read_changelog(){
 	fi
 	IFS=$ifs
 }
-read_zen_changelog(){ # TODO YAD
+read_zen_changelog(){
 	unset entry_list entrylog_list
+# 	IFS=$(echo -en "\n\b")
 	if [[ "$notif_desk_opt" =~ 'z' ]]; then log_from_local=1; else log_from_local=0; fi
 	if [ $log_from_local = 1 ]; then
 		log_pages=$(user_CF_DIR)/src/zen_git.log # from user dir
@@ -5122,13 +5162,8 @@ read_zen_changelog(){ # TODO YAD
 		log_pages=$zen_docs/Changelog.txt # from install dir
 	fi
 	IFS=$(echo -en "\n\b")
-	w_height='--height=260'
-	if [ $zenity_ver -le 3420 ]; then
-		w_height='--height=300'
-	else
-		w_height='--height=400'
-	fi
 	brief(){
+# 		IFS=$(echo -en "\n\b")
 		log_version=$(echo "$entrylog"| grep -E -o "v[0-9].[0-9](.[0-9]{1,2})?")
 		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
 			log_brief=$( cat <<-BRIEF
@@ -5140,64 +5175,47 @@ read_zen_changelog(){ # TODO YAD
 		else
 			log_brief=$(echo -e "Zenvidia changelog ( $log_verion ) :\n\nNothing to display here.\nLog file empty.")
 		fi
+
 		if [ $_opt -gt 0 ]; then
-# 		if [ "$cmd_opt" != '' ]; then
-			_button_off='--button=Exit:1'
-			_button_on='--button=Back to list:0'
+			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to list!edit-redo-rtl"
 		else
-			_button_off='--button=Back to main:1'
-			_button_on='--button=Back to list:0'
+			cancel_lbl="Back to previous!undo-rtl"; ok_lbl="Back to list!edit-redo-rtl"
 		fi
-# 			zenity --width=600 $w_height --title="$_zen_title" --text-info \
-# 			--ok-label="Back to list" --cancel-label="Exit to main" \
-# 			cat <<< "$log_brief"
-			$d_yad --width=750 --height=300 --title="Zenvidia" --center --borders=15 \
-			--text-info $_button_off $_button_on  --wrap --hscroll-policy=never \
-			cat <<< "$log_brief"
-			if [ $? -eq 1 ]; then
-				[ $_opt -gt 0 ] && IFS=$ifs; exit 0 || IFS=$ifs; base_menu
-# 				if [ "$cmd_opt" != '' ]; then
-# 				IFS=$ifs; exit
-# 				else
-# 				IFS=$ifs; base_menu
-# 				fi
-			else
-				IFS=$ifs; read_zen_changelog
-			fi
+		log_txt="${v}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}"
+		w_formatted=1; w_wrap=1; w_width='600'; w_height='300'; all_btn=1
+		win_yad_text "$log_brief"
+
+		if [ $? -eq 1 ]; then
+			IFS=$ifs
+			[ $_opt -gt 0 ] && exit 0 || menu_manage
+# 			if [ $_opt -gt 0 ]; then IFS=$ifs; exit 0; else IFS=$ifs; base_menu; fi
+		else
+			IFS=$ifs
+			read_zen_changelog
+		fi
 	}
 	relist(){
-# 		cancel_btn='--cancel-label=Back to main'
-		if [ $_opt -gt 0 ]; then
-# 		if [ "$cmd_opt" != '' ]; then
-			_button_off="--button=Exit:1"
-			_button_on="--button=Read:0"
-		else
-			_buttons_off='--button=Back to main:1'
-			_buttons_on='--button=Read:0'
-		fi
 		if [[ ${#entrylog_list[@]} -le 1 ]]; then
 			for log_line in ${entry_list[@]}; do
 				entrylog_list+=("FALSE")
 				entrylog_list+=("$log_line")
 			done
 		fi
-# 		entrylog=$( zenity --width=550 $w_height --list \
-# 		--radiolist --title="$_zen_title" \
-# 		--text "${j}${bf}Zenvidia Change Logs list ${end}${end}" $cancel_btn \
-# 		--column=" " --column "Versions" \
-# 		"${entrylog_list[@]}" )
-		entrylog=$( $d_yad --width=550 --height=300 --list --center --borders=15 \
-		--radiolist --title="Zenvidia" $_button_off $_button_on \
-		--text "${j}${bf}Zenvidia Change Logs list ${end}${end}" \
-		--column=" " --column "Versions" --separator='' --print-column=2 \
-		"${entrylog_list[@]}" )
+# 		IFS=$(echo -en "\n\b")
+		l_text="${j}${bf}Zenvidia Change Logs list ${end}${end}"
+		col_name=( "" "Version")
+		if [ $_opt -gt 0 ]; then
+			cancel_lbl='Exit!window-close'; ok_lbl='Read!gtk-ok'
+		else
+			cancel_lbl='Back to main!undo-rtl'; ok_lbl='Read!gtk-ok'
+		fi
+		list_type='radiolist'; columns=2; sel_col=2; sep=''; l_tail=1
+		hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='300'
+		entrylog=$( win_yad_list "${entrylog_list[*]}" )
+
 		if [ $? -eq 1 ]; then
-			[ $_opt -gt 0 ] && IFS=$ifs; exit 0 || IFS=$ifs; base_menu
-# 			if [ "$cmd_opt" != '' ]; then
-# 				IFS=$ifs; exit 0
-# 				else
-# 				IFS=$ifs; base_menu
-# 			fi
+			IFS=$ifs
+			[ $_opt -gt 0 ] && exit 0 || menu_manage
 		else
 			if [[ $entrylog != '' ]]; then
 				if [ $log_from_local = 1 ]; then
@@ -5222,17 +5240,15 @@ read_zen_changelog(){ # TODO YAD
 					log_brief=$(grep -E "^[ ]{,3}-" <<< $log_list) # from install dir
 				fi
 			else
-				[ $_opt -gt 0 ] && IFS=$ifs; exit 0 || IFS=$ifs; base_menu
-# 				if [ "$cmd_opt" != '' ]; then
-# 					IFS=$ifs; exit 0
-# 					else
-# 					IFS=$ifs; base_menu
-# 				fi
+				IFS=$ifs
+				[ $_opt -gt 0 ] && exit 0 || menu_manage
+# 				if [ $_opt -gt 0 ]; then IFS=$ifs; exit 0; else IFS=$ifs; base_menu; fi
 			fi
 		fi
+# 		IFS=$ifs
 	}
 	if [ $log_from_local = 1 ]; then
-		entry_list=$(grep -E -e "^*[Aa-Zz]{3} [0-9]{1,2} [0-9]{4} :" $log_pages) # from user dir
+		entry_list=$(grep -E -e "^[Aa-Zz]{3} [0-9]{1,2} [0-9]{4} :" $log_pages) # from user dir
 	else
 		entry_list=$(grep -E -e "^* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //p") # from install dir
 	fi
@@ -5335,18 +5351,18 @@ menu_install(){ # TODO YAD
 		   Install and download will be executed in the next step.
 		HLP
 		)
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=300'
-		else
-			w_height='--height=400'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=300'
+# 		else
+# 			w_height='--height=400'
+# 		fi
 	else
 		hlp_tip="\n${vB}Select here the install type${end}"
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=200'
-		else
-			w_height='--height=300'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=200'
+# 		else
+# 			w_height='--height=300'
+# 		fi
 	fi
 	install_list=("From a local package" "From NVIDIA server")
 	n=1
@@ -5356,16 +5372,22 @@ menu_install(){ # TODO YAD
 		ins_list+=("$ins_cmd")
 		n=$[ $n+1 ]
 	done 
-	menu_inst=$($d_zen --width=400 $w_height $win_icon --list \
-	--radiolist --hide-header --title="$_zen_title" \
-	--text "${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}" \
-	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
-	"${ins_list[@]}")
-	if [ $? = 1 ]; then base_menu; fi
+# 	menu_inst=$($d_zen --width=400 $w_height $win_icon --list \
+# 	--radiolist --hide-header --title="$_zen_title" \
+# 	--text "${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}" \
+# 	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
+# 	"${ins_list[@]}")
+	IFS=$(echo -en "\n\b")
+	l_text="${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}"
+	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
+	menu_inst=$( win_yad_list "${ins_list[*]}" )
+
+	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
+	IFS=$ifs
 	ui_mod=1
 	case $menu_inst in
 		"1") menu_msg="${vB}NVIDIA package update from local dir. ${end}"; from_directory ;;
-# 		"2") menu_msg="${vB}NVIDIA package from NVIDIA server.${end}"; check_update ;;
 		"2") menu_msg="${vB}NVIDIA package from NVIDIA server.${end}"; net_version_selector ;;
 		*) base_menu ;;
 	esac
@@ -5373,11 +5395,11 @@ menu_install(){ # TODO YAD
 menu_update(){ # TODO YAD
 	check_version
 	if [ $hlp_txt = 1 ]; then
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=450'
-		else
-			w_height='--height=550'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=450'
+# 		else
+# 			w_height='--height=550'
+# 		fi
 		hlp_tip=$(cat <<-HLP
 
 		<b>Select here the element to update or install</b>
@@ -5398,11 +5420,11 @@ menu_update(){ # TODO YAD
 		)
 	else
 		hlp_tip=''
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=300'
-		else
-			w_height='--height=400'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=300'
+# 		else
+# 			w_height='--height=400'
+# 		fi
 	fi
 	nu=1
 	if [ $hlp_txt = 0 ]; then hlp_tip="\n${vB}\Select here the element to update or install${end}"; fi
@@ -5418,12 +5440,20 @@ menu_update(){ # TODO YAD
 		up_list+=("$up_cmd")
 		nu=$[ $nu+1 ]
 	done 
-	menu_upd=$($d_zen --width=400 $w_height $win_icon --list \
-	--radiolist --hide-header --title="$_zen_title" \
-	--text "${j}${bf}Update Drivers or kernel modules${end}${end}${v}$hlp_tip${end}" \
-	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
-	"${up_list[@]}" )
-	if [ $? = 1 ]; then base_menu; fi
+# 	menu_upd=$($d_zen --width=400 $w_height $win_icon --list \
+# 	--radiolist --hide-header --title="$_zen_title" \
+# 	--text "${j}${bf}Update Drivers or kernel modules${end}${end}${v}$hlp_tip${end}" \
+# 	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
+# 	"${up_list[@]}" )
+
+	IFS=$(echo -en "\n\b")
+	l_text="${j}${bf}Update Drivers or kernel modules${end}${end}${v}$hlp_tip${end}"
+	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
+	menu_upd=$( win_yad_list "${up_list[*]}" )
+
+	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
+	IFS=$ifs
 	git_tmp=$(mktemp --tmpdir nv_git.XXXX)
 	home=/home/$(def_user)
 	if [ $use_dkms = 1 ]; then
@@ -5473,18 +5503,18 @@ menu_modif(){ # TODO YAD
 		HLP
 		)
 		w_height='--height=660'
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=660'
-		else
-			w_height='--height=700'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=660'
+# 		else
+# 			w_height='--height=700'
+# 		fi
 	else
 		hlp_tip="\n${vB}Select here the element to modify or edit${end}"
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=330'
-		else
-			w_height='--height=400'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=330'
+# 		else
+# 			w_height='--height=400'
+# 		fi
 	fi
 	nd=1
 	mod_menu_list=("Edit xorg config file" "Edit Zenvidia config" "Edit GUI Colors" "Nvidia-settings" "Edit Distro config" "Manage drivers packages"  "Zenvidia notification config")
@@ -5501,12 +5531,20 @@ menu_modif(){ # TODO YAD
 		mod_list+=("$mod_cmd")
 		nd=$[ $nd+1 ]
 	done
-	menu_mod=$($d_zen --width=400 $w_height $win_icon --list \
-	--radiolist --hide-header --title="$_zen_title" \
-	--text "${j}${bf}Configuration and Tools${end}${end}${v}$hlp_tip${end}" \
-	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
-	"${mod_list[@]}")
-	if [ $? = 1 ]; then base_menu; fi
+# 	menu_mod=$($d_zen --width=400 $w_height $win_icon --list \
+# 	--radiolist --hide-header --title="$_zen_title" \
+# 	--text "${j}${bf}Configuration and Tools${end}${end}${v}$hlp_tip${end}" \
+# 	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
+# 	"${mod_list[@]}")
+
+	IFS=$(echo -en "\n\b")
+	l_text="${j}${bf}Configuration and Tools${end}${end}${v}$hlp_tip${end}"
+	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
+	menu_mod=$( win_yad_list "${mod_list[*]}" )
+
+	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
+	IFS=$ifs
 	if [ $open_drv -gt 0 ]; then
 		case $menu_mod in
 			"1") if [ $UID = 0 ]; then win_open_switch; else  is_SU; menu_modif; fi;;
@@ -5547,20 +5585,20 @@ menu_manage(){ # TODO YAD
 			- ${vB}About Zenvidia${end}:\tRead current Zenvidia README file.
 		TIP
 		)
-		w_height='--height=300'
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=450'
-		else
-			w_height='--height=550'
-		fi
+# 		w_height='--height=300'
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=450'
+# 		else
+# 			w_height='--height=550'
+# 		fi
 	else
 		hlp_tip="\n${v}README and Help file from Nvidia $(version) and other.${end}"
 		w_height='--height=300'
-		if [ $zenity_ver -le 3420 ]; then
-			w_height='--height=300'
-		else
-			w_height='--height=400'
-		fi
+# 		if [ $zenity_ver -le 3420 ]; then
+# 			w_height='--height=300'
+# 		else
+# 			w_height='--height=400'
+# 		fi
 	fi
 	nm=1
 	unset mng_list
@@ -5570,12 +5608,20 @@ menu_manage(){ # TODO YAD
 		mng_list+=("$mng_cmd")
 		nm=$[ $nm+1 ]
 	done
-	menu_mng=$($d_zen --width=400 $w_height $win_icon --list \
-	--radiolist --hide-header --title="$_zen_title" \
-	--text "${j}${bf}Help and Documentation${end}${end}${v}$hlp_tip${end}" \
-	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
-	"${mng_list[@]}")
-	if [ $? = 1 ]; then base_menu; fi
+# 	menu_mng=$($d_zen --width=400 $w_height $win_icon --list \
+# 	--radiolist --hide-header --title="$_zen_title" \
+# 	--text "${j}${bf}Help and Documentation${end}${end}${v}$hlp_tip${end}" \
+# 	--column "set" --column "2" --column "action" --separator=";" --hide-column=2 \
+# 	"${mng_list[@]}")
+#
+	IFS=$(echo -en "\n\b")
+	l_text="${j}${bf}Help and Documentation${end}${end}${v}$hlp_tip${end}"
+	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
+	menu_mng=$( win_yad_list "${mng_list[*]}" )
+
+	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
+	IFS=$ifs
 	case $menu_mng in
 		"1") unset chapter_index chapters_list; read_nv_help ;;
 		"2") read_changelog ;;
@@ -5734,7 +5780,7 @@ is_SU(){
 }
 
 ### MAIN MENUS ###
-base_menu(){ # TODO YAD
+base_menu(){
 	devices(){
 	e=0
 	until [ $e -eq ${#dev_n[*]} ]; do
@@ -5800,14 +5846,15 @@ base_menu(){ # TODO YAD
 # 	false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
 
 	IFS=$(echo -en "\n\b")
-	cancel_lbl='Exit!undo-tlr'; ok_lbl='Select!gtk-ok'
-	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='300'; w_height='300'
+	unset col_name; cancel_lbl='Exit!undo-tlr'; ok_lbl='Select!gtk-ok'
+	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0
+	w_width='300'; w_height='300'; l_tail=0
 	menu_list=( false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
 	# 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='600'; w_height='420''
 	menu_cmd=$( win_yad_list "${menu_list[*]}" )
-	IFS=$ifs
 
-	if [ $? = 1 ]; then exit 0; fi
+	if [ $? = 1 ]; then IFS=$ifs; exit 0; fi
+	IFS=$ifs
 	case $menu_cmd in
 		"1") if_update=0; if [ $UID = 0 ]; then menu_install; else is_SU; base_menu; fi;;
 		"2") if_update=1; if [ $UID = 0 ]; then menu_update; else is_SU; base_menu; fi;;
