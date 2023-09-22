@@ -3672,10 +3672,11 @@ download_menu(){ # TODO YAD, zen_task_menu to adapt.
 
 	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='300'; w_height='0'
-	menu_upd=$( win_yad_list "${DOWN_list[*]}" )
+	dl_cmd=$( win_yad_list "${DOWN_list[*]}" )
 
 	if [ $? = 1 ]; then
-		IFS=$ifs; base_menu
+		IFS=$ifs
+		[ $_opt -gt 0 ] && exit 0 || base_menu
 	else
 		if [ "$dl_cmd" ]; then
 			LAST_PACK=$dl_cmd
@@ -3684,7 +3685,8 @@ download_menu(){ # TODO YAD, zen_task_menu to adapt.
 			if [ ${#DOWN_list[*]} -le 3 ]; then
 				LAST_PACK=${DOWN_list[1]}
 			else
-				IFS=$ifs; base_menu
+				IFS=$ifs
+				[ $_opt -gt 0 ] && exit 0 || base_menu
 			fi
 		fi
 	fi
