@@ -1,5 +1,5 @@
 # Zenvidia
-This is a bash/zenity script for managing **NVIDIA©** propriatary and open source drivers.
+This is a bash/Yad(ex-zenity) script for managing **NVIDIA©** propriatary and open source drivers.
 
 Actual version pretty name : **2.0**
 
@@ -24,6 +24,11 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.1.35 NOTES :
+ - 'Make file update' command now make a backup of zenvidia's script and config. Same for user configs.
+ - Yad last migration (except Xorg config for below reasons). Scripting is still under watch.
+ - Next release will come with a extended Xorg configutor (old dream) needed for upcoming PRIME and OFFLOAD integration.
+
 v2.1.34 NOTES :
  - URGENT FIX: Mistakes on last upoad. IFS restoration line for Yad process misplaced preventing some internal command to execute correcttly. My apologies.
 

@@ -166,4 +166,13 @@
  - Urgent fix : mistakes was made on last upload. Some text were paste by error and I didn't notice this, and IFS restoration was misplaced (Yad need many). All this was preventing script to read correctly some internals functions. Hopefuly fixed.
  - Menu were converted meanwhile to Yad, change are still unstable. I will upload fastly if other mistakes are found.
  - I didn't realize I was in a low shape state, that's why all those mistakes. My apologies.
+* 2023-09-22 - v2.1.35
+ - Second and hopefuly last big migration session for Yad. Yad is not working exactly like Zenity. By some side it is more simple and other more complexe. It will be under watch for a little while.
+ - Gui colors editor wasn't redirect correctly upon multi previews loads. Fixed.
+ - Enhanced Makefile update command to automaticaly make a backup of zenvidia script and user configs.
+ - A few other little bugs and nut shells have been fixed.
+ - Next is a extended Xorg configurator/ Until upload Xorg section is still under Zenity.
+ - Need to review help tips.
+ - Need to review 'Driver upgrade' window result that is still confuse in some specific case.
+
 

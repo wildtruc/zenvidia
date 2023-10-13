@@ -6,7 +6,7 @@ Actual version pretty name : 2.0
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># History</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 I started Zenvidia several years ago in a background of non existent Nvidia drivers managed by distros.
 I builded it with a light knowledge of bash code I was learning on the scratch and with the only goal
 of my own use.
@@ -35,25 +35,25 @@ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Features</b>
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>Driver install</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	- from local package.
 	- from a dowloaded package.
 	- from NVIDIA server.
 
  <b>Updates</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	- driver updates check.
 	- New kernel update (with dkms).
 
  <b>Configuration & Tools</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	- Edit xorg.conf file.
 	- Edit Zenvidia config file.
 	- Start Nvidia-Settings.
 	- Installed driver mangagement (remove, backups).
 
  <b>Help & Documentation</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	No administrator priviledge required.
 	- Nvidia driver manuel
 	  Installed version driver manual with graphic chaptered index.
@@ -66,7 +66,7 @@ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>Configuration</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Most part of Zenvidia is configurable.
 Script automaticaly update many of them during execution and game of Q&A.
 Options could be manage through Zenvidia > Configuration and Tools menu.
@@ -75,7 +75,7 @@ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Install</b>
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>Zenvidia</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 This will install in default behaviour.
 Choose a directory to clone repo and :
 user terminal window :
@@ -98,7 +98,7 @@ The GUI will ask you for admin/superuser password.
 
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>Zen Notify</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
 It is installed at the same time as Zenvidia when launching <b>make install</b> command.
 It comes with 2 options:
@@ -112,14 +112,14 @@ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Usage</b>
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b>GUI</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 From terminal :
 	<b>zen_start</b> (termninal command with administrator priviledge)
 	<b>zenvidia</b> (termianl command with no priviledge)
 From end user interface menu > settings > others menu.
 
  <b>Command line</b>
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Desktop manager have to be shutdown with systemcl disable <b>desktop-manager</b> command.
 	<b>zenvidia [command] [version]</b>
 command are : _restore, rebuild, rescue_.
@@ -129,7 +129,7 @@ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  <b># Licence</b>
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
  Zenvidia is published under GNU/GPL
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Copyleft PirateProd - Licence GPL v.3
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser

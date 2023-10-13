@@ -2,7 +2,7 @@
 <big><b>Usage</b></big>
 <s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
 <b>Graphic User Interface</b>
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Through terminal command line for GUI.
 	<b>zen_start</b> <i>(with administrator priviledge)</i>
 	<b>zenvidia</b> <i>(with no priviledge)</i>
@@ -11,7 +11,7 @@ or with desktop file from end user inface menu > settings > others menu.
 	<b>zenvidia</b> (user)  <i>(with no priviledge)</i>
 
 <b>Command line</b> (administrator priviledge required)
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 In case of a functional Xorg server, desktop manager have to be disabled in supersuer terminal with
 <i>systemcl disable [desktop-manager]</i>, then <i>systemcl stop [desktop-manager]</i> commands.
 <u>Note</u> : If nvidia-drm module option is set to 1 (use_drm=1), changing the Frame Buffer loading
@@ -32,19 +32,19 @@ Without this, you wont access the VT by Ctrl+Alt+F1 or F2.
 <big><b>Features</b></big>
 <s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
 <b>Driver install</b>
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	<b>From local package</b> : Direct installation from any local place.
 	<b>from NVIDIA server</b> : Download directly and isntall.
 
 <b>Updates</b> (administrator priviledge required)
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	<b>driver updates </b> : check and install, or download only.
 	<b>Update driver only (dkms)</b> : Update driver for current kernel with DKMS (default behaviour).
 	<b>Update driver only (force)</b> : Update driver for current kernel using source dir only (forcing).
 	<b>Update driver for an other kernel</b> : Update driver for an other kernel with DKMS.
 
 <b>Configuration and Tools</b>
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 	<b>Open driver switch tool</b> : (administrator priviledge required)
 	Allow to switch from open driver to proprietary and reversly.
 	It appears in menu list exclusibely if <u>open_drv</u> var is set in Zenvidia config file.
@@ -125,7 +125,7 @@ Without this, you wont access the VT by Ctrl+Alt+F1 or F2.
 <big><b>Licence</b></big>
 <s>oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo</s>
 <b>Zenvidia is published under GNU/GPL</b>
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
 Copyleft PirateProd - Licence GPL v.3
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -137,4 +137,4 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License along with main.c\; if not,
 write to the :
 Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA.
-<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
+<s>++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</s>
