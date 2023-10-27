@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/bash
 
 #  Zen_notify
 #  mar. oct. 11 16:21:02 CEST 2016
@@ -208,7 +208,9 @@ notifying(){
 		echo -e "notif_text=\"${_driver_notif[@]}\"" >> $local_nvdir/taskbar_message
 	fi
 	## launch zen_taskbar.
-	if [ -e $zen_bar ]; then exec $zen_bar &  fi
+	if [ -e $zen_bar ]; then
+		exec $zen_bar &
+	fi
 }
 usage_help(){
 	printf "# Usage : zen_notify option,where option is:\n"

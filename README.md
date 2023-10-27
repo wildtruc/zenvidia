@@ -24,6 +24,11 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.2.0 NOTES :
+ - Add a xorg config options GUI with options tips. There a bug in tips display coming from man page truncating text. Not clue at this point.
+ - Introduce 545 serie percistenced GPU init service for open drivers and specific values for both drivers.
+ - Restore backup archive can now overwrirte over itself.
+
 v2.1.35 NOTES :
  - 'Make file update' command now make a backup of zenvidia's script and config. Same for user configs.
  - Yad last migration (except Xorg config for below reasons). Scripting is still under watch.

@@ -174,5 +174,17 @@
  - Next is a extended Xorg configurator/ Until upload Xorg section is still under Zenity.
  - Need to review help tips.
  - Need to review 'Driver upgrade' window result that is still confuse in some specific case.
+* 2023-09-22 - v2.2.0
+ - Add a new Xorg configuration GUI to check and configure all Xorg options.
+ - Add 545 serie specific values for both propriatary and open drivers.
+ - Add 545 serie percistenced GPU init service for open drivers.
+ - Migrated forgotten Zenity functions to Yad.
+ - Specific open source module variable was missing at install time. Fixed.
+ - Restore current driver backup over itself is prohibite if libGL is in the current xorg extension dir. libglxserver_nvidia allow this type of overwrite. Backup restore function has been update consequently with a finest lib check.
+ - Basic configuration file has been change with remove and additions, please update.
+ - Distro config don't need some varialbes anymore and will be clean in next releases.
+ - Note : Last 545 beta driver is buggy for Wine games, Open source is better. Use of nvidia percistenced on open source driver helps a little and is automaticaly enabled for it starting with 535 serie. Percistenced on propriatary was not tested.
+ - BUG : It appears that some xorg TIPs in Xorg config GUI wont display when zen_notify is load from session start, but perfectly display when either zen_notify or zen_task_menu is start from command line. Tips in debug file are just truncate or are not detect at all. It look lke to be a 'man page' command line issue, but at this point, no clue on how to solve this.
+
 
 
