@@ -174,7 +174,7 @@
  - Next is a extended Xorg configurator/ Until upload Xorg section is still under Zenity.
  - Need to review help tips.
  - Need to review 'Driver upgrade' window result that is still confuse in some specific case.
-* 2023-09-22 - v2.2.0
+* 2023-10-27 - v2.2.0
  - Add a new Xorg configuration GUI to check and configure all Xorg options.
  - Add 545 serie specific values for both propriatary and open drivers.
  - Add 545 serie percistenced GPU init service for open drivers.
