@@ -191,7 +191,7 @@
  - Fixed inapropiate device check for multiple devices that prevent xorg conf gui to display correctly.
  - Replace default envirroment stock icon par dedicated one; depending on theme, icons wasn't really redable for user.
  - Fixed inapropriate zenvidia version update in makfile.
-
+ - It appears that commands launch from zen_task_menu don't return some variable value that are returned from command lineand could give errors. Watching this.
  - This time script wxas xheck out of the box.
 
 
