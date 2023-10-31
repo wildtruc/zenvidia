@@ -24,6 +24,11 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.2.2 NOTES :
+ - Huge mistakes were found and fix (nvidia-settings-rc.desktop, mainly), that prevence make install to execute properly.
+ - Script has been test out of the box with a different end user dektop envirroment. There is apprently nott errors.
+ - basic.conf is now a backup, please update it.
+
 v2.2.0 NOTES :
  - Add a xorg config options GUI with options tips. There a bug in tips display coming from man page truncating text. Not clue at this point.
  - Introduce 545 serie percistenced GPU init service for open drivers and specific values for both drivers.

@@ -23,18 +23,18 @@ d_zen=$(command -v zenvidia)
 local_conf_dir=/home/$USER/.zenvidia
 local_notif=$local_conf_dir/taskbar_message
 icon_stock=/usr/local/share/pixmaps
-img_zen=$icon_stock/swiss_knife.png
-img_zen_green=$icon_stock/swiss_knife_green.png
-img_nv_settings=$icon_stock/nvidia-settings.png
+img_zen=$icon_stock/zen-icon.png
+img_zen_green=$icon_stock/zen-icon.png
+img_nv_settings=$icon_stock/zen-settings.png
 img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
 
 test -s $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
-[ $open_drv = 1 ] && open_menu='Open Driver Switch!zen_start -o!document-swap,'
+[ $open_drv = 1 ] && open_menu='Open Driver Switch!zen_start -o!zen-swap,'
 
 if [ -f $local_conf_dir/version.txt ]; then
-	driver_changelog=" Read ${version} change log!${d_zen} -d!dialog-information,"
-	nvidia_help=" Nvidia ${version} documentation!${d_zen} -h!dialog-question,"
+	driver_changelog=" Read ${version} change log!${d_zen} -d!zen-info,"
+	nvidia_help=" Nvidia ${version} documentation!${d_zen} -h!zen-question,"
 	[ "$version" != '' ] && version_txt="<b>$version</b> in use" || version_txt="no driver detected"
 fi
 
@@ -47,17 +47,17 @@ if [ -f $local_notif ]; then
 			$notif_text
 		MSG
 		)
-		changelog_menu=" Read Zenvidia change log!${d_zen} -r!dialog-warning,"
+		changelog_menu=" Read Zenvidia change log!${d_zen} -r!zen-warning,"
 	fi
 fi
 menu_list=(
 	\ Start zenvidia!zen_start!$img_zen,
 	Nvidia Settings \(user\)!nvidia-settings!$img_nv_settings,
-	Config xorg!zen_start -x!xconfig,
-	Edit Zenvidia configuration!$d_zen -z!gtk-preferences,
-	Check Nvidia driver Update!zen_start -u!view-refresh,
+	Config xorg!zen_start -x!zen-xorg,
+	Edit Zenvidia configuration!$d_zen -z!zen-preference,
+	Check Nvidia driver Update!zen_start -u!zen-refresh,
 	${open_menu}${nvidia_help}${driver_changelog}${changelog_menu}
-	Close Zenvidia task menu!quit!exit
+	Close Zenvidia task menu!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \
 --icon-size=24 --menu="${menu_list[*]}" --separator=','
