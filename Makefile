@@ -35,7 +35,6 @@ install: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
-	#sudo -u "$(C_USER)" git config global --add safe.directory $(shell pwd)
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 
 uninstall: check_su
@@ -43,7 +42,6 @@ uninstall: check_su
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start,zen_task_menu}
 	rm -f $(USER_DIR)/.config/autostart/{zen_notify,nvidia-settings-rc}.desktop
 	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
-	#rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill,nvidia-settings}.png
 	rm -f $(PREFIX)/share/pixmaps/zen-*.png
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
@@ -52,7 +50,6 @@ safeuninstall: check_su
 	rm -f $(BIN_DIR)/{zenvidia,zen_notify,zen_start,zen_task_menu}
 	rm -f $(USER_DIR)/.config/autostart/{zen_notify,nvidia-settings-rc}.desktop
 	rm -f $(PREFIX)/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
-	#rm -f $(PREFIX)/share/pixmaps/{swiss_knife,swiss_knife_green,xkill,nvidia-settings}.png
 	rm -f $(PREFIX)/share/pixmaps/zen-*.png
 	rm -Rf $(PREFIX)/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
@@ -69,5 +66,4 @@ update: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	#sudo -u "$(C_USER)" git config global --add safe.directory $(shell pwd)
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
