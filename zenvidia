@@ -38,8 +38,8 @@ docs="--documentation-prefix=$install_dir"
 profile_path="$install_dir/share/nvidia"
 profile="--application-profile-path=$profile_path"
 icon_stock=$install_dir/share/pixmaps
-img_zen_desktop=$icon_stock/swiss_knife.png
-img_zen_bar=swiss_knife
+img_zen_desktop=$icon_stock/zen-icon.png
+img_zen_bar=zen-icon
 # user_DL_DIR=$(su "$(who | awk '{print $1}')" xdg-user-dir DOWNLOAD)
 xt_hold=0
 xt_delay=4
@@ -204,8 +204,8 @@ set_su(){
 	MSG
 	)
 	su_opts="sudo -u!sudo -l -U!sudo -i!su -l"
-	set_args=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --image="dialog-warning" \
-	--center --text="$w_text" --form --button="Abort!gtk-close:1" --button="Set!gtk-ok:0" --field="":LBL '' --separator=';' \
+	set_args=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --image="zen-warning" \
+	--center --text="$w_text" --form --button="Abort!gtk-close:1" --button="Set!zen-ok:0" --field="":LBL '' --separator=';' \
 	--field="<b>Distribution name</b>"!"Enter the name of the distribution if not displayed.":LABEL 'distro' \
 	--field="<b>su comman line</b>"!"Select a commande in the list or type one.":CBE "$su_opts"
 	)
@@ -278,12 +278,12 @@ distro(){
 				You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>
 				WRN
 				)
-				qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-ok' ; kill_yad=0
+				qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-ok' ; kill_yad=0
 				win_yad_warns
 
 				## edit new config file.
 # 				IFS=$(echo -en "\n\b")
-				log_txt="Zenvidia $plug_version edition"; cancel_lbl="Abort!gtk-close"; ok_lbl="Write!gtk-ok"
+				log_txt="Zenvidia $plug_version edition"; cancel_lbl="Abort!gtk-close"; ok_lbl="Write!zen-ok"
 				w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=1; colors=1
 				edit_plug_conf=$(win_yad_text "$(user_CF_DIR)/$plug_conf")
 # 				IFS=$ifs
@@ -302,8 +302,8 @@ distro(){
 					Then going back to the saved config file in $(user_CF_DIR)
 					WRN
 					)
-					warn_image='xkill'
-					qst=0; ok_lbl='' ; cancel_lbl='Snif!gtk-no' ; kill_yad=0
+					warn_image='zen-error'
+					qst=0; ok_lbl='' ; cancel_lbl='Snif!zen-close' ; kill_yad=0
 					win_yad_warns
 
 					exit 0
@@ -384,7 +384,7 @@ zen_colors(){
 ### SYSTEM FUNCTIONS
 PCI_ID(){
 	## graphic cards id
-	unset dev_n dev slot slot_id vnd vnd_id
+	unset dev_n dev slot slot_id vnd vnd_id dev_name
 	i=0
 	optimus=0
 	test $UID = 0 && tee /sys/bus/pci/rescan <<<1 &>/dev/null
@@ -399,11 +399,12 @@ PCI_ID(){
 		if [[ "${vnd_id[$i]}" =~ "10de" ]]; then
 			dev+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}'| sed -En "s/^.*\[(.*)\] \[.*\].*$/\1/p")")
 			dev_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
-			dev_name=${dev[0]}
+			dev_name+=( "${dev[$i]}" )
 		else
 			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic") # dev+=("Intel Graphic",modesettings)
 			[ "${vnd_id[$i]}" = "1002" ] && dev+=("AMD Radeon") # dev+=("AMD Graphic",flglx)
 			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Embed") # dev+=("AMD Graphic",radeon)
+			dev_name+=( "modesetting" )
 			((optimus++))
 		fi
 		slot+=("$(printf "$dev_slot"| awk '{print $1}')")
@@ -458,9 +459,12 @@ dep_exec_check(){
 # 	d_ssl=$(command -v openssl) && deplist+=("openssl")
 # 	d_randr=$(command -v xrandr) && deplist+=("xrandr")
 # 	pk_exec=$(command -v pkexec) && deplist+=("polkit")
-	d_nv_installer=$(command -v nvidia-installer)
-	d_nv_settings=$(command -v nvidia-settings)
+# 	d_nv_installer=$(command -v nvidia-installer)
+# 	d_nv_settings=$(command -v nvidia-settings)
 	d_nv_probe=$(command -v nvidia-modprobe)
+	d_nv_installer=/usr/local/bin/nvidia-installer
+	d_nv_settings=/usr/local/bin/nvidia-settings
+# 	d_nv_probe=/usr/local/bin/nvidia-modprobe
 	d_probe=$(command -v modprobe)
 	i_sys=$(command -v dracut)
 	i_init=$(command -v update-initramfs)
@@ -498,7 +502,7 @@ dep_control(){
 						Will you install them now ?
 					DEP
 					)
-					qst=1; ok_lbl='Install!gtk-ok' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+					qst=1; ok_lbl='Install!zen-ok' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 					win_yad_warns
 					if [ $y_output = 0 ]; then
 						y_text="Depencies installation, please wait . . ."
@@ -524,7 +528,7 @@ dep_control(){
 						or use your packages manager to install them.
 					DEP
 					)
-					qst=0; ok_lbl='' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+					qst=0; ok_lbl='' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 					win_yad_warns
 					exit 0
 				fi
@@ -584,7 +588,7 @@ connection_control(){
 		MSG
 		)
 		echo -e "${red}$w_text${nc}"
-		qst=0; ok_lbl='' ; cancel_lbl='Got it!dialog-warning' ; kill_yad=0
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-warning' ; kill_yad=0
 		win_yad_warns
 		cnx_msg='NONE'
 	else
@@ -593,7 +597,8 @@ connection_control(){
 }
 ## gcc and other compatibility control
 compil_vars(){
-	if [[ -s $d_nv_installer ]]; then
+# 	if [[ -s $d_nv_installer ]]; then
+	if [ -s ${d_nv_installer} ]; then
 		NV_bin_ver=$($d_nv_installer -v | grep "nvidia-installer"|awk '{print $3}')
 	else
 		NV_bin_ver='none'
@@ -632,8 +637,8 @@ check_version(){ # ALERT CHECK where the vars starts.
 				Go to ${y}<b>» Main menu » Install drivers</b>${end} first.
 			ERR
 			)
-			warn_image='xkill'
-			qst=0; ok_lbl='Ok!gtk-ok' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+			warn_image='zen-error'
+			qst=0; ok_lbl='Ok!zen-ok' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 			win_yad_warns
 			base_menu
 		fi
@@ -668,7 +673,7 @@ nv_open_modules_set(){
 				MSG
 				)
 				warn_log=$_text
-				qst=1; ok_lbl='Yes, please!gtk-ok' ; cancel_lbl='No thanks!gtk-no' ; kill_yad=0
+				qst=1; ok_lbl='Yes, please!zen-ok' ; cancel_lbl='No thanks!zen-close' ; kill_yad=0
 				win_yad_warns
 				if [ $y_output = 0 ]; then
 					open_drv=1; use_open=0
@@ -690,7 +695,7 @@ nv_open_modules_set(){
 					MSG
 					)
 					warn_log=$_text
-					qst=1; ok_lbl='Yes, please!gtk-ok' ; cancel_lbl='No thanks!gtk-no' ; kill_yad=0
+					qst=1; ok_lbl='Yes, please!zen-ok' ; cancel_lbl='No thanks!zen-close' ; kill_yad=0
 					win_yad_warns
 					if [ $y_output = 0 ]; then
 						first_open=0; open_wrn=1
@@ -738,8 +743,8 @@ rt_options(){
 			TXT
 		)
 		# yes 0, no 1
-		warn_image='dialog-warning'
-		qst=1; ok_lbl='Proceed!gtk-ok' ; cancel_lbl='Abort!gtk-no' ; kill_yad=0
+		warn_image='zen-warning'
+		qst=1; ok_lbl='Proceed!zen-ok' ; cancel_lbl='Abort!zen-close' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 0 ]; then
 			ignore_RT='IGNORE_PREEMPT_RT_PRESENCE=1'
@@ -861,8 +866,8 @@ initramfs_warn(){
 # 		zenity --question $icon_name=dialog-warning --no-wrap \
 # 		--cancel-label="Abort" --ok-label="Proceed" --title="$_title" --text="${v}$_text${end}"
 		warn_log=$_text
-		warn_image='gtk-warning'
-		qst=1; ok_lbl='Proceed!gtk-ok' ; cancel_lbl='Abort!gtk-no' ; kill_yad=0
+		warn_image='zen-warning'
+		qst=1; ok_lbl='Proceed!zen-ok' ; cancel_lbl='Abort!zen-close' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 1 ]; then
 			exec_mod_tool=0
@@ -982,7 +987,7 @@ nv_open_switch(){ # ALERT TMP_C
 				MSG
 				)
 				# win_yad_warns
-				qst=1; ok_lbl='Yes, switch to '$drv_on'!gtk-ok' ; cancel_lbl='No, keep '$drv_off'!edit-redo-rtl' ; kill_yad=0
+				qst=1; ok_lbl='Yes, switch to '$drv_on'!zen-ok' ; cancel_lbl='No, keep '$drv_off'!zen-undo' ; kill_yad=0
 				win_yad_warns
 				if [ $y_output = 1 ]; then reverse_conf; [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
 # 				switch_txt="DRIVER SWITCH from DKMS $drv_on build"
@@ -1081,7 +1086,7 @@ nv_open_switch(){ # ALERT TMP_C
 			MSG
 			)
 			# win_yad_warns
-			qst=1; ok_lbl='Yes, remove!gtk-ok' ; cancel_lbl='No, preserve!edit-redo-rtl' ; kill_yad=0
+			qst=1; ok_lbl='Yes, remove!zen-ok' ; cancel_lbl='No, preserve!zen-undo' ; kill_yad=0
 			win_yad_warns
 			if [ $y_output = 1 ]; then reverse_conf; [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
 			## remove dkms driver tree.
@@ -1373,7 +1378,8 @@ xorg_conf(){
 	}
 	sec_layout(){
 		layout_screen(){
-			for e in $pci_dev_nb; do
+# 			for e in $pci_dev_nb; do
+			for e in ${dev_n[@]}; do
 				if [ $opti_preset = 0 ]; then
 					cat <<-XF
 						   Screen ${dev_n[$e]}	"Screen${dev_n[$e]}" 0 0
@@ -1994,8 +2000,8 @@ nv_dkms_mok_key(){ # TODO Use distro key
 				Very sorry about that.
 			ERROR
 			)
-			warn_image='xkill'
-			qst=0; ok_lbl='' ; cancel_lbl='Abort!gtk-no' ; kill_yad=1
+			warn_image='zen-error'
+			qst=0; ok_lbl='' ; cancel_lbl='Abort!zen-close' ; kill_yad=1
 			win_yad_warns
 		fi
 	fi
@@ -2629,13 +2635,13 @@ install_log_messages(){
 			Do you want to read $make_log_file ?
 		ERROR
 		)
-		qst=1; ok_lbl="Yes!gtk-apply"; cancel_lbl="No thanks, shits happens!gtk-no"; kill_yad=1
+		qst=1; ok_lbl="Yes!zen-ok"; cancel_lbl="No thanks, shits happens!zen-close"; kill_yad=1
 		win_yad_warns
 		if [ $y_output = 0 ]; then
 			IFS=$(echo -en "\n\b")
 			log_txt="${j}$(new_version)${end} compilation log text"
 			log_brief=$make_log_file
-			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to main!undo-rtl"
+			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to main!zen-back"
 			w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=1; colors=1
 			win_yad_text "$log_brief"
 			if [ $_exit = 0 ]; then IFS=$ifs; kill $YAD_PID; base_menu ; else exit 0; fi
@@ -2655,7 +2661,7 @@ install_report_log(){
 	## display final message depends of exit status.
 	$d_yad --title="Zenvidia" --window-icon=$img_zen_desktop --width=500 --borders=20 --splash \
 	--text="${j}${bf}Install Report${end}${end}${v}:\n $(cat <<< ${report_log[*]})${end}\n$rep_msg" \
-	--button='edit later'!edit-redo-rtl:1 --button='edit now'!dialog-warning:0
+	--button='edit later'!zen-undo:1 --button='edit now'!zen-warning:0
 	if [ $? = 0 ]; then edit_xorg_conf; fi
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
@@ -2674,7 +2680,7 @@ install_drv(){ # ALERT TMP_C
 		${v}Installing driver ${j}$(new_version)${end} for hardware : ${j}$dev_name${end}${end}.
 	WRN
 	)
-	qst=1; ok_lbl='Install!gtk-ok' ; cancel_lbl='Back to main menu!gtk-no' ; kill_yad=0
+	qst=1; ok_lbl='Install!zen-ok' ; cancel_lbl='Back to main menu!zen-close' ; kill_yad=0
 	win_yad_warns
 	if [ $y_output = 1 ]; then base_menu; fi
 	# child process doesn't send back install check result, it need to be
@@ -2776,7 +2782,7 @@ install_drv(){ # ALERT TMP_C
 # 		[[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -lt 40 ]]; then
 		if [ $? -ne 0 ]||[ $(ls $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
 			warn_log="${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
-			qst=0; kill_yad=1; warn_image='dialog-warning'; cancel_lbl="Abort install!gtk-no"; ok_lbl=''
+			qst=0; kill_yad=1; warn_image='zen-warning'; cancel_lbl="Abort install!zen-close"; ok_lbl=''
 			win_yad_warns
 			exit 0
 # 			base_menu ; exit 0
@@ -2845,7 +2851,7 @@ install_drv(){ # ALERT TMP_C
 			install_report_log
 			fi
 		else
-			warn_image=xkill
+			warn_image=zen-error
 			warn_log=$(
 			cat <<-RPT
 				${rB}${bf}Unexpected ERROR.${end}${end}
@@ -2856,7 +2862,7 @@ install_drv(){ # ALERT TMP_C
 				Can't tell.
 			RPT
 			)
-			qst=0; kill_yad=1; warn_image='xkill'; cancel_lbl="Abort!gtk-no"; ok_lbl=''
+			qst=0; kill_yad=1; warn_image='zen-error'; cancel_lbl="Abort!zen-close"; ok_lbl=''
 			win_yad_warns
 		fi
 		} | win_yad_progress
@@ -2892,7 +2898,7 @@ install_drv(){ # ALERT TMP_C
 			TXT
 			)
 		( echo $HTML ) | $d_yad --html --width=420 --height=240 --title="Zenvidia" --window-icon=$img_zen_desktop \
-		--image=xkill --splash --borders=20 --text="${v}$error_log${end}" --button='Back to main menu'
+		--image=zen-error --splash --borders=20 --text="${v}$error_log${end}" --button='Back to main menu'
 		base_menu
 	fi
 }
@@ -2916,8 +2922,8 @@ extract_build(){
 			echo -e "$(new_version)" > $nvdir/new_version.txt
 		else
 			warn_log="${j}${bf}Nvidia repository not found${end}${end}.${v} Extraction failure.${end}"
-			warn_image='xkill'
-			qst=0; ok_lbl='' ; cancel_lbl='Close!gtk-undo-rtl' ; kill_yad=1
+			warn_image='zen-error'
+			qst=0; ok_lbl='' ; cancel_lbl='Close!zen-back' ; kill_yad=1
 			win_yad_warns
 			exit 0
 # 			base_menu ; exit 0
@@ -3079,7 +3085,7 @@ upgrade_new_kernel(){
 	MSG
 	)
 	l_text=$w_text
-	cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); NEW_KERNEL=$(win_yad_list "${kern_list[*]}")
 	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
@@ -3097,7 +3103,7 @@ upgrade_kernel(){
 	kernel_src="/usr/src$alt/$KERNEL"
 	drv_release=$(ls $nvdl/ | grep "$(new_version)")
 	warn_log="${j}<b>Kernel driver update</b>${end}\n${y}$KERNEL${end} drivers will be update."
-	qst=1; ok_lbl='Update!gtk-ok' ; cancel_lbl='Back to menu!undo-rtl' ; kill_yad=0
+	qst=1; ok_lbl='Update!zen-ok' ; cancel_lbl='Back to menu!zen-back' ; kill_yad=0
 	win_yad_warns
 	if [ $y_output = 1 ]; then menu_update; fi
 	y_text="${v}Kernel ${j}$KERNEL${end} driver update${end}"
@@ -3110,7 +3116,7 @@ upgrade_kernel(){
 	nv_cmd_update
 	if [ $pass -gt 0 ]||[ ! -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
 		warn_log="${j}INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')${end}."
-		qst=0; ok_lbl='' ; cancel_lbl='Back to main menu!edit_undo-rtl' ; kill_yad=1
+		qst=0; ok_lbl='' ; cancel_lbl='Back to main menu!zen-back' ; kill_yad=1
 		win_yad_warns
 		if [ $y_output = 1 ]; then base_menu; fi
 	fi
@@ -3139,7 +3145,7 @@ net_version_selector(){
 	IFS=$(echo -en "\n\b")
 	list_array=( true 1 "Look for latest version" false 2 "Look for older version" )
 	l_text="${j}${bf}Driver version type to install${end}\n${end}${v}$hlp_tip${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	menu_select=$( win_yad_list "${list_array[*]}" )
 
@@ -3163,7 +3169,7 @@ check_for_older(){
 
 	IFS=$(echo -en "\n\b")
 	l_text="${j}${bf}Driver version type to install${end}\n${end}${v}$hlp_tip${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	older_pack=$( win_yad_list "${old_pack_list[*]}" )
 
@@ -3255,7 +3261,7 @@ hardware_compat(){
 						Abort.${end}
 					ERR
 					)
-					qst=0; warn_image=xkill; cancel_lbl='Got it!gtk-ok'; kill_yad=1
+					qst=0; warn_image=zen-error; cancel_lbl='Got it!zen-ok'; kill_yad=1
 					win_yad_warns
 				fi
 				## serie driver class for the update/install section.
@@ -3283,7 +3289,7 @@ hardware_compat(){
 					Abort.${end}
 				ERR
 				)
-				qst=0; warn_image='xkill'; cancel_lbl='Got it!gtk-apply'; ok_lbl=''; kill_yad=1
+				qst=0; warn_image='zen-error'; cancel_lbl='Got it!zen-ok'; ok_lbl=''; kill_yad=1
 				win_yad_warns
 			else
 				legacy=0
@@ -3494,14 +3500,14 @@ win_update(){
 
 	extra_msg="\n${more_msg[@]}\n\n${v}$end_msg${end}"
 	case $ui_mod in
-		0)	zen_opts="--image=dialog-warning --borders=15 --button=Abort:1"
+		0)	zen_opts="--image=zen-warning --borders=15 --button=Abort:1"
 			table_opts=''
 			list_opts=''
 			;;
-		1)	zen_opts='--list --radiolist --no-headers --borders=15 --button=Abort!undo-rtl:1 --button=Select!gtk-ok:0'
+		1)	zen_opts='--list --radiolist --no-headers --borders=15 --button=Abort!zen-back:1 --button=Select!zen-ok:0'
 			table_opts='--column set --column 2 --column action --separator= --hide-column=2 --print-column=2'
 			list_opts="true 1 Install false 2 Download ";;
-		2)	zen_opts="--image=dialog-question --borders=15 --button=Abort!undo-rtl:1 --button=Select!gtk-ok:0 "
+		2)	zen_opts="--image=zen-question --borders=15 --button=Abort!zen-back:1 --button=Select!zen-ok:0 "
 			table_opts=''
 			list_opts=''
 			;;
@@ -3559,7 +3565,7 @@ from_directory(){
 		INFO
 		)
 		IFS=$(echo -en "\n\b")
-		cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+		cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		drv_pick=$( win_yad_list "${list_drv[*]}" )
 
@@ -3597,7 +3603,7 @@ from_directory(){
 		)
 
 		IFS=$(echo -en "\n\b")
-		cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+		cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		drv_pick=$( win_yad_list "${list_drv[*]}" )
 
@@ -3631,7 +3637,7 @@ from_directory(){
 		)
 
 		IFS=$(echo -en "\n\b")
-		cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+		cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		from_cmd=$( win_yad_list "${list_array[*]}" )
 
@@ -3687,7 +3693,7 @@ download_menu(){
 		output_type=1
 	if [ ${#DOWN_list[*]} -gt 3 ]; then
 		IFS=$(echo -en "\n\b")
-		cancel_lbl='Back to main menu!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+		cancel_lbl='Back to main menu!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='300'; w_height='0'
 		dl_cmd=$( win_yad_list "${DOWN_list[*]}" )
 	else
@@ -3699,7 +3705,7 @@ download_menu(){
 			${v}Are you sure ?${end}
 		MSG
 		)
-		qst=1; ok_lbl='Ok!gtk-ok'; cancel_lbl='Back to main menu!undo-rtl' ; kill_yad=0
+		qst=1; ok_lbl='Ok!zen-ok'; cancel_lbl='Back to main menu!zen-back' ; kill_yad=0
 		win_yad_warns
 	fi
 	if [ $? = 1 ]||[ $y_output = 1 ]; then
@@ -3716,7 +3722,7 @@ download_menu(){
 # 				[ $task_opt -gt 0 ] && exit 0 || base_menu
 # 			fi
 			warn_log="${r}Driver download failure${end}\nOutput is empty."
-			qst=0; ok_lbl='Ok!gtk-ok'; cancel_lbl='Back to main menu!undo-rtl' ; kill_yad=0
+			qst=0; ok_lbl='Ok!zen-ok'; cancel_lbl='Back to main menu!zen-back' ; kill_yad=0
 			win_yad_warns
 			[ $task_opt -gt 0 ] && exit 0 || base_menu
 		fi
@@ -3759,7 +3765,7 @@ last_pack(){
 	}
 	download_error(){
 		warn_log="$w_text"
-		qst=0; ok_lbl='' ; cancel_lbl='Got it!edit-redo-rtl' ; kill_yad=0; warn_image='xkill'
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-undo' ; kill_yad=0; warn_image='zen-error'
 		win_yad_warns
 		if [ $y_output = 1 ]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
 	}
@@ -3784,7 +3790,7 @@ last_pack(){
 
 		IFS=$(echo -en "\n\b")
 		l_text="${v}Choose the version to install${end}"
-		cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'; l_tail=0; w_head=0
+		cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'; l_tail=0; w_head=0
 		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='300'
 		run_pack=$(win_yad_list "${drv_list[*]}")
 
@@ -3835,7 +3841,7 @@ last_pack(){
 			Feel free to try at a later time.
 		WRN
 		)
-		qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-close' ; kill_yad=0; warn_image='xkill'
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-close' ; kill_yad=0; warn_image='zen-error'
 		win_yad_warns
 # 		if [ $? -eq 1 ]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
 		if [ $y_output -eq 1 ]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
@@ -3861,7 +3867,17 @@ last_pack(){
 # 	yad-print      Print        document-print	|	edit-redo-rtl	yellow down rtl arrow
 # 	yad-quit       Quit         application-exit	|
 
-win_confirm(){ # NOTE TO REMOPVE
+#	zen-back			red ltr arrow		|	zen-preferences	zenvidia config		|	zen-icon			swiss_knife
+#	zen-close		dialog-close		|	zen-xorg				xorg config				|	zen-icon-gr		swiss_knife green
+# 	zen-ok			dialog-apply		|	zen-swap				driver switch			|	zen-kill			xkill
+# 	zen-undo			yellow ltr arrow	|	zen-refresh			driver update			|	zen-docs			gtk-Documentation
+#	zen-stop			gtk-quit				|	zen-question		nvidia docs				|	zen-restore		gtk-restore
+# 	zen-warning		dialog-warning		|	zen-info				nvidia changelog		|	zen-settings	nvidia-settings
+#  zen-question	dialog-question	|	zen-warning			zenvidia changelog
+#	zen-error		gtk-error			|	zen-stop				menu quit
+# 	zen-info			gtk-info				|	zen-color			yad color config
+
+win_confirm(){ # NOTE TO REMOVE
 	## Popup confirmation window to be complete with the following vars:
 	#	confirm_msg="[string]" #TEXT
 	#	val_title="[string]"   #TEXT
@@ -3874,7 +3890,7 @@ win_confirm(){ # NOTE TO REMOPVE
 	IFS=$(echo -en "\n\b")
 	l_text="$confirm_msg\n\n${v}What do you want to do ?${end}"
 	menu_list=( false 1 "$val_confirm" false 2 "$val_back" )
-	cancel_lbl='Abort!undo-tlr'; ok_lbl='Do it!gtk-ok'; l_tail=0; w_head=0
+	cancel_lbl='Abort!zen-back'; ok_lbl='Do it!zen-ok'; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='300'; w_height='0'
 	confirm_w=$(win_yad_list "${menu_list[*]}")
 
@@ -3910,9 +3926,9 @@ win_yad_warns(){
 	# kill_yad=0/1 < do we need to kill parent window ?
 	#
 	# ex :
-	#	warn, one button, no kill		>> qst=0; ok_lbl='' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
-	#	question, no kill on error	>> qst=1; ok_lbl='Ok!gtk-ok' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
-	#	question, yad kill on error	>> qst=1; ok_lbl='Ok!gtk-ok' ; cancel_lbl='Close!gtk-no' ; kill_yad=1
+	#	warn, one button, no kill		>> qst=0; ok_lbl='' ; cancel_lbl='Close!zen-close' ; kill_yad=0
+	#	question, no kill on error	>> qst=1; ok_lbl='Ok!zen-ok' ; cancel_lbl='Close!zen-close' ; kill_yad=0
+	#	question, yad kill on error	>> qst=1; ok_lbl='Ok!zen-ok' ; cancel_lbl='Close!zen-close' ; kill_yad=1
 	# y_output replace $?
 
 	## grab parent YAD pid.
@@ -3921,11 +3937,11 @@ win_yad_warns(){
 	if [ $qst = 1 ]; then
 		cancel_btn="--button=$cancel_lbl:1"
 		ok_btn="--button=$ok_lbl:0"
-		[ "$warn_image" != '' ] || warn_image=dialog-question
+		[ "$warn_image" != '' ] || warn_image=zen-question
 	else
 		cancel_btn="--button=$cancel_lbl:1"
 		ok_btn=''
-		[ "$warn_image" != '' ] || warn_image=dialog-warning
+		[ "$warn_image" != '' ] || warn_image=zen-warning
 	fi
 	$d_yad --width=420 --height=100 --title="Zenvidia" --window-icon=$img_zen_desktop --center \
 	--image=$warn_image --borders=20 --text="$warn_log" $cancel_btn $ok_btn $kill_parent
@@ -3980,7 +3996,7 @@ win_yad_list(){
 	#  l_tail='0/1'				#> tail at the end of the list.
 	#
 	# ex : col_name=( "[string]" "[string]")
-	#  cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'; l_tail=0
+	#  cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'; l_tail=0
 	# 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='600'; w_height='420'
 	# or : list_type='checklist'; columns=5; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' '5' );
 	# 	sel_col='0'; sep=';' ;hid_col='3,5'; edit_col=0; col_tip=3; w_width='550'; w_height='400'; l_tail=0
@@ -4027,7 +4043,7 @@ win_yad_text(){
 	#  colors=0/1			#> set foreground, background colours.
 	# 	ex : w_formatted=1; w_wrap=0; _width='600'; w_height='400'; all_btn=0
 	#
-	#  log_txt="[string]"; cancel_lbl="Exit!gtk-close"; ok_lbl="Back!edit-redo-rtl"
+	#  log_txt="[string]"; cancel_lbl="Exit!gtk-close"; ok_lbl="Back!zen-undo"
 	#	w_formatted=1; w_wrap=1; w_width='600'; w_height='400'; all_btn=1; colors=1
 	#	win_yad_text "$log_brief"
 
@@ -4077,7 +4093,7 @@ win_open_switch(){
 				Confirmation window will be displayed.
 			SPW
 			)
-			qst=0; ok_lbl=''; cancel_lbl='Apply!gtk-yes'; kill_yad=0
+			qst=0; ok_lbl=''; cancel_lbl='Apply!zen-ok'; kill_yad=0
 			win_yad_warns
 			nv_open_switch
 			rm -f $(user_CF_DIR)/old_basic.conf
@@ -4097,7 +4113,7 @@ win_open_switch(){
 
 			unset list_array
 			list_array=( $PROP "0" "Load proprietary drivers" $OPEN "1" "Load Open Source Drivers" )
-			cancel_lbl='Cancel!undo-tlr'; ok_lbl='Select!gtk-ok'; l_tail=0; w_head=0
+			cancel_lbl='Cancel!zen-back'; ok_lbl='Select!zen-ok'; l_tail=0; w_head=0
 			list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='500'; w_height='0'
 			IFS=$(echo -en "\n\b")
 			driver_swt=$(win_yad_list "${list_array[*]}")
@@ -4146,7 +4162,7 @@ manage_pcks(){
 	unset list_array
 	l_text="${j}${bf}Manage drivers packages${end}${end}$w_text$hlp_tip"
 	list_array=( false 1 "Remove downloaded package" false 2 "Backup tools" false 3 "Restore a backup" false 4 "Remove Nvidia and restore to default" )
-	cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_packs=$(win_yad_list "${list_array[*]}")
 	if [ $? = 1 ]; then IFS=$ifs; menu_modif; fi
@@ -4173,7 +4189,7 @@ remove_pcks(){
 	)
 	# win_yad_list
 	l_text=$w_text
-	cancel_lbl='Back to menu!undo-tlr'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to menu!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='checklist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	IFS=$(echo -en "\n\b"); rm_packs=$( win_yad_list "${packs_list[*]}" )
 	if [ $? = 1 ]; then IFS=$ifs; manage_pcks; fi
@@ -4189,7 +4205,7 @@ remove_pcks(){
 		)
 		# win_yad_warns
 		warn_log="$w_text"
-		qst=1; ok_lbl='Got it!gtk-ok' ; cancel_lbl='Back to menu!undo-rtl' ; kill_yad=0
+		qst=1; ok_lbl='Got it!zen-ok' ; cancel_lbl='Back to menu!zen-back' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 0 ]; then
 			for vers in ${rm_packs[@]}; do
@@ -4208,7 +4224,7 @@ remove_pcks(){
 					)
 					# win_yad_warns
 					warn_log="$w_text"
-					qst=1; ok_lbl='Got it!gtk-ok' ; cancel_lbl='Back to menu!undo-rtl' ; kill_yad=0
+					qst=1; ok_lbl='Got it!zen-ok' ; cancel_lbl='Back to menu!zen-back' ; kill_yad=0
 					win_yad_warns
 					if [ $y_output = 0 ]; then
 						if [[ $ver_pack = $ver_txt ]]; then
@@ -4224,7 +4240,7 @@ remove_pcks(){
 							)
 							# win_yad_warns
 							warn_log="$w_text"
-							qst=0; ok_lbl='' ; cancel_lbl='I understand my mistake!gtk-ok' ; kill_yad=0
+							qst=0; ok_lbl='' ; cancel_lbl='I understand my mistake!zen-ok' ; kill_yad=0
 							win_yad_warns
 							manage_pcks
 						else
@@ -4248,7 +4264,7 @@ remove_pcks(){
 				${j}${rm_packs[*]}${end} package(s) removed.
 			MSG
 			)
-			qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-ok' ; kill_yad=0
+			qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-ok' ; kill_yad=0
 			win_yad_warns
 			manage_pcks
 		else
@@ -4272,7 +4288,7 @@ remove_baks(){
 	)
 	# win_yad_list
 	l_text=$w_text
-	cancel_lbl='Back to menu!undo-tlr'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to menu!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='checklist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	IFS=$(echo -en "\n\b"); rm_bak=$( win_yad_list "${bak_list[*]}" )
 
@@ -4289,7 +4305,7 @@ remove_baks(){
 		)
 		# win_yad_warns
 		warn_log="$w_text"
-		qst=1; ok_lbl='Got it!gtk-ok' ; cancel_lbl='Back to menu!undo-rtl' ; kill_yad=0
+		qst=1; ok_lbl='Got it!zen-ok' ; cancel_lbl='Back to menu!zen-back' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 1 ]; then
 			manage_pcks
@@ -4299,7 +4315,7 @@ remove_baks(){
 # 				echo -e "$nvbackup/$vers REMOVE"
 			done
 			warn_log="${vB}Driver(s) Archive(s) removed.${end}"
-			qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-ok' ; kill_yad=0
+			qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-ok' ; kill_yad=0
 			manage_pcks
 		fi
 	else
@@ -4318,8 +4334,8 @@ remove_nvidia(){
 	)
 	# win_yad_warns
 	warn_log="$w_text"
-	warn_image='xkill'
-	qst=1; ok_lbl='Got it!gtk-ok' ; cancel_lbl='Panic Button!undo-rtl' ; kill_yad=0
+	warn_image='zen-error'
+	qst=1; ok_lbl='Got it!zen-ok' ; cancel_lbl='Panic Button!zen-back' ; kill_yad=0
 	if [ $y_output = 1 ]; then manage_pcks; fi
 
 	y_text="${y}<b>Nvidia drivers complete removal</b>${end}"
@@ -4396,8 +4412,8 @@ remove_nvidia(){
 		)
 		# win_yad_warns
 		warn_log="$w_text"
-		#warn_image='xkill'
-		qst=0; ok_lbl='' ; cancel_lbl='Got it!edit-redo-rtl' ; kill_yad=0
+		#warn_image='zen-error'
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-undo' ; kill_yad=0
 		win_yad_warns
 		base_menu
 }
@@ -4422,7 +4438,7 @@ backup_tools(){
 	unset list_array
 	l_text="${j}${bf}Backup manager${end}${end}$hlp_tip$w_text"
 	list_array=( false 1 "Make a backup" false 2 "Remove a backup" )
-	cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_backup=$(win_yad_list "${list_array[*]}")
 	if [ $? = 1 ]; then IFS=$ifs; menu_modif; fi
@@ -4443,7 +4459,7 @@ backup_pcks(){
 			Do you want to overwrite ?
 		MSG
 		)
-		qst=1; ok_lbl='Overwrite!gtk-ok' ; cancel_lbl='No!gtk-no' ; kill_yad=0
+		qst=1; ok_lbl='Overwrite!zen-ok' ; cancel_lbl='No!zen-close' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 1 ]; then menu_modif; fi
 	else
@@ -4453,7 +4469,7 @@ backup_pcks(){
 			Please, confirm.
 		WRN
 		)
-		qst=1; ok_lbl='Ok!gtk-ok' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+		qst=1; ok_lbl='Ok!zen-ok' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 1 ]; then menu_modif; fi
 	fi
@@ -4486,7 +4502,7 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER
 			(<i>Desktop Manager, ex: systemctl disable $dm_serv.service</i>)${end}
 		WRN
 		)
-		qst=0; ok_lbl='' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+		qst=0; ok_lbl='' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 		win_yad_warns
 		base_menu
 	}
@@ -4508,7 +4524,7 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER
 		${v}Select the driver you want to restore.${end}
 	MSG
 	)
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok'
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	IFS=$(echo -en "\n\b"); drive_packs=$(win_yad_list "${drive_list[*]}")
 	if [ $? = 1 ]; then IFS=$ifs; manage_pcks; fi
@@ -4527,7 +4543,7 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER
 		if [ $? -eq 0 ]||[ ! -d $nv_root/$drive_packs ]; then
 			## win_yad_warns
 			warn_log="${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$(version)${end}."
-			qst=1; ok_lbl='Yes, restore and replace!gtk-ok' ; cancel_lbl='Abort!undo-rtl' ; kill_yad=0
+			qst=1; ok_lbl='Yes, restore and replace!zen-ok' ; cancel_lbl='Abort!zen-back' ; kill_yad=0
 			win_yad_warns
 			if [ $y_output = 1 ]; then manage_pcks; fi
 			## win yad options
@@ -4637,8 +4653,8 @@ edit_script_conf(){
 	done
 	help_tip="${v}\nDefine options and functions you would like to use of change\n${end}"
 
-	[ $task_opt -gt 0 ] && cancel_lbl='Exit!undo-ltr' || cancel_lbl='Back to menu!undo-ltr'
-	ok_lbl='Apply!gtk-ok'; list_type='checklist'; columns=5; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' '5' )
+	[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to menu!zen-back'
+	ok_lbl='Apply!zen-ok'; list_type='checklist'; columns=5; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' '5' )
 	sel_col='0'; sep=';'; hid_col='3,5'; edit_col=4; col_tip=3; w_width='580'; w_height='500'; l_tail=0; w_head=1
 	l_text="${j}${bf}Zenvidia Configuration${end}$help_tip${end}"
 
@@ -4706,7 +4722,7 @@ edit_script_conf(){
 			{ timeout=30; { blacklist_and_grub_set; } & eval lpid=$!; y_pulse; } | win_yad_progress
 		fi
 		if [ $use_open -ne $old_use_open ]; then
-			qst=1; ok_lbl="Yes, apply!gtk-ok"; cancel_lbl="No, I'll apply later!gtk-close"; kill_yad=0
+			qst=1; ok_lbl="Yes, apply!zen-ok"; cancel_lbl="No, I'll apply later!gtk-close"; kill_yad=0
 			warn_log=$( cat <<-WRN
 				${jB}Open Driver Switch${end}
 				${v}<b>Open driver settings have been change</b>.
@@ -4733,7 +4749,7 @@ edit_script_conf(){
 		## if use_open is change, then apply open/close source switch.
 	else
 		if [ $old_open_drv -ne $open_drv ]||[ $old_use_open -ne $use_open ]; then
-			qst=0; ok_lbl=''; cancel_lbl='Got it!gtk-yes'; kill_yad=0
+			qst=0; ok_lbl=''; cancel_lbl='Got it!zen-ok'; kill_yad=0
 			warn_log=$( cat <<-WRN
 				${jB}Driver Switch${end}
 				${v}<b>Open driver settings have been change.</b>
@@ -4873,6 +4889,14 @@ edit_color_conf(){
 ## This section is dedicated to Xorg config edition.
 # Here the full xorg editor GUI with specific functions.
 x_check_nv_doc(){
+# 	doc_brief=$( cat <<-TIP
+# 		<b>NVIDIA $section TIP</b> :
+# 		${y}$(cat $docs | \
+# 		sed -n "s/<dt>/\n*start*/;s/<\/dd>/*end*\n/g;/*start*/,/*end*/{;s/<[a>]*>//;/<a.*[title]?/,/[title=]?\".*\">/d; \
+# 		/<div.*/,/<\/div>/d;s/<[^>]*\(>\|$\)//g;/Option.*\"${option}\"/,/*end*/{s/^.*>\|&[a-z]*;/ /g;p}}" \
+# 		| sed '1,2d;/\".*\"/d;/*end*/,/$/d')${end}
+# 	TIP
+# 	)
 	doc_brief=$( cat <<-TIP
 		<b>NVIDIA $section TIP</b> :
 		${y}$(sed -n "s/<dt>/\n*start*/;s/<\/dd>/*end*\n/g;/*start*/,/*end*/{;s/<[a>]*>//;/<a.*[title]?/,/[title=]?\".*\">/d;\
@@ -4887,6 +4911,10 @@ x_check_nv_doc(){
 }
 x_check_man(){
 	# -D efface les variables d'environement de bases.
+#  	brief_tmp=$(mktemp --tmpdir brief.$device.$section.$n.XXXX)
+#  	man --nh --nj -P cat ${1} | col -b | sed -En 's/(\t)/ /g;s/([\ ]{2,10})/ /g;p' | grep -A${3} "${4}" > $brief_tmp
+#  	brief=$(man --nh --nj -P cat ${1} | col -b | sed -En 's/(\t)/ /g;s/([\ ]{2,10})/ /g;p' | grep -A${3} "${4}" | \
+# 	sed -n '/^ Option '${5}${2}${5}'.*$/,/^ [A-Z]\w* '${5}'.*'${5}'.*$/p' > $brief_tmp)
 	if [[ "$option_type" =~ 'Option' ]]; then
 		doc_brief=$(cat <<-TIP
 			<b>$DEV TIP</b> :
@@ -4895,7 +4923,28 @@ x_check_man(){
 			sed -n "/^ Option ${5}${2}${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"|sed '1d;$d' | tr -d '\n')${end}
 			TIP
 		)
+# 		doc_brief=$(cat <<-TIP
+# 			<b>$DEV TIP</b> :
+#
+# 			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
+# 			sed -En "/^ Option ${5}${2}${5}.*$/,/^ Option ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
+# 			TIP
+# 		)
+# 		doc_brief=$(cat <<-TIP
+# 			<b>$DEV TIP</b> :
+#
+# 			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
+# 			sed -En "/^ Option ${5}${2}${5}.*$/,/^ [A-Z]\w* (\")?.*(\")?.*$/p"| sed '1d;$d' | tr -d '\n')${end}
+# 			TIP
+# 		)
 	else
+# 		doc_brief=$(cat <<-TIP
+# 			<b>$DEV TIP</b> :
+#
+# 			${y}$(man -D --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
+# 			sed -En "s/‐|$/ /g;/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
+# 			TIP
+# 		)
 		doc_brief=$(cat <<-TIP
 			<b>$DEV TIP</b> :
 
@@ -4903,6 +4952,12 @@ x_check_man(){
 			sed -En "/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
 			TIP
 		)
+# 		doc_brief=$(cat <<-TIP
+# 			<b>$DEV TIP</b> :
+#
+# 			${y}$(cat $brief_tmp | sed -n "/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p")${end}
+# 			TIP
+# 		)
 	fi
 	if [ $(echo $doc_brief | wc -w) -le 6 ]; then
 
@@ -5165,7 +5220,8 @@ x_yad_block(){
 	unset device_options options_orig
 	device_options=($(tr '|' '\n' <<< $device_sections ))
 	## device part analyses.
-	for e in ${pci_dev_nb[*]}; do
+# 	for e in $pci_dev_nb; do
+	for e in ${dev_n[@]}; do
 # 		[ $e = 0 ] && c='<span color="#DE8400">' # YELLOW #FF9800
 # 		[ $e = 1 ] && c='<span color="#2CA900">' # LIGHTGREEN #2CA900
 # 		[ $e = 2 ] && c='<span color="#006BDE">' # LIGHTBLUE
@@ -5175,9 +5231,9 @@ x_yad_block(){
 		device='Device'$e
 		x_yad_tab "$KEY" "${dev_name[$e]}" "${vnd[$e]}" "n" "${vnd_id[$e]}"
 	done
-	cancel_lbl='Cancel!gtk-no' ; ok_lbl='Ok!gtk-ok'
+	cancel_lbl='Cancel!zen-close' ; ok_lbl='Ok!zen-ok'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
-	yad --key=$KEY --notebook --tab-pos=top --width=500 --height=400 --window-icon=$img_zen_desktop \
+	yad --key=$KEY --notebook --tab-pos=top --width=500 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop \
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]}
 	if [ $? = 0 ]; then
 		x_yad_extract
@@ -5190,7 +5246,7 @@ edit_xorg_full_text(){
 	IFS=$(echo -en "\n\b")
 	log_txt="${j}Edit Xorg config file${end}\nThe <b>Save</b> button will overwrite the existing file."
 	log_brief=$xorg_cfg
-	cancel_lbl="Exit!undo-rtl"; ok_lbl="Save!gtk-ok"
+	cancel_lbl="Exit!zen-back"; ok_lbl="Save!zen-ok"
 	w_formatted=1; w_wrap=1; w_width='620'; w_height='400'; all_btn=1; colors=1
 	edit_xorg=$(win_yad_text "$log_brief" "--editable")
 	IFS=$ifs
@@ -5219,7 +5275,7 @@ edit_xorg_conf(){
 	unset list_array
 	list_array=( TRUE 1 "Edit full Xorg (GUI)" FALSE 2 "Edit full Xorg (text)" FALSE 3 "Execute Xorg auto config" )
 	l_text="${j}${bf}Edit Xorg Config File${end}${end}\nEdit or manage Xorg config and options.\n$hlp_tip"
-	cancel_lbl='Back to main!undo-tlr'; ok_lbl='Select!gtk-ok'; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok'; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_xorg=$(win_yad_list "${list_array[*]}")
  	if [ $? = 1 ]; then
@@ -5246,14 +5302,14 @@ edit_distro_conf(){
 	WRN
 	)
 	# warn
-	qst=1; ok_lbl='I live dangerously!gtk-ok' ; cancel_lbl="Well, I'm finally a coward!undo-rtl" ; kill_yad=0
+	qst=1; ok_lbl='I live dangerously!zen-ok' ; cancel_lbl="Well, I'm finally a coward!zen-back" ; kill_yad=0
 	win_yad_warns
 	if [ $y_output = 1 ]; then menu_modif; fi
 	## edit config file.
 	log_brief="$(user_CF_DIR)/$plug_conf"
 	IFS=$(echo -en "\n\b")
 	log_txt="${j}<b>$plug_version configuration file</b>${end}"
-	cancel_lbl="Abort (panic button)!undo-rtl"; ok_lbl='Write!gtk-ok'
+	cancel_lbl="Abort (panic button)!zen-back"; ok_lbl='Write!zen-ok'
 	w_formatted=1; w_wrap=1; w_width='640'; w_height='400'; all_btn=1; colors=0
 	edit_plug_conf=$(win_yad_text "$log_brief" "--editable")
 	IFS=$ifs
@@ -5265,7 +5321,7 @@ edit_distro_conf(){
 read_help(){
 	IFS=$(echo -en "\n\b")
 	log_brief="$zen_docs/HELP.txt"
-	log_txt="${j}<b>Zenvidia help text</b>${end}"; cancel_lbl="Back to menu!undo-rtl"; ok_lbl=''
+	log_txt="${j}<b>Zenvidia help text</b>${end}"; cancel_lbl="Back to menu!zen-back"; ok_lbl=''
 	w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=0; colors=1
 	win_yad_text "$log_brief"
 	IFS=$ifs
@@ -5284,7 +5340,7 @@ read_about(){
 	)
 	IFS=$(echo -en "\n\b")
 	log_brief="$zen_docs/ABOUT.txt"
-	log_txt="$log_txt"; cancel_lbl='Back to menu!undo-tlr'; ok_lbl=''
+	log_txt="$log_txt"; cancel_lbl='Back to menu!zen-back'; ok_lbl=''
 	w_formatted=1; w_wrap=1; w_width='700'; w_height='400'; all_btn=0; colors=1
 	win_yad_text "$log_brief" "--image=swiss_knife"
 	IFS=$ifs
@@ -5301,8 +5357,8 @@ read_nv_help(){
 		done
 	fi
 	## display index first
-	[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Back to main!undo-tlr'
-	ok_lbl='Select!gtk-ok'; l_tail=0; w_head=0
+	[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to main!zen-back'
+	ok_lbl='Select!zen-ok'; l_tail=0; w_head=0
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='600'; w_height='420'
 	l_text="${j}${bf}Nvidia Documentation ${end}$help_tip${end}"
 
@@ -5316,8 +5372,8 @@ read_nv_help(){
 		chap_brief="$chap_start : "$(sed -En "/^$chap_start/,/^$chap_end/p" $nvi_docs/README.txt | sed -En "/^____/,/^____/p")
 
 		log_txt="${j}Nvidia $(version) Documentation - ${y}$chap_start${end}${end}"
-		[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Exit to main!undo-tlr'
-		ok_lbl='Back to index!edit-redo-rtl'
+		[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Exit to main!zen-back'
+		ok_lbl='Back to index!zen-undo'
 		w_formatted=0; w_wrap=1; w_width='620'; w_height='400'; all_btn=1; colors=1
 
 		win_yad_text "$chap_brief"
@@ -5346,8 +5402,8 @@ read_changelog(){
 			log_brief=$(echo -e "\n\nNothing to display here.\n\nLog file empty.")
 		fi
 		log_txt="${bf}${j}Changelog : ${y}$entrylog${end}${end}${end}"
-		[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Back to menu!undo-tlr'
-		ok_lbl='Back to index!edit-redo-rtl'
+		[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to menu!zen-back'
+		ok_lbl='Back to index!zen-undo'
 		w_formatted=0; w_wrap=1; w_width='600'; w_height='400'; all_btn=1; colors=1
 		win_yad_text "$log_brief"
 		if [ $_exit -eq 1 ]; then
@@ -5364,11 +5420,11 @@ read_changelog(){
 	}
 	relist(){
 		if [[ $relist_title != '' ]]; then
-			cancel_lbl='Back to list!edit-redo-rtl'
-			ok_lbl='Read!gtk-ok'
+			cancel_lbl='Back to list!zen-undo'
+			ok_lbl='Read!zen-ok'
 		else
-			[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Back to main!undo-tlr'
-			ok_lbl='Select!gtk-ok'
+			[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to main!zen-back'
+			ok_lbl='Select!zen-ok'
 		fi
 		if [[ ${#entrylog_list[@]} -le 1 ]]; then
 			for log_line in ${entry_list[@]}; do
@@ -5464,9 +5520,9 @@ read_zen_changelog(){
 		fi
 
 		if [ $task_opt -gt 0 ]; then
-			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to list!edit-redo-rtl"
+			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to list!zen-undo"
 		else
-			cancel_lbl="Back to previous!undo-rtl"; ok_lbl="Back to list!edit-redo-rtl"
+			cancel_lbl="Back to previous!zen-back"; ok_lbl="Back to list!zen-undo"
 		fi
 		log_txt="${v}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}"
 		w_formatted=1; w_wrap=1; w_width='600'; w_height='300'; all_btn=1; colors=1
@@ -5490,9 +5546,9 @@ read_zen_changelog(){
 		l_text="${j}${bf}Zenvidia Change Logs list ${end}${end}"
 		col_name=( "" "Version")
 		if [ $task_opt -gt 0 ]; then
-			cancel_lbl='Exit!gtk-no'; ok_lbl='Read!gtk-ok'
+			cancel_lbl='Exit!zen-close'; ok_lbl='Read!zen-ok'
 		else
-			cancel_lbl='Back to main!undo-rtl'; ok_lbl='Read!gtk-ok'
+			cancel_lbl='Back to main!zen-back'; ok_lbl='Read!zen-ok'
 		fi
 		list_type='radiolist'; columns=2; sel_col=2; sep=''; l_tail=1; w_head=1
 		hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='300'
@@ -5548,8 +5604,8 @@ nv_config(){
 zen_notif_setup(){
 	setup_validation(){
 		warn_log="${vB}Autostart launcher will be set to :\n<b>></b>${end} ${j}$_notif${end}"
-		[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Back to menu!undo-rtl'
-		qst=1; ok_lbl='Ok!gtk-ok' ; kill_yad=0
+		[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to menu!zen-back'
+		qst=1; ok_lbl='Ok!zen-ok' ; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 0 ]; then
 			sed -Ei "s/(Exec=zen_notify) -[a-z]/\1 $_set/" $notif_desk_file
@@ -5599,8 +5655,8 @@ zen_notif_setup(){
 	)
 
 	IFS=$(echo -en "\n\b")
-	[ $task_opt -gt 0 ] && cancel_lbl='Exit!gtk-no' || cancel_lbl='Back to main!undo-rtl'
-	ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	[ $task_opt -gt 0 ] && cancel_lbl='Exit!zen-close' || cancel_lbl='Back to main!zen-back'
+	ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 
 	menu_notif=$( win_yad_list "${setup_list[*]}" )
@@ -5643,7 +5699,7 @@ menu_install(){
 	done 
 	IFS=$(echo -en "\n\b")
 	l_text="${j}${bf}Install new drivers${end}\n${end}${v}$hlp_tip${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_inst=$( win_yad_list "${ins_list[*]}" )
 	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
@@ -5697,7 +5753,7 @@ menu_update(){
 	done 
 	IFS=$(echo -en "\n\b")
 	l_text="${j}${bf}Update Drivers or kernel modules${end}${end}${v}$hlp_tip${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_upd=$( win_yad_list "${up_list[*]}" )
 	if [ $? = 1 ]; then IFS=$ifs; base_menu; fi
@@ -5773,7 +5829,7 @@ menu_modif(){
 
 	IFS=$(echo -en "\n\b")
 	l_text="${j}${bf}Configuration and Tools${end}${end}$hlp_tip\n${v}<b>Select here the element to modify or edit</b>${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_mod=$( win_yad_list "${mod_list[*]}" )
 
@@ -5833,7 +5889,7 @@ menu_manage(){
 	done
 	IFS=$(echo -en "\n\b")
 	l_text="${j}${bf}Help and Documentation${end}${end}${v}$hlp_tip${end}"
-	cancel_lbl='Back to main!undo-rtl'; ok_lbl='Select!gtk-ok' ; l_tail=0; w_head=0
+	cancel_lbl='Back to main!zen-back'; ok_lbl='Select!zen-ok' ; l_tail=0; w_head=0
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_mng=$( win_yad_list "${mng_list[*]}" )
 
@@ -5991,7 +6047,7 @@ is_SU(){
 	See ${j}<b>Zenvidia</b> <i>(admin)</i>${end} instead.
 	WRN
 	)
-	qst=0; ok_lbl='' ; cancel_lbl='Got it!gtk-no' ; kill_yad=0
+	qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-close' ; kill_yad=0
 	win_yad_warns
 }
 
@@ -6052,7 +6108,7 @@ base_menu(){
 	)
 
 	IFS=$(echo -en "\n\b")
-	unset col_name; cancel_lbl='Exit!undo-tlr'; ok_lbl='Select!gtk-ok'
+	unset col_name; cancel_lbl='Exit!zen-stop'; ok_lbl='Select!zen-ok'
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0
 	w_width='300'; w_height='300'; l_tail=0; w_head=0
 	menu_list=( false 1 "Install drivers" false 2 "Update drivers or modules" false 3 "Configuration and Tools" false 4 "Help and Documentation" )
@@ -6074,8 +6130,8 @@ install_controls(){
 		dir_msg="${j} OK${end}"
 	else		
 		warn_log="${j}ERROR\n${y}Zenvidia repository is missing${end}${end}"
-		warn_image='xkill'
-		qst=0; ok_lbl='' ; cancel_lbl='Close!gtk-no' ; kill_yad=0
+		warn_image='zen-error'
+		qst=0; ok_lbl='' ; cancel_lbl='Close!zen-close' ; kill_yad=0
 		win_yad_warns
 	fi
 	# check/change run packages permission
@@ -6248,8 +6304,8 @@ PCI_ID
 ## configuration file check
 if [ ! -s $script_conf ]; then
 	warn_log="<b>Script's config file missing.\n</b>"
-	warn_image='xkill'
-	qst=0; ok_lbl='' ; cancel_lbl='Abort!gtk-no' ; kill_yad=0
+	warn_image='zen-error'
+	qst=0; ok_lbl='' ; cancel_lbl='Abort!zen-close' ; kill_yad=0
 	win_yad_warns
 	exit 0
 fi
