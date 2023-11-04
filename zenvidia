@@ -17,7 +17,7 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
 
-# set -x
+ set -x
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -38,13 +38,13 @@ docs="--documentation-prefix=$install_dir"
 profile_path="$install_dir/share/nvidia"
 profile="--application-profile-path=$profile_path"
 icon_stock=$install_dir/share/pixmaps
-img_zen_desktop=$icon_stock/zen-icon.png
-img_zen_bar=zen-icon
+img_zen_desktop=$icon_stock/zen-emblem.png
+img_zen_bar=zen-emblem
 # user_DL_DIR=$(su "$(who | awk '{print $1}')" xdg-user-dir DOWNLOAD)
 xt_hold=0
 xt_delay=4
 
-
+export PATH=$PATH:$install_dir/bin
 
 E="Download"
 PM="Back to previous menu"
@@ -429,9 +429,12 @@ libclass(){
 	else
 		ELF_TYPE=""
 	fi
+
 }
 ## dependencies control
 dep_exec_check(){
+# 	logfile=$(mktemp --tmpdir brief.logfile.1.XXXX)
+#  	{
 	## clean depencies list if any.
 	unset deplist
 	#p_xterm=$(command -v xterm) || deplist+=("xterm")
@@ -459,19 +462,17 @@ dep_exec_check(){
 # 	d_ssl=$(command -v openssl) && deplist+=("openssl")
 # 	d_randr=$(command -v xrandr) && deplist+=("xrandr")
 # 	pk_exec=$(command -v pkexec) && deplist+=("polkit")
-# 	d_nv_installer=$(command -v nvidia-installer)
-# 	d_nv_settings=$(command -v nvidia-settings)
+	d_nv_installer=$(command -v nvidia-installer)
+	d_nv_settings=$(command -v nvidia-settings)
+	d_nv_persistenced=$(command -v nvidia-persistenced)
 	d_nv_probe=$(command -v nvidia-modprobe)
-	d_nv_installer=/usr/local/bin/nvidia-installer
-	d_nv_settings=/usr/local/bin/nvidia-settings
-# 	d_nv_probe=/usr/local/bin/nvidia-modprobe
 	d_probe=$(command -v modprobe)
 	i_sys=$(command -v dracut)
 	i_init=$(command -v update-initramfs)
 	i_cpio=$(command -v mkinitcpio)
-
 	# grub could be, grub-[command] or grub2-[command]. Let 'find' catch it for us.
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
+# 	} >$logfile 2>&1
 }
 dep_control(){
 	unset dep_text
@@ -597,6 +598,9 @@ connection_control(){
 }
 ## gcc and other compatibility control
 compil_vars(){
+#  	logfile=$(mktemp --tmpdir brief.logfile.2.XXXX)
+#  	{
+# 	} >$logfile 2>&1
 # 	if [[ -s $d_nv_installer ]]; then
 	if [ -s ${d_nv_installer} ]; then
 		NV_bin_ver=$($d_nv_installer -v | grep "nvidia-installer"|awk '{print $3}')
@@ -625,6 +629,7 @@ compil_vars(){
 	xt_options=$xt_colors''$xx_hold' -fn 8x13 -geometry 80x24+'$[ ( ($(printf "$x_pixel"| cut -d';' -f1)-660)/2) ]'+0'
 	grub_cfg=$(find /boot -wholename "*/grub.cfg")
 	grub_def=/etc/default/grub
+# 	 	} >$logfile 2>&1
 }
 ## If version 'undifined', control if driver is initialy installed.
 check_version(){ # ALERT CHECK where the vars starts.
@@ -754,13 +759,6 @@ rt_options(){
 		fi
 	fi
 }
-nv_drv_list(){ # NOTE : STILL IN USE ?
-	unset _drv_list
-	for drv in {nvidia_uvm,nvidia_drm,nvidia_modeset,nvidia}; do
-		if [ $(grep -owc "$drv" /etc/modprobe.d/nvidia-blacklist.conf) -eq 0 ]; then _drv_list+=("$drv"); fi
-	done
-	echo "${_drv_list[*]}"
-}
 ## nvidia driver vars [in functions)
 ## some sets have to be place as function to be re-used at multi levels.
 version(){
@@ -770,11 +768,16 @@ version(){
 }
 new_version(){
 	if [ $from_install = 1 ]; then
-			if [ "$LAST_PACK" ]; then
-				echo "$LAST_PACK"
-			else
+			if [ "$run_pkg" ]; then
 				echo "$run_pkg" | sed -En "s/^.*-(.*)/\1/; s/.run//g;p"
+			else
+				echo "$LAST_PACK"
 			fi
+# 			if [ "$LAST_PACK" ]; then
+# 				echo "$LAST_PACK"
+# 			else
+# 				echo "$run_pkg" | sed -En "s/^.*-(.*)/\1/; s/.run//g;p"
+# 			fi
 	else
 # 		test $LAST_BETA && echo $LAST_BETA || echo "$(version)"
 		echo "$(version)"
@@ -911,24 +914,23 @@ exec_initramfs(){ # ALERT TMP_C
 	# 	echo "# Updating $KERNEL initramfs."; sleep 2
 	# 	progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; }
 	# 	m=1 ;
-# 	progress "$INITRAM --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
-# 	progress "dracut --add-drivers $(nv_drv_list) --kver $KERNEL"; . $tmp_c ; rm -f $tmp_c
 	progress "$(initramfs_tools) $KERNEL"; . $tmp_c #; rm -f $tmp_c # ALERT
-# 	command -v restorecon &>/dev/null && restorecon -iF /boot/symvers-$KERNEL.*
 	return $?
 }
-nv_percistenced(){
+nv_persistenced(){
 	## nvidia percistenced allow GPU to be pre init in some case.
-	nv_percist_ctl=/lib/systemd/system/nvidia-persistenced.service
+	nv_persist_ctl=/lib/systemd/system/nvidia-persistenced.service
 	if [[ $use_persistenced = 1 || $use_open = 1 && $(chk_version) -ge 535 ]]; then
-		[ -f $nv_percist_ctl ] || { touch $nv_percist_ctl; chmod 644 $nv_percist_ctl; }
-		nv_percistenced_conf
+		[ -f $nv_persist_ctl ] || { touch $nv_persist_ctl; chmod 644 $nv_persist_ctl; }
+		nv_persistenced_conf
+		systemctl daemon reload
 		systemctl enable nvidia-persistenced.service
 		systemctl start nvidia-persistenced.service
 	else
 		[ -f $nv_percist_ctl ] && {
 			systemctl disable nvidia-persistenced.service
 			systemctl stop nvidia-persistenced.service
+			systemctl daemon reload
 		}
 	fi
 }
@@ -937,13 +939,15 @@ back_old_driver(){
 	cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
 }
 restore_old_driver(){
-	echo -e "#${j} ** Restoring previous drivers to $kernel_path ** ${end}"
-	cp -f $nvtmp/old_kernel/nvidia* $kernel_path/
-	progress_msg(){ echo -e "# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
-	m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
+	if [ -f $nvtmp/old_kernel/nvidia.*[ko\|ko.xz] ]; then
+		echo -e "#${j} ** Restoring previous drivers to $kernel_path ** ${end}"
+		cp -f $nvtmp/old_kernel/nvidia* $kernel_path/
+		progress_msg(){ echo -e "# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
+		m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
+	fi
 }
 ## configuration ###
-nv_percistenced_conf(){
+nv_persistenced_conf(){
 	## NOTE : ExecStart could be added a multiple time.
 	cat <<-SYS > $nv_percist_ctl
 		[Unit]
@@ -954,7 +958,7 @@ nv_percistenced_conf(){
 		Type=forking
 		PIDFile=/var/run/nvidia-persistenced/nvidia-persistenced.pid
 		#Restart=always
-		ExecStart=/usr/bin/nvidia-persistenced --user $(def_user) --persistence-mode --verbose
+		ExecStart=$d_nv_persistenced --user $(def_user) --persistence-mode --verbose
 		ExecStopPost=/bin/rm -rf /var/run/nvidia-persistenced
 
 		[Install]
@@ -1041,7 +1045,7 @@ nv_open_switch(){ # ALERT TMP_C
 					echo -e "# ${v}Unset ${y}$drv_off${end} kernel options.${end}"
 					[ -f $probe_open ] && rm -f $probe_open
 				fi
-				nv_percistenced
+				nv_persistenced
 				echo -e "# ${v}Re-create ${j}$KERNEL${end} initramfs ...${end}"
 				sleep 2
 				progress_msg(){ echo "# ${ge}${sf} * Exec $KERNEL modules iniramfs ($m sec.)${end}${end}"; echo "$m"; } ; m=1; do_slp=1
@@ -1599,7 +1603,8 @@ xorg_conf(){
 
 	sec_files
 	sec_layout
-	for e in $pci_dev_nb; do
+# 	for e in $pci_dev_nb; do
+	for e in ${dev_n[@]}; do
 		#sec_output
 		sec_device
 		sec_option_df
@@ -1780,6 +1785,8 @@ post_install(){ # PROGRESS : TODO optimus section.
 			cp -f $xorg_def/modules/drivers/nvidia_drv.so $nv_root/nvidia.$(new_version)/xorg/modules/drivers/
 		fi
 	fi
+	## enable nvidia-persistenced if needed.
+	nv_persistenced
 
 	n=$[ $n+2 ]; echo "$n" # 11
 	echo "# ${v}${j}($n%)${end} - Blacklisting and other routines${end}"; sleep 2
@@ -2255,10 +2262,18 @@ build_dkms(){ # ALERT TMP_C
 				#echo -e "# copy log"
 				make_log_file=$nvlog/dkms/$_dkms/make.log
 				echo -e "make_log_file=$make_log_file" >> $tmp_b
+				#echo -e "error_log=0" >> $tmp_b
 				echo -e "# ${ge}* $_dkms $(new_version) log found.${end}"
 				echo -e "# ${ge}* $_dkms make log copied to $make_log_file.${end}"
 			else
 				echo -e "# ${ge}* No $(new_version) $_dkms build log found.${end}"
+				if [ -f /var/lib/dkms/$_dkms/$(new_version)/build/make.log ]; then
+					echo -e "# ${ge}* $(new_version) ${r}FAILURE log found${end}.${end}"
+					make_log_file=/var/lib/dkms/$_dkms/$(new_version)/build/make.log
+					echo -e "make_log_file=/var/lib/dkms/$_dkms/$(new_version)/build/make.log" >> $tmp_b
+					#echo -e "error_log=1" >> $tmp_b
+					echo -e "pass=1" >> $tmp_b
+				fi
 			fi
 			if [[ $_dkms =~ ^open ]]; then sleep 4; else sleep 2; fi
 		}
@@ -2499,7 +2514,6 @@ nv_cmd_install_driver(){ ## NOTE : Since 545 serie nvidia-installer can install 
 			else
 				[ -f $probe_open ] && rm -f $probe_open
 			fi
-			nv_percistenced
 		else
 			[ -f $tmp_b ] && echo -e "pass=1" >> $tmp_b
 		fi
@@ -2635,7 +2649,7 @@ install_log_messages(){
 			Do you want to read $make_log_file ?
 		ERROR
 		)
-		qst=1; ok_lbl="Yes!zen-ok"; cancel_lbl="No thanks, shits happens!zen-close"; kill_yad=1
+		qst=1; ok_lbl="Yes!zen-ok"; cancel_lbl="No thanks, shits happens!zen-close"; kill_yad=0
 		win_yad_warns
 		if [ $y_output = 0 ]; then
 			IFS=$(echo -en "\n\b")
@@ -2644,7 +2658,7 @@ install_log_messages(){
 			cancel_lbl="Exit!gtk-close"; ok_lbl="Back to main!zen-back"
 			w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=1; colors=1
 			win_yad_text "$log_brief"
-			if [ $_exit = 0 ]; then IFS=$ifs; kill $YAD_PID; base_menu ; else exit 0; fi
+			if [ $_exit = 1 ]; then IFS=$ifs; exit 0; fi
 		fi
 	fi
 	## realtime report messages.
@@ -2666,8 +2680,8 @@ install_report_log(){
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
 install_drv(){ # ALERT TMP_C
-	## tell script that all post_install process came from global install.
-# 	from_install=1
+	## tell script that all post_install process came from global install. Needed in some cases.
+	from_install=1
 	## check for for patch in new version.
 	nv_build_options
 	rt_options
@@ -2704,7 +2718,8 @@ install_drv(){ # ALERT TMP_C
 		n=$[ $n+1 ] ; echo "$n"
 		echo "# ${v}${j}($n%)${end} - Checking compatibility data files${end}"; sleep 1
 		DRV=$(new_version)
-		for e in ${pci_dev_nb[@]}; do
+# 		for e in ${pci_dev_nb[@]}; do
+		for e in ${dev_n[@]}; do
 			if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
 				$(hardware_compat)
 				. $tmp_b
@@ -3003,7 +3018,8 @@ backup_old_version(){
 		cd $nvbackup
 		## make the archive.
 		m=1
-		if [ $YAD_PID -gt 0 ]; then
+# 		if [ $YAD_PID -gt 0 ]; then
+		if [ $from_install -gt 0 ]; then
 		count_msg(){ echo "# ${ge}${sf} * ($m%) - Backup : $bak_version tar ball creation${end}${end}"; sleep 1; echo "$m"; }
 		do_slp=1; progress_msg(){ echo "# ${ge}${sf} * ($m%) - Backup : $bak_version GZIP archive creation${end}${end}"; echo "$m"; }
 		else
@@ -3060,7 +3076,8 @@ backup_old_version(){
 ## compress in gz.
 		progress "gzip -c nvidia.$bak_version.tar > nvidia.$bak_version.tar.gz"
 		echo "" > $tmp_c
-		if [ $zen_pid -gt 0 ]; then
+# 		if [ $zen_pid -gt 0 ]; then
+		if [ $from_install -gt 0 ]; then
 		echo "# ${ge}${sf} * (100%) - Backup: ${j}$bak_version${end} GZIP archive created${end}${end}"; sleep 1
 		else
 		echo "# Backup: $bak_version GZIP archive created"; sleep 1
@@ -3116,9 +3133,8 @@ upgrade_kernel(){
 	nv_cmd_update
 	if [ $pass -gt 0 ]||[ ! -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
 		warn_log="${j}INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')${end}."
-		qst=0; ok_lbl='' ; cancel_lbl='Back to main menu!zen-back' ; kill_yad=1
+		qst=0; ok_lbl='' ; cancel_lbl='Got it!zen-back' ; kill_yad=0
 		win_yad_warns
-		if [ $y_output = 1 ]; then base_menu; fi
 	fi
 	new_version=$(version)
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
@@ -3211,7 +3227,7 @@ hardware_compat(){
 	echo -e "------" >> $upt_compat_list
 
 	## here start the compatibility tool.
-	unset COMPAT class_list sed_output
+	unset COMPAT class_list sed_output comp_display_legacy comp_result
 	[ -d $nvcompat ]|| mkdir -p $nvcompat/series
 	IFS=$(echo -en "\n\b")
 	## define the separation chapter series section.
@@ -3310,7 +3326,7 @@ hardware_compat(){
 # 	echo "$DRV,$comp_check,$legacy_found" >> $upt_comp_tmp
 }
 check_update(){
-	unset DIFF_list
+	unset DIFF_list LOCAL_DRV
 	LAST_IN=$(version)
 	LAST_BETA=$(tac $(rem_drv_list) | sed -n 1p)
 	upt_comp_tmp=$(mktemp --tmpdir zn_vars.XXXX )
@@ -3331,7 +3347,7 @@ check_update(){
 	comp_display_legacy=0
 
 	## desktop could have more than one device managed. So check.
-	for e in $pci_dev_nb; do
+	for e in ${dev_n[@]}; do # ALERT TODO CHECK
 		if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
 			for DRV in $DIFF_list; do
 				## test existence of the new driver version in remote tree and compatibilities.
@@ -3369,13 +3385,13 @@ check_update(){
 	win_update
 }
 win_update(){
+	unset DOWN_list main_msg more_msg COMP_L in_installed in_compat_list un_compat_list compat_msg
 	## define window messages and display compatibilities.
 	in_local_repos=0
 	in_dl_repos=0
 	in_installed=0
 	in_compat_list=0
-# 	end_msg="What do you want to do ?"
-	unset DOWN_list main_msg more_msg
+
 	## get driver list from check_update to define local presence and what to display.
 	# LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow")
 	# '364.12,0,0,0,"0",GeForce RTX 2060,,1'
@@ -3736,8 +3752,8 @@ download_only(){
 	if [ -f $buildtmp/$run_pack ]; then
 
 		warn_log="${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
-		warn_image='swiss_knife'
-		qst=0; cancel_lbl='Close!gtk-close' ; kill_yad=0
+		warn_image='zen-emblem'
+		qst=0; cancel_lbl='Close!zen-close' ; kill_yad=0
 		win_yad_warns
 
 		[ $rem_extract = 0 ] || test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
@@ -3746,8 +3762,8 @@ download_only(){
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	else
 		warn_log="${v}Driver download ${j}$LAST_PACK${end} failure.\n The package ${j}$run_pack${end} doesn't exist.${end}"
-		warn_image='swiss_knife'
-		qst=0; cancel_lbl='Close!gtk-close' ; kill_yad=0
+		warn_image='zen-emblem'
+		qst=0; cancel_lbl='Close!zen-close' ; kill_yad=0
 		win_yad_warns
 
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
@@ -3852,23 +3868,9 @@ last_pack(){
 ## TOOLS ###
 
 ## common windows.
-## available icons with or without yad predifined values.
-# 	yad-about      About        help-about			|	yad-refresh    Refresh      view-refresh
-# 	yad-add        Add          list-add			|	yad-remove     Remove       list-remove
-# 	yad-apply      Apply        gtk-apply			|	yad-save       Save         document-save
-# 	yad-cancel     Cancel       gtk-cancel			|	yad-search     Search       system-search
-# 	yad-clear      Clear        document-clear	|	yad-settings   Settings     gtk-preferences
-# 	yad-close      Close        gtk-no				|	yad-yes        Yes          gtk-yes
-# 	yad-edit       Edit         gtk-edit			|	gtk-go-up		green rtl arrow
-# 	yad-execute    Execute      system-run			|	gtk-go-down		yellow ltr arrow
-# 	yad-no         No           gtk-no				|	gtk-undo-ltr	red down ltr arrow
-# 	yad-ok         OK           gtk-ok				|	gtk-undo-rtl	red down rtl arrow
-# 	yad-open       Open         document-open		|	edit-redo		yellow down ltr arrow
-# 	yad-print      Print        document-print	|	edit-redo-rtl	yellow down rtl arrow
-# 	yad-quit       Quit         application-exit	|
-
-#	zen-back			red ltr arrow		|	zen-preferences	zenvidia config		|	zen-icon			swiss_knife
-#	zen-close		dialog-close		|	zen-xorg				xorg config				|	zen-icon-gr		swiss_knife green
+## available icons.
+#	zen-back			red ltr arrow		|	zen-preferences	zenvidia config		|	zen-emblem		swiss_knife
+#	zen-close		dialog-close		|	zen-xorg				xorg config				|	zen-emblem-gr	swiss_knife green
 # 	zen-ok			dialog-apply		|	zen-swap				driver switch			|	zen-kill			xkill
 # 	zen-undo			yellow ltr arrow	|	zen-refresh			driver update			|	zen-docs			gtk-Documentation
 #	zen-stop			gtk-quit				|	zen-question		nvidia docs				|	zen-restore		gtk-restore
@@ -3877,31 +3879,6 @@ last_pack(){
 #	zen-error		gtk-error			|	zen-stop				menu quit
 # 	zen-info			gtk-info				|	zen-color			yad color config
 
-win_confirm(){ # NOTE TO REMOVE
-	## Popup confirmation window to be complete with the following vars:
-	#	confirm_msg="[string]" #TEXT
-	#	val_title="[string]"   #TEXT
-	#	val_confirm="[string]" #TEXT
-	#	val_back="[string]"    #TEXT
-	#	val_cancel="[string]"  #CMD
-	#	val_exit="[string]"    #EXIT CMD
-
-	unset menu_list
-	IFS=$(echo -en "\n\b")
-	l_text="$confirm_msg\n\n${v}What do you want to do ?${end}"
-	menu_list=( false 1 "$val_confirm" false 2 "$val_back" )
-	cancel_lbl='Abort!zen-back'; ok_lbl='Do it!zen-ok'; l_tail=0; w_head=0
-	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='300'; w_height='0'
-	confirm_w=$(win_yad_list "${menu_list[*]}")
-
-	if [ $? = 1 ]; then IFS=$ifs; ${val_cancel} ; fi
-	IFS=$ifs
-	case $confirm_w in
-		"1") shift ;;
-		"2") ${val_exit};;
-		*) ${val_cancel};;
-	esac
-}
 win_log_options(){
 	if [ $xt_hold = 1 ]; then
 		esc_message="# ${nr}*****  Close window to escape *****${end}"
@@ -3910,12 +3887,6 @@ win_log_options(){
 		esc_message=''
 		x_hold='--auto-close'
 	fi
-}
-win_yad_log(){ # ALERT TO REMOVE.
-	# x_hold='--auto-close'/'' # define if progress window will aut close at the end of process or not.
-	$d_yad --width=600 --height=300 --title "Zenvidia" --window-icon=$img_zen_desktop --progress --center --borders=15 \
- 	--hide-text --enable-log='' --log-expanded --log-height=300 $x_hold \
- 	--text="${v}$y_text${end}"
 }
 win_yad_warns(){
 	# warn_log="[warn message string]"
@@ -4889,14 +4860,6 @@ edit_color_conf(){
 ## This section is dedicated to Xorg config edition.
 # Here the full xorg editor GUI with specific functions.
 x_check_nv_doc(){
-# 	doc_brief=$( cat <<-TIP
-# 		<b>NVIDIA $section TIP</b> :
-# 		${y}$(cat $docs | \
-# 		sed -n "s/<dt>/\n*start*/;s/<\/dd>/*end*\n/g;/*start*/,/*end*/{;s/<[a>]*>//;/<a.*[title]?/,/[title=]?\".*\">/d; \
-# 		/<div.*/,/<\/div>/d;s/<[^>]*\(>\|$\)//g;/Option.*\"${option}\"/,/*end*/{s/^.*>\|&[a-z]*;/ /g;p}}" \
-# 		| sed '1,2d;/\".*\"/d;/*end*/,/$/d')${end}
-# 	TIP
-# 	)
 	doc_brief=$( cat <<-TIP
 		<b>NVIDIA $section TIP</b> :
 		${y}$(sed -n "s/<dt>/\n*start*/;s/<\/dd>/*end*\n/g;/*start*/,/*end*/{;s/<[a>]*>//;/<a.*[title]?/,/[title=]?\".*\">/d;\
@@ -4911,10 +4874,6 @@ x_check_nv_doc(){
 }
 x_check_man(){
 	# -D efface les variables d'environement de bases.
-#  	brief_tmp=$(mktemp --tmpdir brief.$device.$section.$n.XXXX)
-#  	man --nh --nj -P cat ${1} | col -b | sed -En 's/(\t)/ /g;s/([\ ]{2,10})/ /g;p' | grep -A${3} "${4}" > $brief_tmp
-#  	brief=$(man --nh --nj -P cat ${1} | col -b | sed -En 's/(\t)/ /g;s/([\ ]{2,10})/ /g;p' | grep -A${3} "${4}" | \
-# 	sed -n '/^ Option '${5}${2}${5}'.*$/,/^ [A-Z]\w* '${5}'.*'${5}'.*$/p' > $brief_tmp)
 	if [[ "$option_type" =~ 'Option' ]]; then
 		doc_brief=$(cat <<-TIP
 			<b>$DEV TIP</b> :
@@ -4923,28 +4882,7 @@ x_check_man(){
 			sed -n "/^ Option ${5}${2}${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"|sed '1d;$d' | tr -d '\n')${end}
 			TIP
 		)
-# 		doc_brief=$(cat <<-TIP
-# 			<b>$DEV TIP</b> :
-#
-# 			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
-# 			sed -En "/^ Option ${5}${2}${5}.*$/,/^ Option ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
-# 			TIP
-# 		)
-# 		doc_brief=$(cat <<-TIP
-# 			<b>$DEV TIP</b> :
-#
-# 			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
-# 			sed -En "/^ Option ${5}${2}${5}.*$/,/^ [A-Z]\w* (\")?.*(\")?.*$/p"| sed '1d;$d' | tr -d '\n')${end}
-# 			TIP
-# 		)
 	else
-# 		doc_brief=$(cat <<-TIP
-# 			<b>$DEV TIP</b> :
-#
-# 			${y}$(man -D --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
-# 			sed -En "s/‐|$/ /g;/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
-# 			TIP
-# 		)
 		doc_brief=$(cat <<-TIP
 			<b>$DEV TIP</b> :
 
@@ -4952,12 +4890,6 @@ x_check_man(){
 			sed -En "/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
 			TIP
 		)
-# 		doc_brief=$(cat <<-TIP
-# 			<b>$DEV TIP</b> :
-#
-# 			${y}$(cat $brief_tmp | sed -n "/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p")${end}
-# 			TIP
-# 		)
 	fi
 	if [ $(echo $doc_brief | wc -w) -le 6 ]; then
 
@@ -4967,7 +4899,7 @@ x_check_man(){
 	else
 		echo "$doc_brief"
 	fi
-# 	echo -e "*2* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt
+# 	echo -e "*2* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt # TEST
 }
 x_yad_extract(){
 	xorg_cfg_mod=$xorg_cfg
@@ -5008,7 +4940,6 @@ x_yad_extract(){
 					option_c=$(cut -d'|' -f3 <<< $line_c)
 					value_c=$(cut -d'|' -f4 <<< $line_c)
 					# does the line have "Option" ?
-# 					if [[ "$option_type_c" =~ "$option_type" ]]; then
 					if [[ "$option_type_c" =~ "Option" ]]; then
 						# write default 3 argument option line.
 						option_line_c="   $option_type_c\t\"$option_c\" ${a}$value_c${a}"
@@ -5045,8 +4976,8 @@ x_yad_extract(){
 			fi
 		done
 	done
-# 	cat $xorg_conf_log
-# 	cat $xorg_cfg
+# 	cat $xorg_conf_log # TEST
+# 	cat $xorg_cfg # TEST
 }
 x_yad_tab(){
 	## tab window
@@ -5098,7 +5029,6 @@ x_yad_tab(){
 							options_list+=("$value")
 
 							## look for tip in Nvidia html file (vnd_id set)
-# 							IFS=$ifs
 							if [[ "8086" =~ ${vendor_id} ]]; then
 # 								key="The following driver Options are supported"; lines='215'
 								key="The following driver Options are supported"; lines='230'
@@ -5125,7 +5055,7 @@ x_yad_tab(){
 								#multi_sec=${5}
 								DEV='NVIDIA '$section
 								o_tip=$(x_check_nv_doc "$option")
-# 								echo "*1* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt
+# 								echo "*1* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt # TEST
 								if [ $(echo $o_tip | wc -w) -le 6 ]; then
 									o_tip=$(
 										cat <<-TIP
@@ -5140,10 +5070,9 @@ x_yad_tab(){
 										DEV='NVIDIA '$section
 										o_tip=$(x_check_man "xorg.conf" "$option" "$lines" "$key" '')
 									fi
-# 									echo "*3* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt
+# 									echo "*3* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt # TEST
 								fi
 							fi
-# 							IFS=$(echo -en "\n\b")
 							if [[ "8086|1002|1022" =~ "${vendor_id}" ]]; then
 								if [ $opti_preset = 1 ]; then
 									if [[ "8086|1002|1022" =~ "${vendor_id}" ]]; then
@@ -5151,7 +5080,6 @@ x_yad_tab(){
 										o_tip=$(x_check_man "modesetting" "$option" "$lines" "$key" '"')
 									fi
 								else
-	# 								DEV='DEVICE '$section
 									if [[ "${5}" =~ "8086" ]]; then
 										DEV='INTEL '$section
 										o_tip=$(x_check_man "intel" "$option" "$lines" "$key" '"')
@@ -5213,14 +5141,13 @@ x_yad_block(){
 	rem_tmp+=("rm -f $tmp_orig")
 	c='<span color="#16BBC1">' # BLUE
 	device='Xorg'
-# 	logfile=$(mktemp --tmpdir brief.logfile.XXXX)
+# 	logfile=$(mktemp --tmpdir brief.logfile.XXXX) # DEBUG
 # 	{
 	x_yad_tab "$KEY" "Xorg" "Xorg Server" "n" "layout"
 # 	} >$logfile 2>&1
 	unset device_options options_orig
 	device_options=($(tr '|' '\n' <<< $device_sections ))
 	## device part analyses.
-# 	for e in $pci_dev_nb; do
 	for e in ${dev_n[@]}; do
 # 		[ $e = 0 ] && c='<span color="#DE8400">' # YELLOW #FF9800
 # 		[ $e = 1 ] && c='<span color="#2CA900">' # LIGHTGREEN #2CA900
@@ -5765,13 +5692,13 @@ menu_update(){
 			"1")	menu_msg="${v}Check driver updates list${end}"; legacy_drv=0; check_for_newer; check_update ;;
 			"2")	menu_msg="${v}Build module for current kernel (dkms)${end}"
 					upgrade_other=0; force='--force'
-					upgrade_kernel; base_menu ;;
+					upgrade_kernel ;;
 			"3")	menu_msg="${v}Build module for current kernel (force)${end}"
 					upgrade_other=0; use_dkms=0;
-					upgrade_kernel; base_menu ;;
+					upgrade_kernel ;;
 			"4")	menu_msg="${v}Build module for the selected kernel (dkms)${end}"
 					upgrade_other=1;
-					upgrade_new_kernel; base_menu ;;
+					upgrade_new_kernel ;;
 			*) base_menu ;;
 		esac
 	fi
@@ -6265,6 +6192,8 @@ dep_exec_check
 dep_control
 # check distro and load specific config.
 distro
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/lib$ELF_32:$install_dir/lib$ELF_64
 
 # cmdline tool doesn't need to read config, so skip the step if in console only.
 if [[ $(def_user) != "root" ]]; then
