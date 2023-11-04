@@ -189,10 +189,20 @@
  - Realized that nvidia-setting-rc.desktop wasn't validated in remote git repos. Preventing makefile to install properly. Fixed and sorry ...
  * 2023-10-31 - v2.2.2
  - Fixed inapropiate device check for multiple devices that prevent xorg conf gui to display correctly.
- - Replace default envirroment stock icon par dedicated one; depending on theme, icons wasn't really redable for user.
- - Fixed inapropriate zenvidia version update in makfile.
- - It appears that commands launch from zen_task_menu don't return some variable value that are returned from command lineand could give errors. Watching this.
- - This time script wxas xheck out of the box.
+ - Replace default envirroment stock icon by dedicated one; depending on theme, icons wasn't really redable for user.
+ - Fixed inapropriate zenvidia version update in makefile.
+ - It appears that commands launch from zen_task_menu don't return some variable value that are returned from command line and could give errors. Watching this.
+ - This time script was check out of the box.
+ * 2023-11-04 - v2.2.3
+ - It appears that YAD_PID used to kill main install window is detect in some desktop environment and not in others (ex here: mate and Xfce). YAD_PID is check to display markup in some function like driver backup or kill app in case of fatal error. Fallen back to from_install variable set. Fixed.
+ - In case of a multiple relauch of driver update check, list create during the process wasn't clean correctly resulting in lines displayed in double or more. Fixed.
+ - In case of multiple download in the same zenvidia session (official, beta) and then laucnching install process, script was only remind the last dowloaded package as new version to install. Fixed.
+ - It appears that "zen-icon" as a name for ex swiss_knife png is already used by an other application. Fixed.
+ - Some exit status arround compilation failure were mistaken. This is normaly fixed.
+ - When launch from desktop session start, nvidia installation BIN PATH is not set (reason why nvidia bin were not found by sys command -v). Fixed.
+
+
+
 
 
 

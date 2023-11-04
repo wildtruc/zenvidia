@@ -35,6 +35,7 @@ install: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
+# 	sudo -u "$(C_USER)" git config global --add safe.directory $(shell pwd)
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 
 uninstall: check_su
@@ -66,4 +67,6 @@ update: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
+# 	sudo -u "$(C_USER)" git config global --add safe.directory $(shell pwd)
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version

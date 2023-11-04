@@ -6,6 +6,6 @@ Comment=Manage NVIDIA drivers without admin priviledge
 Name[fr_FR]=Zenvidia (utilisateur)
 Comment[fr_FR]=Gérer les pilotes Nvidia sans privilège administrateur
 Exec=zenvidia
-Icon=swiss_knife_green.png
+Icon=zen-emblem-gr.png
 Categories=Application;Settings;
 

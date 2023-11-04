@@ -6,6 +6,5 @@ Comment=Manage NVIDIA drivers with admin priviledge
 Name[fr_FR]=Zenvidia (administrateur)
 Comment[fr_FR]=Gérer les pilotes Nvidia en mode administrateur
 Exec=zen_start
-Icon=swiss_knife.png
+Icon=zen-emblem.png
 Categories=Application;Settings;
-
