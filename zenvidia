@@ -17,7 +17,7 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
 
- set -x
+# set -x
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -341,15 +341,15 @@ module_dest_location(){
 	esac
 }
 dm_serv(){
-	for dm in {gdm,kdm,xdm,lightdm,lxdm,slim,sddm}; do
-		if test -f /usr/lib/systemd/system/$dm.service; then echo "$dm" ; break; else dm=0; fi
-	done
-	if [ $dm = 0 ]; then
-		## if DM is not found, try to dig in display manager service status.
-		## wont work if DM service already disable, but will in case of x server crash.
+# 	for dm in {gdm,kdm,xdm,lightdm,lxdm,slim,sddm}; do
+# 		if test -f /usr/lib/systemd/system/$dm.service; then echo "$dm" ; break; else dm=0; fi
+# 	done
+# 	if [ $dm = 0 ]; then
+# 		## if DM is not found, try to dig in display manager service status.
+# 		## wont work if DM service already disable, but will in case of x server crash.
 # 		echo "$($d_sys show display-manager.service | sed -En "s/^Docu.*=[\"]?.*:(.*)\(.*\)[\"]?/\1/p")"
-		echo "$($d_sys show display-manager.service | sed -En "s/^Id=(.*)\..*$/\1/p")"
-	fi
+	echo "$($d_sys show display-manager.service | sed -En "s/^Id=(.*)\..*$/\1/p")"
+# 	fi
 	return
 }
 zen_colors(){
@@ -807,12 +807,28 @@ old_version(){
 	return
 }
 nv_old(){
-	echo "$(old_version)"| sed -n "s/\.//g;p"
+	unset count_array prefix part
+	count_array=( $(printf "$(old_version)"|tr . ' ') )
+	for c in ${count_array[@]}; do
+		i=$(printf "$c"|wc -m)
+		for ((i=$i; i<3; i++)) { prefix='0';}
+		part+=$(printf ${prefix}$c)
+	done
+	[ ${#count_array[*]} -eq 3 ] || suffix='000'
+	echo "${part[*]}"
 	return
 }
 nv_new(){
 	if [ "$(new_version)" ]&&[ "$(new_version)" != "0" ]; then
-		echo "$(new_version)"| sed -n "s/\.//g;p"
+		unset count_array prefix part
+		count_array=( $(printf "$(new_version)"|tr . ' ') )
+		for c in ${count_array[@]}; do
+			i=$(printf "$c"|wc -m)
+			for ((i=$i; i<3; i++)) { prefix='0';}
+			part+=$(printf ${prefix}$c)
+		done
+		[ ${#count_array[*]} -eq 3 ] || suffix='000'
+		echo "${part[*]}"
 	else
 		echo "$(version)"| sed -n "s/\.//g;p"
 	fi
@@ -821,6 +837,21 @@ nv_new(){
 mod_installed(){ # used by nv_build_dkms only
  	test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\|ko.xz]" -print0 | xargs -0 modinfo -F version
  	return
+}
+old_inst(){ # used by nv_build_dkms only
+	if [ $(mod_installed) ]; then
+		unset count_array prefix part
+		count_array=( $(printf "$(mod_installed)"|tr . ' ') )
+		for c in ${count_array[@]}; do
+			i=$(printf "$c"|wc -m)
+			for ((i=$i; i<3; i++)) { prefix='0';}
+			part+=$(printf ${prefix}$c)
+		done
+		[ ${#count_array[*]} -eq 3 ] || suffix='000'
+		echo "${part[*]}"
+	else
+		echo "0"
+	fi
 }
 chk_version(){ echo "$(new_version)"| cut -d'.' -f1; }
 chk_old_ver(){ echo "$(old_version)"| cut -d'.' -f1; }
@@ -947,6 +978,45 @@ restore_old_driver(){
 	fi
 }
 ## configuration ###
+dm_service_patch(){ # TEST
+# 	ls /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so &>/dev/null
+# 	if [ $? -eq 0 ]; then
+	systemd_dir=/usr/lib/systemd/system
+	ExecStartPre=$(command -v nvidia-modules-reload)
+	ExecStart=$(command -v $(dm_serv))
+	## make dm.service backup
+	[ -e $systemd_dir/$(dm_serv).service.bak ] || cp -f $systemd_dir/$(dm_serv).service $systemd_dir/$(dm_serv).service.bak
+	if [ $(grep -c "$ExecStartPre" $systemd_dir/$(dm_serv).service) -eq 0 ]; then
+		if [ $from_install = 1 ]; then
+			echo "# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
+			sleep 2
+			n=$[ $n+2 ]; echo "$n"
+		else
+			echo "# Patching $(dm_serv).service for driver load at session restart (experimental)."
+		fi
+		sed -Ei 's|^(ExecStart='${ExecStart}')$|ExecStartPre='${ExecStartPre}'\n\1|' $systemd_dir/$(dm_serv).service
+		$d_sys daemon-reload
+	fi
+# 	fi
+}
+restart_dm_warn(){
+	warn_log=$( cat <<-MSG
+		$warn_log_title
+		${v}Restart display manager service${end} (${y}experimental${end})
+
+		This experimental feature allow driver to be manage
+		at simple display manager restart (lighdm only at this point).
+
+		Be aware that system driver management will be complete only
+		after system reboot.
+
+	MSG
+	)
+	# win_yad_warns
+	qst=1; ok_lbl='Yes!zen-ok' ; cancel_lbl='No, I will reboot!zen-undo' ; kill_yad=0
+	win_yad_warns
+	[ $y_output = 0 ] && { IFS=$ifs; touch /var/run/nv-modules-reload.pid; $d_sys restart display-manager.service; }
+}
 nv_persistenced_conf(){
 	## NOTE : ExecStart could be added a multiple time.
 	cat <<-SYS > $nv_percist_ctl
@@ -965,7 +1035,7 @@ nv_persistenced_conf(){
 		WantedBy=multi-user.target
 		SYS
 }
-nv_open_switch(){ # ALERT TMP_C
+nv_open_switch(){ # ALERT TMP_C # NVIDIA MODULE SWITCH.
 	probe_open=/etc/modprobe.d/open-NVIDIA.conf
 	kernel_path=/lib/modules/$KERNEL/$(module_dest_location)
 	reverse_conf(){
@@ -1015,8 +1085,8 @@ nv_open_switch(){ # ALERT TMP_C
 					rem_tmp+=("rm -f $tmp_b")
 					trap "${rem_tmp[*]}" EXIT
 					nv_build_dkms
-					echo -e "# ${v}Re-create ${j}$KERNEL${end} initramfs ...${end}"
-					sleep 2
+# 					echo -e "# ${v}Re-create ${j}$KERNEL${end} initramfs ...${end}"
+# 					sleep 2
 # 					progress_msg(){ echo "# ${ge}${sf} * Exec $KERNEL modules iniramfs ($m sec.)${end}${end}"; echo "$m"; } ; m=1; do_slp=1
 # 					exec_initramfs
 				fi
@@ -1049,11 +1119,12 @@ nv_open_switch(){ # ALERT TMP_C
 				echo -e "# ${v}Re-create ${j}$KERNEL${end} initramfs ...${end}"
 				sleep 2
 				progress_msg(){ echo "# ${ge}${sf} * Exec $KERNEL modules iniramfs ($m sec.)${end}${end}"; echo "$m"; } ; m=1; do_slp=1
-				# rebuild initramfs
+# 				rebuild initramfs
 				if [ $exec_mod_tool = 1 ]; then
 					echo -e "# ${v}Exec ${j}$KERNEL${end} modules reload${end}"; sleep 2
 					exec_mod_load
 				else
+					## rebuild iniramfs first.
 					exec_initramfs
 					echo -e "# ${v}Restore ${j}$KERNEL${end} modules selinux connection ...${end}"
 					sleep 2
@@ -1075,11 +1146,14 @@ nv_open_switch(){ # ALERT TMP_C
 				## set diplayed license by driver type.
 				sleep 2
 				echo -e "# "
-				echo -e "# ${v}Reboot for ${y}$drv_on${end} to take effect.${end}"
+# 				echo -e "# ${v}Reboot for ${y}$drv_on${end} to take effect.${end}"
+				echo -e "# ${v}Driver ${y}$drv_on${end} switch done.${end}"
 				sleep 2
 				echo -e $esc_message
 				sed -Ei "s/^(use_open)=.*$/\1=$use_open/" $basic_conf
 			} & eval lpid=$!; y_pulse; } | win_yad_progress
+			warn_log_title="${j}${bf}$drv_on switch${end}${end}"
+			restart_dm_warn
 		fi
 	else
 		if [ $open_drv -ne $old_open_drv ]; then
@@ -1295,14 +1369,25 @@ prime_setup(){ ## TODO UNUSED YET
 	## xorg defs are config in xorg_conf section.
 	if [ $opti_preset = 1 ]; then
 		xrandr_conf=$(
+			## Prime version. PRIME
 			cat <<-CONF
 				xrandr --setprovideroutputdevice modesetting NVIDIA-0
+				xrandr --auto
+			CONF
+			## Offload version. REVERSE PRIME
+			cat <<-CONF
+				xrandr --setprovideroutputdevice modesetting NVIDIA-G0
 				xrandr --auto
 			CONF
 		)
 		if [ "$dm_serv" == "lightdm" ]; then
 			## add conf
 			echo -e "#! /bin/bash\n\n$xrandr_conf\n" > /etc/lightdm/prime_ini
+			cat <<-INI >/etc/lightdm/prime_ini
+				#! /bin/bash
+
+				$xrandr_conf
+			INI
 			chmod 755 /etc/lightdm/prime_ini
 			## change Seat /etc/lightdm/lightdm.conf
 			cp -f /etc/lightdm/lightdm.conf /etc/lightdm/lightdm.conf.bak
@@ -1979,7 +2064,7 @@ nv_cmd_dkms_conf(){
 		done
 	fi
 }
-nv_dkms_mok_key(){ # TODO Use distro key
+nv_dkms_mok_key(){
 	## something can go wrong during module signing, need to figure out.
 	# 	/lib/modules/6.1.10-100.fc36.x86_64/build/scripts/sign-file sha512 /var/lib/dkms/mok.key /var/lib/dkms/mok.pub /var/lib/dkms/nvidia/390.157/build/nvidia.ko
 	# 	strip -g /var/lib/dkms/nvidia/390.157/build/nvidia.ko
@@ -2013,7 +2098,7 @@ nv_dkms_mok_key(){ # TODO Use distro key
 		fi
 	fi
 }
-build_dkms(){ # ALERT TMP_C
+build_dkms(){
 	## back_previous driver in case of FAILURE
 	back_old_driver
 	## test and fix mok keys if needed.
@@ -2134,13 +2219,7 @@ build_dkms(){ # ALERT TMP_C
 				sleep 2
 			}
 			## remove previous known and unknown version if any before installing new one.
-			## TODO add a more strict filter on already present modules.
-			mod_installed=$(mod_installed)
-			old_inst(){ # used by nv_build_dkms only
-				test "$mod_installed" && sed -n "s/\.//g;p" <<< $mod_installed || echo "0"
-			}
-			## is a old modules installed ?
-			if [ $(nv_old) -gt 0 ] && ( [ $(nv_old) = $(old_inst) ] && [ $(nv_old) -ne $(nv_new) ] ); then
+			if [ $(nv_old) -gt 0 ] && [ $(nv_old) -ne $(nv_new) ]; then
 					#echo -e "# remove seq 1"
 					remove_seq
 			else
@@ -2148,30 +2227,23 @@ build_dkms(){ # ALERT TMP_C
 			## is the modules version present in dkms tree ?
 				if [ "$(old_inst)" ] && [ $(old_inst) -gt 0 ]; then
 					## check its status.
-					if [ $($p_dkms status -m $_dkms/$mod_installed -k $KERNEL| grep -E -c "built|installed") -gt 0 ]; then
-						# if build or installed, and not same as new one, check status ans 'remove' it.
-						if [[ $(old_inst) -ne $(nv_new) ]]; then
-							#echo -e "# remove seq 2"
+					if [[ $(old_inst) -ne $(nv_new) ]]; then
+						if [ $($p_dkms status -m $_dkms/$mod_installed -k $KERNEL| grep -E -c "built|installed") -gt 0 ]; then
+							# if build or installed, and not same as new one, check status ans 'remove' it.
 							remove_seq
-						fi
-					else
-						## if not in the dkms tree, just remove them, and make a depmod to clear things.
-						if [ $(old_inst) -ne $(nv_new) ]; then
-							echo -e "#${ge}* Removing out of DKMS tree $mod_installed $_dkms from kernel modules path.${end}"
-							echo $(($n+$o)); o=$(($n+$o)) #3
-							sleep 2
-							#echo -e "# ** rm mods"
-							rm -f $kernel_path/*
-							echo -e "# ${ge}* Executing clean depmod before next step.${end}"
-							sleep 2
-							#echo -e "# ** exec depmod"
-							progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
-							progress /usr/sbin/depmod -an $KERNEL | \
-							while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
-							# rm -f $tmp_c # ALERT
-							#/usr/sbin/depmod -a $KERNEL
-							echo -e "# ${ge}* Done.${end}"
-							sleep 2
+						else
+							## if not in the dkms tree, just remove them, and make a depmod to clear things.
+								echo -e "#${ge}* Removing out of DKMS tree $mod_installed $_dkms from kernel modules path.${end}"
+								echo $(($n+$o)); o=$(($n+$o)) #3
+								sleep 2
+								rm -f $kernel_path/*
+								echo -e "# ${ge}* Executing clean depmod before next step.${end}"
+								sleep 2
+								progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
+								progress /usr/sbin/depmod -an $KERNEL | \
+								while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+								echo -e "# ${ge}* Done.${end}"
+								sleep 2
 						fi
 					fi
 				else
@@ -2186,7 +2258,7 @@ build_dkms(){ # ALERT TMP_C
 		}
 		build_seq(){
 			if [ "$(old_version)" ]; then
-				if [  $(chk_old_ver) -gt $(chk_version) ]; then force='--force'; fi
+				if [  $(nv_old) -gt $(nv_new) ]; then force='--force'; fi
 			fi
 			build_seq_1(){
 				echo -e "#${v} Building ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL${end}"
@@ -2284,6 +2356,7 @@ build_dkms(){ # ALERT TMP_C
 		for _dkms in ${drv_src[@]} ; do
 			echo -e "#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
 			echo $(($n+$o)); o=$(($n+$o)) #1
+			echo "# "
 			echo -e "#${y} ---  $_dkms script start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) #2
 			sleep 2
 			remove_add
@@ -2307,7 +2380,7 @@ nv_build_dkms(){
  	y_text="Installing ${j}$(new_version)${end} driver over ${y}$KERNEL${end} kernel with DKMS"
  	{ build_dkms; } | win_yad_progress
 }
-build_source(){ # ALERT TMP_C
+build_source(){
 	unset drv_src
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
@@ -2341,23 +2414,18 @@ build_source(){ # ALERT TMP_C
 # 			test $is_RT -eq 0 ||
 		xz -T12 *.ko | \
 		while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
-		echo -e "# ${ge}* Copying $module modules in $install_path${end}"; echo $(($n+$o)); o=$(($n+$o)) # 6
-# 		echo -e "# ${ge}* Making $module module copy.${end}" # 7
+		echo -e "# ${ge}* Copying $module modules in $install_path${end}"; echo $(($n+$o)); o=$(($n+$o))
 			cp -f nvidia.ko.xz $install_path/nvidia.ko.xz
 			if [[ -s nvidia-uvm.ko.xz ]]; then cp -f nvidia-uvm.ko.xz $install_path/nvidia-uvm.ko.xz; fi
 			if [[ -s uvm/nvidia-uvm.ko.xz ]]; then cp -f uvm/nvidia-uvm.ko.xz $install_path/nvidia-uvm.ko.xz; fi
 			if [[ -s nvidia-modeset.ko.xz ]]; then cp -f nvidia-modeset.ko.xz $install_path/nvidia-modeset.ko.xz; fi
 			if [[ -s nvidia-drm.ko.xz ]]; then cp -f nvidia-drm.ko.xz $install_path/nvidia-drm.ko.xz; fi
 			## compress modules.
-# 			popd
 			if [ $dep_check = 1 ]; then
 				echo -e "# ${ge}* Executing $module $KERNEL depmod${end}"
-				#/usr/sbin/depmod $KERNEL -a
-# 				$( exec_depmod "$KERNEL" )
 				progress_msg(){ echo " * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
 				progress /usr/sbin/depmod -an $KERNEL | \
 				while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
-				# rm -f $tmp_c # ALERT
 			fi
 	}
 	mod_check(){
@@ -2440,8 +2508,7 @@ build_source(){ # ALERT TMP_C
 	for module in ${drv_src[@]} ; do
 		pushd /usr/src/$module-$(new_version)
 		sleep 1
-		echo -e "# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"; echo $(($n+$o)); o=$(($n+$o)) # 1 10
-# 		echo -e "# "
+		echo -e "# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"; echo $(($n+$o)); o=$(($n+$o))
 		sleep 2
 		if [ -d /usr/src/$module-$(new_version) ]; then
 			echo -e "#${y} ---  $module compilation start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) # 2 20
@@ -2514,6 +2581,8 @@ nv_cmd_install_driver(){ ## NOTE : Since 545 serie nvidia-installer can install 
 			else
 				[ -f $probe_open ] && rm -f $probe_open
 			fi
+			## service file patch.
+			dm_service_patch
 		else
 			[ -f $tmp_b ] && echo -e "pass=1" >> $tmp_b
 		fi
@@ -2572,6 +2641,8 @@ nv_cmd_update(){ # ALERT REVISER
  	fi
  	install_log_messages
  	blacklist_and_grub_set
+ 	## service file patch.
+ 	dm_service_patch
 }
 nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 ## INFOS ABOUT NVIDIA-INSTALLER OPTIONS :
@@ -2659,6 +2730,9 @@ install_log_messages(){
 			w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=1; colors=1
 			win_yad_text "$log_brief"
 			if [ $_exit = 1 ]; then IFS=$ifs; exit 0; fi
+		else
+			kill $YAD_PID
+# 			base_menu
 		fi
 	fi
 	## realtime report messages.
@@ -2681,7 +2755,7 @@ install_report_log(){
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
 install_drv(){ # ALERT TMP_C
 	## tell script that all post_install process came from global install. Needed in some cases.
-	from_install=1
+	# from_install=1
 	## check for for patch in new version.
 	nv_build_options
 	rt_options
@@ -2799,10 +2873,12 @@ install_drv(){ # ALERT TMP_C
 			warn_log="${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
 			qst=0; kill_yad=1; warn_image='zen-warning'; cancel_lbl="Abort install!zen-close"; ok_lbl=''
 			win_yad_warns
+			lib_pass=1
 			exit 0
 # 			base_menu ; exit 0
 		else
 			report_log+=("${vB}Libraries install:\t${end}${gB} success\t\t${end}> ${y}normal install process${end}.\n")
+			lib_pass=0
 		fi
 		n=$[ $n+5 ]; echo "$n" # 4
 		if [ $pass -eq 0 ]; then
@@ -2849,7 +2925,8 @@ install_drv(){ # ALERT TMP_C
 		echo "99"; sleep 2
 		echo "100"
 		## Install report display.
-		if [[ $inst_mod_version == $(new_version) ]]; then
+# 		if [[ $inst_mod_version == $(new_version) ]]; then
+		if [[ $pass -eq 0 && $lib_pass -eq 0 ]]; then
 			if [ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -gt 40 ]|| \
 			[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -gt 40 ]; then
 			rep_msg=$( cat <<-RPT
@@ -2883,6 +2960,11 @@ install_drv(){ # ALERT TMP_C
 		} | win_yad_progress
 # 		rm -f $tmp_b # ALERT
 		#[ $task_opt -gt 0 ] && exit 0
+		if [[ $(mod_installed) == $(new_version) ]]; then
+
+			warn_log_title="${j}<big>$(new_version) installed ended</big>${end}"
+			restart_dm_warn
+		fi
 		base_menu
 	else
 		error_log=$(
@@ -5207,7 +5289,9 @@ edit_xorg_conf(){
 	IFS=$(echo -en "\n\b"); menu_xorg=$(win_yad_list "${list_array[*]}")
  	if [ $? = 1 ]; then
 		IFS=$ifs
-		if [ $from_install = 0 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
+		if [ $from_install = 0 ]; then
+			[ $task_opt -gt 0 ] && exit 0 || menu_modif
+		fi
 	fi
 	IFS=$ifs
 	case $menu_xorg in
