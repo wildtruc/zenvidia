@@ -187,19 +187,25 @@
  - BUG : It appears that some xorg TIPs in Xorg config GUI wont display when zen_notify is load from session start, but perfectly display when either zen_notify or zen_task_menu is start from command line. Tips in debug file are just truncate or are not detect at all. It look lke to be a 'man page' command line issue, but at this point, no clue on how to solve this.
  * 2023-10-30 - v2.2.1
  - Realized that nvidia-setting-rc.desktop wasn't validated in remote git repos. Preventing makefile to install properly. Fixed and sorry ...
- * 2023-10-31 - v2.2.2
+* 2023-10-31 - v2.2.2
  - Fixed inapropiate device check for multiple devices that prevent xorg conf gui to display correctly.
  - Replace default envirroment stock icon by dedicated one; depending on theme, icons wasn't really redable for user.
  - Fixed inapropriate zenvidia version update in makefile.
  - It appears that commands launch from zen_task_menu don't return some variable value that are returned from command line and could give errors. Watching this.
  - This time script was check out of the box.
- * 2023-11-04 - v2.2.3
+* 2023-11-04 - v2.2.3
  - It appears that YAD_PID used to kill main install window is detect in some desktop environment and not in others (ex here: mate and Xfce). YAD_PID is check to display markup in some function like driver backup or kill app in case of fatal error. Fallen back to from_install variable set. Fixed.
  - In case of a multiple relauch of driver update check, list create during the process wasn't clean correctly resulting in lines displayed in double or more. Fixed.
  - In case of multiple download in the same zenvidia session (official, beta) and then laucnching install process, script was only remind the last dowloaded package as new version to install. Fixed.
  - It appears that "zen-icon" as a name for ex swiss_knife png is already used by an other application. Fixed.
  - Some exit status arround compilation failure were mistaken. This is normaly fixed.
  - When launch from desktop session start, nvidia installation BIN PATH is not set (reason why nvidia bin were not found by sys command -v). Fixed.
+* 2023-11-04 - v2.2.4
+ - Add an experimental "session restart only" feature at the end of installation process and open driver switch process. We need to ne CLEAR, this is VERY EXPERIMANTAL and only tested on LIGHTDM service event it could potentialy work on other display manager service.
+ WARNING : Be aware that 535.113.01 open-driver looks to have fatal issue when reloading this ways by loosing udev nvidia devices creation, so don't use this features with this driver open source version.
+ - Installing an old version upon a newer one was not enough fine in numeric version comparission resulting in isntallation fails. Update and fixed.
+ - In case of the above failure, exit status was not set properly (again). Hopefuly fixed this time.
+
 
 
 

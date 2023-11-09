@@ -24,6 +24,10 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.2.4 NOTES :
+ - Zenvidia can now reload drivers on session restart. This is `VERY EXPERIMANTAL` and only tested on LIGHTDM service event it could potentialy work on other display manager service.
+ - **WARNING** : Be aware that 535.113.01 open-driver looks to have fatal issue when reloading this ways by loosing udev nvidia devices creation, so don't use this features with this driver open source version. So be careful, other drivers released in the future could potentially have the same issue.
+
 v2.2.2 NOTES :
  - Huge mistakes were found and fix (nvidia-settings-rc.desktop, mainly), that prevence make install to execute properly.
  - Script has been test out of the box with a different end user dektop envirroment. There is apprently nott errors.
@@ -43,7 +47,7 @@ v2.1.34 NOTES :
  - URGENT FIX: Mistakes on last upoad. IFS restoration line for Yad process misplaced preventing some internal command to execute correcttly. My apologies.
 
 v2.1.33 NOTES :
- - A Task bar notification menu with most used Zenvida functions has been added. Hoping you'll find it usefull.
+ - A Task bar notification menu with most used Zenvidia functions has been added. Hoping you'll find it usefull.
 
 v2.1.24 NOTES :
  - Because of Zenity 3.92 (and at the moment also above) is meeting too mutch issues, it will gradually replace by Yad.
