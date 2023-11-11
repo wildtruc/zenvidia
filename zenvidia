@@ -19,6 +19,10 @@
 
 # set -x
 
+## TODO switch backup to lz
+## TODO add more distro autodetection features
+## TODO create a doc file extract for xorg tips
+
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
@@ -815,7 +819,7 @@ nv_old(){
 		part+=$(printf ${prefix}$c)
 	done
 	[ ${#count_array[*]} -eq 3 ] || suffix='000'
-	echo "${part[*]}"
+	echo "${part[*]}$suffix"
 	return
 }
 nv_new(){
@@ -828,7 +832,7 @@ nv_new(){
 			part+=$(printf ${prefix}$c)
 		done
 		[ ${#count_array[*]} -eq 3 ] || suffix='000'
-		echo "${part[*]}"
+		echo "${part[*]}$suffix"
 	else
 		echo "$(version)"| sed -n "s/\.//g;p"
 	fi
@@ -848,7 +852,7 @@ old_inst(){ # used by nv_build_dkms only
 			part+=$(printf ${prefix}$c)
 		done
 		[ ${#count_array[*]} -eq 3 ] || suffix='000'
-		echo "${part[*]}"
+		echo "${part[*]}$suffix"
 	else
 		echo "0"
 	fi
@@ -999,13 +1003,18 @@ dm_service_patch(){ # TEST
 	fi
 # 	fi
 }
-restart_dm_warn(){
+restart_dm_warn(){ # NOTE : meilleure documentation.
+	# can be potentially add : gdm, sddm, lightdm, lxdm (gdm,kdm,xdm,lightdm,lxdm,slim,sddm)
 	warn_log=$( cat <<-MSG
 		$warn_log_title
 		${v}Restart display manager service${end} (${y}experimental${end})
 
-		This experimental feature allow driver to be manage
-		at simple display manager restart (lighdm only at this point).
+		This experimental feature allow driver to be relaod
+		at simple display manager restart.
+
+		Potentialy usable : gdm, sddm, lightdm, lxdm
+		Unsable : kdm
+		(lighdm only tested at this point).
 
 		Be aware that system driver management will be complete only
 		after system reboot.
@@ -1035,7 +1044,7 @@ nv_persistenced_conf(){
 		WantedBy=multi-user.target
 		SYS
 }
-nv_open_switch(){ # ALERT TMP_C # NVIDIA MODULE SWITCH.
+nv_open_switch(){ # NVIDIA MODULE SWITCH.
 	probe_open=/etc/modprobe.d/open-NVIDIA.conf
 	kernel_path=/lib/modules/$KERNEL/$(module_dest_location)
 	reverse_conf(){
@@ -1076,7 +1085,7 @@ nv_open_switch(){ # ALERT TMP_C # NVIDIA MODULE SWITCH.
 					echo -e "# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
 					sleep 2
 					progress_msg(){ echo -e "# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
-					m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" #; rm -f $tmp_c # ALERT
+					m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 				else
 					## in case of a fresh kernel update, only the predifined type is compile and install by dkms
 					## and thus, var/lib/dkms module dir doesn't exist.
@@ -1182,7 +1191,7 @@ nv_open_switch(){ # ALERT TMP_C # NVIDIA MODULE SWITCH.
 				echo -e "# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
 # 				depmod -a -kver $KERNEL
 				progress_msg(){ echo -e "# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
-				m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" #; rm -f $tmp_c # ALERT
+				m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 				sleep 2
 				if [[ "$($d_modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "NVIDIA" ]]; then
 					echo -e "# ${v}License is back to NVIDIA${end}"
@@ -2958,10 +2967,7 @@ install_drv(){ # ALERT TMP_C
 			win_yad_warns
 		fi
 		} | win_yad_progress
-# 		rm -f $tmp_b # ALERT
-		#[ $task_opt -gt 0 ] && exit 0
 		if [[ $(mod_installed) == $(new_version) ]]; then
-
 			warn_log_title="${j}<big>$(new_version) installed ended</big>${end}"
 			restart_dm_warn
 		fi
