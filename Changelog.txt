@@ -203,8 +203,12 @@
 * 2023-11-09 - v2.2.4
  - Add an experimental 'session restart only' feature at the end of installation process and open driver switch process. We need to ne CLEAR, this is VERY EXPERIMANTAL and only tested on LIGHTDM service event it could potentialy work on other display manager service.
  - WARNING : Be aware that 535.113.01 open-driver looks to have fatal issue when reloading this ways by loosing udev nvidia devices creation, so don't use this features with this driver open source version.
- - Installing an old version upon a newer one was not enough fine in numeric version comparission resulting in isntallation fails. Update and fixed.
+ - Installing an old version upon a newer one was not enough fine in numeric version comparission resulting in installation fails. Update and fixed.
  - In case of the above failure, exit status was not set properly (again). Hopefuly fixed this time.
+* 2023-11-11 - v2.2.5
+ - Fast fix : missing null value in numeric driver version detection. This is not fatal for actual driver versions.
+ - WARNING : During test on a old laptop with 390 serie, nvidia-installer just remove the compiled driver calling this 'old install'. I clearly forgot this behaviour in nvidia-installer fixed in new version. I need to work on a workaround for 390 serie and earlier (410 until 440 need to be tested aswell).
+
 
 
 
