@@ -208,6 +208,15 @@
 * 2023-11-11 - v2.2.5
  - Fast fix : missing null value in numeric driver version detection. This is not fatal for actual driver versions.
  - WARNING : During test on a old laptop with 390 serie, nvidia-installer just remove the compiled driver calling this 'old install'. I clearly forgot this behaviour in nvidia-installer fixed in new version. I need to work on a workaround for 390 serie and earlier (410 until 440 need to be tested aswell).
+* 2023-11-16 - v2.2.6
+ - Regarding old serie detection, add a filter reversing the install process. This is a this point experimental, max version serie is still not known (too old). Because of this, we may have to maybe consider capturing Zenvidia's capabilities from the 260 series only.
+ - Modified filter in install process in case of driver reinstall which wasn't allowed until now.
+ - Re-inspect fatal driver or libs log messages to be more better filtered. Still more work to do on this, there is to much alert lines that may confusing.
+ - Nut shell in systemctl reload commend line. Not fatal but anoying. Fixed.
+ - Multiple install process launch was still diplay multi lines (missing var in a grep line). Just hoping this is fixed now.
+ - Note : The driver session reload function has been tested on the 390 series, need more tests out of the box to confirm. In plus of LIGHTDM, GDM, SDDM, LXDM are based on a service file and link to display-manager.service, they will very probably work. KDM is based on a desktop file and is not supported at this point.
+ - Regarding the 535.113.01 open-driver issue: This is not clear now, that driver reload at session start is in cause. Maybe a driver bug itself.
+ - Next : working on xorg config GUI section to manage Optimus options in the idea of preparing PRIME/Offload support.
 
 
 

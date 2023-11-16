@@ -31,11 +31,12 @@ version=$(cat $local_conf_dir/version.txt)
 
 test -s $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 [ $open_drv = 1 ] && open_menu='Open Driver Switch!zen_start -o!zen-swap,'
+[ $use_open = 1 ] && adds='open-source' || adds='close-source'
 
 if [ -f $local_conf_dir/version.txt ]; then
 	driver_changelog=" Read ${version} change log!${d_zen} -d!zen-info,"
 	nvidia_help=" Nvidia ${version} documentation!${d_zen} -h!zen-question,"
-	[ "$version" != '' ] && version_txt="<b>$version</b> in use" || version_txt="no driver detected"
+	[ "$version" != '' ] && version_txt="<b>$version</b> in use. <small>($adds)</small>" || version_txt="no driver detected"
 fi
 
 if [ -f $local_notif ]; then
