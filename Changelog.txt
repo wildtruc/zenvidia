@@ -215,9 +215,15 @@
  - Nut shell in systemctl reload commend line. Not fatal but anoying. Fixed.
  - Multiple install process launch was still diplay multi lines (missing var in a grep line). Just hoping this is fixed now.
  - Note : The driver session reload function has been tested on the 390 series, need more tests out of the box to confirm. In plus of LIGHTDM, GDM, SDDM, LXDM are based on a service file and link to display-manager.service, they will very probably work. KDM is based on a desktop file and is not supported at this point.
- - Regarding the 535.113.01 open-driver issue: This is not clear now, that driver reload at session start is in cause. Maybe a driver bug itself.
+ - Regarding the 535.113.01 open-driver issue: This is not clear now that driver reload at session start is in cause. Maybe a driver bug itself.
  - Next : working on xorg config GUI section to manage Optimus options in the idea of preparing PRIME/Offload support.
-
+* 2023-11-27 - v2.2.7
+ - xorg config GUI adapted for optimus config needs.
+ - Add xz container to backup management. Experimental : GZIP, XZ, depends of the number of processor threads, are selected automaticaly. Auto detect can be bypass in config file to only use GZIP.
+ - Reduced usage of distro config at really specifics needs (at this point distro config file is useless at least in fedora).
+ - Reordoned a few vars. Some of them were reapeateds uselessly or useless.
+ - Restructured backup/restore tools.
+ - Fixed nutshell in nv_persistenced function.
 
 
 
