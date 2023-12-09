@@ -482,6 +482,7 @@ PCI_ID(){
 		slot_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.*\[.*\] \[(.*)\].*$/\1/p")")
 		((i++))
 	done
+	[ $optimus -gt 0 ] && opti_preset=1
 	IFS=$ifs
 # 	dev_nb=${#dev_n[*]} # test control
 	pci_dev_nb=${dev_n[*]}
@@ -3737,7 +3738,7 @@ check_update(){
 				fi
 				# comp_result in upt_comp_tmp
 				DEV_filter=$(cat $nvcompat/compat.$DRV| grep -E -wi "devid${slot_id[$e]}")
-				dev_compat=$(cat $nvcompat/compat.$DRV| grep -E -ic "devid${slot_id[$e]}")
+				dev_compat=$( [ $(cat $nvcompat/compat.$DRV| grep -E -ic "devid${slot_id[$e]}") -gt 0 ] && echo 1 || echo 0 )
 				VDPAU_class=$(printf "$DEV_filter"|cut -d"," -f4) # J
 				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow,$legacy_result")
 			done
@@ -5123,7 +5124,7 @@ edit_script_conf(){
 		exit 0
 	fi
 	## then go back to Section Menu.
-	menu_modif
+	[ $task_opt -gt 0 ] && exit 0 || menu_modif
 }
 edit_color_conf(){
 	## color tmep file test preview
@@ -5374,8 +5375,6 @@ x_yad_extract(){
 			fi
 		done
 	done
-# 	cat $xorg_conf_log # TEST
-# 	cat $xorg_cfg # TEST
 }
 x_yad_tab(){
 	## tab window
@@ -5584,12 +5583,11 @@ x_yad_block(){
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]}
 	if [ $? = 0 ]; then
 		x_yad_extract
-	else
-# 		[ $task_opt -gt 0 ] && exit 0 || edit_xorg_conf
-		edit_xorg_conf
 	fi
-	trap "${rem_tmp[*]}" EXIT
-	edit_xorg_conf
+	if [ $from_install = 0 ]; then
+		edit_xorg_conf
+		trap "${rem_tmp[*]}" EXIT
+	fi
 }
 # Here simple xorg editor and menu.
 edit_xorg_full_text(){
