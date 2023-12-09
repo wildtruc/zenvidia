@@ -224,6 +224,14 @@
  - Reordoned a few vars. Some of them were reapeateds uselessly or useless.
  - Restructured backup/restore tools.
  - Fixed nutshell in nv_persistenced function.
+ * 2023-12-09 - v2.2.8
+ - Optimus xorg auto config was set to force only with opti_preset=1 in base conf file. This is now auto detected, opti_preset in conf will overwrite auto detected value id set by user choice.
+ - Old device compatibility check was not set properly. Fixed.
+ - Edit Script Conf section wasn't exit properly when launch from task bar. Fixed.
+ - Edit Xorg Conf section wasn't exit properly when launch from installation process. Hopefuly fixed.
+
+
+
 
 
 
