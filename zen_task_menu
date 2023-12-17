@@ -30,31 +30,32 @@ img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
 
 test -s $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
-[ $open_drv = 1 ] && open_menu='Open Driver Switch!zen_start -o!zen-swap,'
+[ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
+[ $opti_preset = 1 ] && opti_menu=$"PRIME Display configuration"'!zen_start -p!zen-prime,'
 
 if [ -f $local_conf_dir/version.txt ]; then
-	driver_changelog=" Read ${version} change log!${d_zen} -d!zen-info,"
-	nvidia_help=" Nvidia ${version} documentation!${d_zen} -h!zen-question,"
-	[ "$version" != '' ] && version_txt="<b>$version</b> in use. <small>($adds)</small>" || version_txt="no driver detected"
+	driver_changelog=$" Read ${version} change log!${d_zen} -d!zen-info,"
+	nvidia_help=$" Nvidia ${version} documentation!${d_zen} -h!zen-question,"
+	[ "$version" != '' ] && version_txt=$"<b>$version</b> in use. <small>($adds)</small>" || version_txt=$"no driver detected"
 fi
 
 if [ -f $local_notif ]; then
 	. $local_notif
 	if [ $notif = 1 ]; then
-		embed_text=$(cat <<-MSG
+		embed_text=$"$(cat <<-MSG
 			$version_txt
 
 			$notif_text
 		MSG
-		)
-		changelog_menu=" Read Zenvidia change log!${d_zen} -r!zen-warning,"
+		)"
+		changelog_menu=$" Read Zenvidia change log!${d_zen} -r!zen-warning,"
 	fi
 fi
 menu_list=(
 	\ Start zenvidia!zen_start!$img_zen,
 	Nvidia Settings \(user\)!nvidia-settings!$img_nv_settings,
-	Config xorg!zen_start -x!zen-xorg,
+	Config xorg!zen_start -x!zen-xorg,${opti_menu}
 	Edit Zenvidia configuration!$d_zen -z!zen-preference,
 	Check Nvidia driver Update!zen_start -u!zen-refresh,
 	${open_menu}${nvidia_help}${driver_changelog}${changelog_menu}

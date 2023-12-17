@@ -1,0 +1,28 @@
+#! /bin/bash
+
+if [ -e /var/run/nv-modules-reload.pid ]; then
+	set -x
+	export PATH=$PATH:$install_dir/bin
+
+	d_nv_persistenced=$(command -v nvidia-persistenced)
+	d_probe=$(command -v modprobe)
+	d_sys=$(command -v systemctl)
+	install_dir=/usr/local
+	nv_persist_ctl=/etc/systemd/system/multi-user.target.wants/nvidia-persistenced.service
+
+	[ -e $nv_persist_ctl ] && $d_sys stop nvidia-persistenced.service
+	sleep 1
+	if [ $(lsmod | grep -c "nouveau") -gt 0 ]; then
+		$d_probe -r nouveau
+	else
+		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia
+	fi
+	$d_probe -a nvidia_uvm nvidia_drm nvidia_modeset nvidia
+	find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
+	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$(uname -r).*"
+	if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
+		$d_sys restart systemd-modules-load.service
+	fi
+	[ -e $nv_persist_ctl ] && systemctl start nvidia-persistenced.service
+	rm -f /var/run/nv-modules-reload.pid
+fi

@@ -24,6 +24,11 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.3.5 NOTES :
+ - **Important fix** : Some function was unexpectdly remove and prevent to blacklist nouveau at driver fresh install. Dev's is still in cause :(.
+ - This version wasn't expect so soon, but because of error, even if not fatal, upload it quickly was necessary.
+ - More infos in path notes.
+
 v2.2.7 NOTES :
  - 535.113.01 issue looks to be a simple bug and wasn't reproduced. Last warning was finally a false flag.
  - use_gzip config option has been added to base config file since driver backup container are auto select and made with XZ. Think to reconfigure your base conf file or add new conf line in the backup before restore it.(USER_HOME/.zenvidia/basic.conf~).

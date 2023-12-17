@@ -224,11 +224,32 @@
  - Reordoned a few vars. Some of them were reapeateds uselessly or useless.
  - Restructured backup/restore tools.
  - Fixed nutshell in nv_persistenced function.
- * 2023-12-09 - v2.2.8
- - Optimus xorg auto config was set to force only with opti_preset=1 in base conf file. This is now auto detected, opti_preset in conf will overwrite auto detected value id set by user choice.
+* 2023-12-09 - v2.2.8
+ - Optimus xorg auto config was set to force only with opti_preset=1 in base conf file. This is now auto detected, opti_preset in conf will overwrite auto detected value if set by user choice.
  - Old device compatibility check was not set properly. Fixed.
  - Edit Script Conf section wasn't exit properly when launch from task bar. Fixed.
  - Edit Xorg Conf section wasn't exit properly when launch from installation process. Hopefuly fixed.
+* 2023-12-17 - v2.3.5
+ - ATTENTION : This patch include a urgent fix for fresh drivers install and drivers entire removal (read below). It wans't expect to come so soon. All cases usage circonstances are not tested. Using PRIME Display config is not totally safe. Next patch will comme with more controls on old dev's laptop.
+ - Add PRIME Display support. ATTENTION HERE this is VERY experimenatal. Lightdm, gdm, sddm are actually support. At this point, PRIME and PRIME render offload are managed, more can be added, like NVIDIA-XRUN for example (dev need feddback for this). PRIME support can be bypass or force in user config file. Added a offload_run script to load needed offload's option for applications.
+ - Translation is making its coming back. Script is now set to manage translation sub system.
+ - Translation in edit : french (not available yet).
+ - Transalation kit for translator can be found in zenvidia git repos 'locale' directory. translation.pot is the ready to go file for translators. (translation.pot is not totaly update because of the urgent fixes, wait for next update to use it)
+ - Rewrite menu_modif function to better support new and future changes.
+ - Enabled nvidia-powerd daemon for compatible laptop.
+ - User basic config has changed. Update as necessary.
+ - Initramfs was taking to much time an old laptop or PC devices during install process that making install process to stop unexpectedly. Fixed.
+ - Fixed a few nut shells in text and vars.
+ - The not glorious mistakes and accidental removing and others :
+ - Fixed missing and lost vars in lib elf listing preventing creation for dedicated conf in ld.conf.d and modprobe.d blacklist on fresh install.
+ - nvidia-modules-reload rename zenvidia-modules-reload to prevent remove when nvidia driver is removal (nvidia-* wildcard to remove binaries).
+ - When Nvidia driver was removed and system back to nouveau, lighdm wont start. In cause, dm-service patched file that wasn't put back to its safe state. Fixed.
+ - And a few others dev wont remind.
+ - Bug : xorg conf gui doesn't managed display 'screens' in Layout config section, fix with the next patch. Temp files are not remove if the GUI is reload, anoying. try to find the right fix.
+ - Other warning : Desktop manager reload system is not made for fresh install with nouveau still in place. It just freeze the TTY. Working on a way to use it, if any or just filter to avoid it.
+
+
+
 
 
 

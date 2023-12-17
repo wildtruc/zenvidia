@@ -98,9 +98,9 @@ driver_ctrl(){
 				[ ${last_array[$i]} -gt ${ver_array[$i]} ] && greater=1
 		}
 		if [ $rem_diff -eq 1 ]; then
-			DRV_LIST=( "$LAST_DRV, official driver" "$LAST_BETA, beta driver" )
+			DRV_LIST=( $"$LAST_DRV, official driver" $"$LAST_BETA, beta driver" )
 		else
-			DRV_LIST=( "$LAST_DRV, official drivers" )
+			DRV_LIST=( $"$LAST_DRV, official drivers" )
 		fi
 		if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			IFS=$(echo -en "\n\b")
@@ -111,9 +111,9 @@ driver_ctrl(){
 				if [ $drv_diff -gt 0 ]; then
 					if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
 					if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
-						_driver_notif+=( "$sol<b>$driver</b> $release update.$eol" )
+						_driver_notif+=( $"$sol<b>$driver</b> $release update.$eol" )
 					else
-						_driver_notif+=( "$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
+						_driver_notif+=( $"$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
 					fi
 					((cnt++))
 				fi
@@ -126,8 +126,8 @@ driver_ctrl(){
 	fi
 	if [ $cnx -gt 0 ]; then
 		unset _driver_notif
-		notif_msg='Nvidia driver notification'
-		_driver_notif+='<b>WARNING</b> : No Signal'
+		notif_msg=$"Nvidia driver notification"
+		_driver_notif+=$"<b>WARNING</b> : No Signal"
 		msg_suffix=''
 	fi
 }
@@ -136,7 +136,7 @@ source_ctrl(){
 		rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
 		if [ -d $rep_git_local ]; then
 			if [ $driver_up -gt 0 ]; then
-			notif_txt='and Zenvidia'; line='\n'
+			notif_txt=$"and Zenvidia"; line='\n'
 			else
 			notif_txt='Zenvidia'; line=''
 			fi
@@ -195,10 +195,10 @@ source_ctrl(){
 						# is the log message an issue warning ?
 						if [ $issue = 0 ]; then
 							notif_msg+="$notif_txt "
-							_driver_notif+=("${line}zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
+							_driver_notif+=($"${line}zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
 						else
 							notif_msg+="$notif_txt "
-							_driver_notif+=("${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
+							_driver_notif+=($"${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
 						fi
 					fi
 			}
