@@ -5489,7 +5489,6 @@ x_yad_block(){ #
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]}
 	if [ $? = 0 ]; then
 		x_yad_extract
-		exit 1
 	fi
 	if [ $from_install = 0 ]; then
  		trap "${rem_tmp[*]}" EXIT
