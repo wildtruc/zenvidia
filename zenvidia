@@ -23,7 +23,7 @@
 ## TODO add more distro autodetection features
 ## TODO create a doc file extract for xorg tips (?)
 ## TODO Clean old profile version if exist before new one.
-## TODO Controle basic conf tmp preconfig removal for open_switch.
+
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -52,7 +52,7 @@ xt_delay=4
 
 export PATH=$PATH:$install_dir/bin
 export TEXTDOMAIN=zenvidia
-export TEXTDOMAINDIR=$nvdir/local#e
+export TEXTDOMAINDIR=$nvdir/locale
 ## terminal fonts colors.
 red='\e[1;31m'
 yel='\e[0;33m'
@@ -1520,12 +1520,12 @@ prime_setup(){ # DONE
 	## write or update render, offload and opti_auto_set in user config file.
 	[ $offload -ne $old_offload ] && sed -Ei "s/^(offload)=.*$/\1=$offload/" $basic_conf
 	[ $opti_auto_set -ne $opti_auto_set ] && sed -Ei "s/^(opti_auto_set)=.*$/\1=$opti_auto_set/" $basic_conf
-	[ "$render" != "$old_render" ] && sed -Ei "s/^(render)=.*$/\1='$render'/" $basic_conf
+	[ "$render" != "$old_render" ] && sed -Ei "s/^(render)=.*$/\1=\"$render\"/" $basic_conf
 	## if program is not launch from install process, go back section menu or exit if task bar cmd.
 	[ $from_install = 0 ] && { [ $task_opt = 1 ] && exit 0 || menu_modif ;}
 # 	fi
 }
-prime_setup_window(){ # DONE
+prime_setup_window(){ #
 	[ $(chk_family) -ge 390 ] && applicable_list+="PRIME!"
 	[ $(chk_family) -ge 435 ] && applicable_list+="PRIME render offload!"
 	[ $opti_preset = 0 ] && opti_set='FALSE' || opti_set='TRUE'
@@ -1875,7 +1875,7 @@ clean_old_version(){ # post install part. #
 		done
 		}& eval lpid=$! ; y_pulse ;} | win_yad_progress
 }
-post_install(){ # PROGRESS : TODO optimus section.
+POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	echo "# "
 	echo $"# ${v}${j}($n%)${end} - ${mf}Post install routines${end}${end}"; sleep 2
 	echo $"# ${v}${j}($n%)${end} - Create XORG config file for Nvidia device${end}"; sleep 2
@@ -2225,7 +2225,7 @@ nv_dkms_mok_key(){ #
 		fi
 	fi
 }
-build_dkms(){ # TODO CHACK error messages #
+build_dkms(){ #
 	## back_previous driver in case of FAILURE
 	back_old_driver
 	## test and fix mok keys if needed.
@@ -2519,7 +2519,7 @@ nv_build_dkms(){
  	y_text=$"Installing ${j}$(new_version)${end} driver over ${y}$KERNEL${end} kernel with DKMS"
  	{ build_dkms; } | win_yad_progress
 }
-build_source(){ # TODO CHACK error messages #
+build_source(){ #
 	unset drv_src
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
@@ -2714,6 +2714,7 @@ nv_cmd_install_driver(){ ## NOTE : Since 545 serie nvidia-installer can install 
 			--tmpdir=$buildtmp --log-file-name=$driver_logfile
 			# -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver
 			}
+			# nvidia-installer -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver --kernel-source-path=/usr/src/kernels/6.6.6-100.fc38.x86_64/ --kernel-install-path=/usr/lib/modules/6.6.6-100.fc38.x86_64/extra --tmpdir=/tmp --log-file-name=./logfile.txt
 		}
 		## we need to give it a chance.
 		probe_open=/etc/modprobe.d/open-NVIDIA.conf
@@ -2982,8 +2983,8 @@ install_report_log(){ #
 	if [ $? = 0 ]; then edit_xorg_conf; fi
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
-install_drv(){ #
-	## tell script that all post_install process came from global install. Needed in some cases.
+INSTALL_DRIVER(){ #
+	## tell script that all POST_INSTALL process came from global install. Needed in some cases.
 	from_install=1
 	## check for for patch in new version.
 	nv_build_options
@@ -3151,7 +3152,7 @@ install_drv(){ #
 			echo $"# ${v}${j}($n%)${end} - nv-update-$(new_version) already present in path, skip${end}"; sleep 2
 		fi
 		n=$[ $n+2 ]; echo "$n" # 7
-		post_install
+		POST_INSTALL
 		echo "99"; sleep 2
 		echo "100"
 		## Install report display.
@@ -3159,8 +3160,8 @@ install_drv(){ #
 			if [ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -gt 40 ]|| \
 			[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -gt 40 ]; then
 			rep_msg=$"$( cat <<-RPT
-			${vB}${bf}<i>Congratulations !</i>${end}${end}
-			${jB}$(new_version)${end} ${vB}driver is now succefully installed${end}.
+			${v}<b><big><i>Congratulations !</i></big></b>${end}
+			<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.
 
 			${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
 			your computer with the new installed drivers.
@@ -3172,11 +3173,10 @@ install_drv(){ #
 			install_report_log
 			fi
 		else
-			warn_image=zen-error
 			warn_log=$"$(
 			cat <<-RPT
-				${rB}${bf}Unexpected ERROR.${end}${end}
-				${jB}$inst_mod_version isn't $(new_version)${end}.
+				${r}<b><big>Unexpected ERROR.</big></b>${end}
+				${j}<b>$inst_mod_version isn't $(new_version)</b>${end}.
 				Really weird. ${jB}O_o${end} !
 				Some unknown bug pops up during driver installation.
 				Or developper fucked out something ?
@@ -3190,8 +3190,23 @@ install_drv(){ #
 		. $tmp_b
 		trap "${rem_tmp[*]}" EXIT
 		if [ $pass -eq 0 ]; then
-			warn_log_title=$"${j}<big>$(new_version) installed ended</big>${end}"
-			restart_dm_warn
+			if [ $(lsmod | grep -c "nouveau") = 0 ]; then
+				warn_log_title=$"${j}<big>$(new_version) installed ended</big>${end}"
+				restart_dm_warn
+			else
+			## nouveau is still loaded, reboot to take effect.
+				warn_log=$"$(
+				cat <<-RPT
+					${y}<b><big>Driver installation complete</big></b>${end}
+
+					Because <b>Nouveau driver</b> is still loaded you need
+					to reboot the system for change to take effects.
+
+				RPT
+				)"
+				qst=0; kill_yad=0; warn_image='zen-warning'; cancel_lbl=$"Got it"'!zen-close'; ok_lbl=''
+				win_yad_warns
+			fi
 		fi
 		base_menu
 	else
@@ -3567,7 +3582,7 @@ hardware_compat(){ #
 	pci_brand=${slot_id[$e]}
 	## check compat.
 	if [ $(grep -ic "devid$pci_brand" $nvcompat/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
-		## send message for the install_drv section.
+		## send message for the INSTALL_DRIVER section.
 		if [ $from_install = 1 ]; then
 			echo -e $"install_msg='# ${v}${j}($n%)${end} - Compatiblity found in ${y}$(echo "$DRV"| cut -d. -f1)${end} serie, proceed to install${end}'" > $tmp_b
 		fi
@@ -3575,7 +3590,7 @@ hardware_compat(){ #
 	else
 		for comp_file in ${class_list[@]}; do
 			if [ $(grep -ic "devid$pci_brand" $nvcompat/series/$comp_file) -gt 0 ]; then
-				## message for install_drv section.
+				## message for INSTALL_DRIVER section.
 				if [ $from_install = 1 ]; then
 					warn_log=$"$(cat <<-ERR
 						${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}
@@ -3989,7 +4004,7 @@ from_directory(){ #
 		nv_dir
 	fi
 	new_version=$(printf "$run_pkg"| sed -n "s/^.*-//g;p")
-	install_drv
+	INSTALL_DRIVER
 }
 from_net(){ #
 # download functions
@@ -4006,7 +4021,7 @@ from_net(){ #
 			chmod 755 $nvdl/nv-update-$LAST_PACK
 		fi
 		new_version=$(printf "$run_pkg"| sed -n "s/^.*-//g;p")
-		install_drv
+		INSTALL_DRIVER
 }
 download_menu(){ #
 		l_text=$"$( cat <<-INFO
@@ -4593,7 +4608,7 @@ remove_baks(){ #
 		manage_pcks
 	fi
 }
-remove_nvidia(){ # ALERT UNCHECK #
+remove_nvidia(){ #
 ## clean remove of nvidia packeges and nouveau restoration.
 	## display warn before process. Zenity hare.
 	w_text=$"$( cat <<-MSG
@@ -4677,8 +4692,10 @@ remove_nvidia(){ # ALERT UNCHECK #
 	#exec_depmod : depmod -a
 	progress_msg(){ echo -e $"# Depmod $KERNEL modules ($m sec.)"; }; m=0; do_slp=1
 	progress "( exec_depmod "$KERNEL" )" #; rm -f $tmp_c
-	progress_msg(){ echo -e $"# Exec $KERNEL modules init/reload ($m sec.)"; }; m=0; do_slp=1
-	exec_initramfs
+# 	progress_msg(){ echo -e $"# Exec $KERNEL modules init/reload ($m sec.)"; }; m=0; do_slp=1
+# 	exec_initramfs
+	echo -e $"# Exec $KERNEL modules reload "; sleep 2
+	exec_mod_load
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	w_text=$"$( cat <<-MSG
 		${j}<b>NVIDIA driver installation is now completaly removed</b>${end}.
@@ -4897,33 +4914,35 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER #
 }
 
 ## EDITION TOOLS ###
-edit_script_conf(){ # Create a full help tip trans ?
+edit_script_conf(){
 	## build list
 	unset conf_list orig_conf cnf_list conf_base conf_chg
+	old_conf=$(user_CF_DIR)/old_basic.conf
 	IFS=$(echo -en "\n\b")
 	conf_list=( $(cat $basic_conf | sed -En "s/^# (.*):.*/\1/p") )
-	old_conf=$(user_CF_DIR)/old_basic.conf
+
 	test -s $old_conf && rm -f $old_conf
 	for conf_set in "${conf_list[@]}"; do
 		cnf_text="$conf_set"
 		setted=$(grep -A1 "$cnf_text" $basic_conf | sed -n "2p")
 		set_id=$(echo "$setted"|sed -En "s/(.*)=(.*)/\1/p")
-		set_val=$(echo "$setted"|sed -En "s/(.*)=(.*)/\2/p")
-		if [ $set_val -gt 0 ]; then setted='TRUE'; else setted='FALSE'; fi
-		if [ $set_val -gt 1 ]; then extra_val=$set_val; else extra_val='none'; fi
+		set_val=$(echo "$setted"|sed -En "s/(.*)=(.*)$/\2/p"| sed -n "s/\"//g;p")
+		if [[ "$set_val" =~ [0-9] ]]; then
+			if [ $set_val -gt 0 ]; then setted='TRUE'; else setted='FALSE'; fi
+			if [ $set_val -gt 1 ]; then set_val=$set_val; else set_val='none'; fi
+		elif [[ "$set_val" =~ [Aa-Zz] ]]; then
+			 setted='TRUE'
+		fi
 		cnf_list+=("$setted")
 		cnf_list+=("$cnf_text")
 		cnf_list+=("$set_id")
-# 		cnf_list+=("$set_val")
-		cnf_list+=("$extra_val")
 		cnf_list+=("$set_val")
-# 		cnf_list+=("|")
-		orig_conf+=("$set_id;$extra_val;$set_val")
+		orig_conf+=("$setted;$set_id;$set_val")
 	done
 	help_tip=$"${v}\nDefine options and functions you would like to use of change\n${end}"
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-back'
-	ok_lbl=$"Apply"'!zen-ok'; list_type='checklist'; columns=5; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' '5' )
-	sel_col='0'; sep=';'; hid_col='3,5'; edit_col=4; col_tip=3; w_width='580'; w_height='500'; l_tail=0; w_head=1
+	ok_lbl=$"Apply"'!zen-ok'; list_type='checklist'; columns=4; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' )
+	sel_col='0'; sep=';'; hid_col='3'; edit_col=4; col_tip=3; w_width='580'; w_height='500'; l_tail=0; w_head=1
 	l_text=$"${j}${bf}Zenvidia Configuration${end}$help_tip${end}"
 
 	conf_base=$( win_yad_list "${cnf_list[*]}" )
@@ -4945,30 +4964,39 @@ edit_script_conf(){ # Create a full help tip trans ?
 	if [ $open_drv ]; then
 		old_open_drv=$open_drv
 		if [ $use_open ]; then old_use_open=$use_open; fi
-		[ $task_opt = 1 ] && echo -e "old_open_drv=$open_drv" >> $old_conf
-		[ $task_opt = 1 ] && echo -e "old_use_open=$use_open" >> $old_conf
+		if [ $use_open -ne $old_use_open ]; then
+			[ $task_opt = 1 ] && echo -e "old_open_drv=$open_drv" >> $old_conf
+			[ $task_opt = 1 ] && echo -e "old_use_open=$use_open" >> $old_conf
+		else
+			rm -f $old_conf
+		fi
 	fi
 	## modify new set value.
 	for output in ${conf_base[@]}; do
 			set=$(echo "$output"| cut -d';' -f3)
-			value=1
+			value=$(echo "$output"| cut -d';' -f1)
 			bis_value=$(echo "$output"| cut -d';' -f4)
-			if [[ "$bis_value" ]]&&[[ "$bis_value" != 'none' ]]; then value=$bis_value; fi
-			if [ $(grep -E -c "$set=$value" $basic_conf) -eq 0 ];then
-				sed -Ei "s/^($set)=.*$/\1=$value/" $basic_conf
+			a=''
+			if [[ "$value" =~ "TRUE" ]]; then value=1; else value=0; fi
+			if [[ "$bis_value" ]]&&[[ "$bis_value" != 'none' ]]; then
+				[[ $bis_value =~ [A-Z] ]] && a='\"'
+				value=$bis_value
+			fi
+			if [ $(grep -E -c "$set=[\"]?$value[\"]?" $basic_conf) -eq 0 ];then
+				sed -Ei "s/^($set)=.*$/\1=${a}$value${a}/" $basic_conf
 				if [[ $set == "use_open" ]]; then export use_open=$value; fi
 				eval $set=$value
 			fi
 	done
 	## modifiy unset value.
 	for input in ${orig_conf[@]}; do
-		if [ $(grep -c "$input" <<< ${conf_base[@]}) -eq 0 ]; then
-			set=$(echo "$input"| cut -d';' -f1)
-			value=0
-			bis_value=$(echo "$input"| cut -d';' -f2)
-			if [[ "$bis_value" ]]&&[[ "$bis_value" != 'none' ]]; then value=$bis_value; fi
-			if [[ $set != 'xt_delay' ]]; then
-				if [ $(grep -E -c "$set=$value" $basic_conf) -eq 0 ];then
+		value=$(echo "$input"| cut -d';' -f1)
+		set=$(echo "$input"| cut -d';' -f2)
+		#extra=$(echo "$input"| cut -d';' -f3)
+		if [ $(grep -c "$value.*$set" <<< ${conf_base[@]}) -eq 0 ]; then
+			if [[ ! "$value" = "FALSE" ]]; then
+				value=0
+				if [ $(grep -E -c "$set=[\"]?$value[\"]?" $basic_conf) -eq 0 ];then
 					sed -Ei "s/^($set)=.*$/\1=$value/" $basic_conf
 					if [[ $set == "use_open" ]]; then export use_open=$value; fi
 					eval $set=$value
@@ -4980,7 +5008,7 @@ edit_script_conf(){ # Create a full help tip trans ?
 	[ $task_opt = 1 ] && echo -e "open_drv=$open_drv" >> $old_conf
 	[ $task_opt = 1 ] && echo -e "use_open=$use_open" >> $old_conf
 	if [ $UID = 0 ]||[ $task_opt = 0 ]; then
-		## remove old_basic that could confised script with other external functions
+		## remove old_basic that could confuse script with other external functions
 		rm -f $old_conf
 		## if drm_modset is change nivdia modprobe options has to be change accordingly.
 		if [ $drm_modset -ne $old_drm_modset ]; then
@@ -4999,7 +5027,6 @@ edit_script_conf(){ # Create a full help tip trans ?
 			WRN
 			)"
 			win_yad_warns
-# 			if [ $? = 0 ]; then
 			if [ $y_output = 0 ]; then
 				## if open_drv is change, DKMS autoinstall boot time command has to be change by adding the blank file
 				## 'no-autoinstall' in /etc/dkms directory. Method seems to work without issue except for package manager
@@ -5073,7 +5100,7 @@ edit_color_conf(){ #
 		w_tip=$"$(
 		cat <<-TIP
 			${j}* NOTICE *${end}
-			${sf}Colors will appled immediatly after validation.
+			${sf}Colors will apply immediatly after validation.
 			Do not forget Xterm only support a limited type of colors.
 			${y}Xterm colors are also applied to Yad's text logging windows.${end}${end}
 		TIP
@@ -5082,7 +5109,8 @@ edit_color_conf(){ #
 		style0=$(grep -E -io "[a-z]*$" <<< $font0)
 # 		IFS=$(echo -en "\n\b")
 		font_color=$(
-		$d_yad --width=300 --height=300 --title "Zenvidia" --center \
+		$d_yad --width=500 --height=600 --title "Zenvidia" --center \
+			--scroll --vscroll-policy=auto --hscroll_policy=none \
 			--window-icon=$img_zen_desktop --text "$w_text" \
 			--form --separator="|" --item-separator=";" --borders=15 --field="":LBL '' \
 			--field=$" Title and warning messages font color":CLR "$title" \
@@ -5105,18 +5133,24 @@ edit_color_conf(){ #
 			--button=$"Abort"';zen-close:1' --button=$"Done"';zen-ok:0'
 		)
 		out=$?
-		if [ $out = 0 ]; then
-			menu=menu_modif
-		elif [ $out = 1 ]; then
-			base_menu
-		elif [ $out = 2 ]; then
-			menu="$@ edit_color_gui"
-		fi
-		if [ $out -eq 2 ]; then
-			color_temp=$color_TMP
-		else
-			color_temp=$color_conf
-		fi
+		color_temp=$color_conf
+		case $out in
+			0) trap "${rem_tmp[*]}" EXIT; menu=menu_modif ;;
+			1|252) trap "${rem_tmp[*]}" EXIT; base_menu ;;
+			2) menu="$@ edit_color_gui" ; color_temp=$color_TMP ;;
+		esac
+# 		if [ $out = 0 ]; then
+# 			menu=menu_modif
+# 		elif [ $out = 1 ]; then
+# 			base_menu
+# 		elif [ $out = 2 ]; then
+# 			menu="$@ edit_color_gui"
+# 		fi
+# 		if [ $out -eq 2 ]; then
+# 			color_temp=$color_TMP
+# 		else
+# 			color_temp=$color_conf
+# 		fi
 		IFS=$(echo -en "\n\b")
 		unset input_colors output_colors output_conf
 		input_colors=$(cat $color_temp | cut -d'=' -f1)
@@ -5153,10 +5187,7 @@ edit_color_conf(){ #
 		fi
 		${menu}
 	}
-	if [ $d_yad ]; then
-		edit_color_gui
-	fi
-	trap "${rem_tmp[*]}" EXIT
+	edit_color_gui
 }
 ## This section is dedicated to Xorg config edition.
 # Here the full xorg editor GUI with specific functions.
@@ -5208,7 +5239,7 @@ x_yad_extract(){
 	device_c=$(cut -d'|' -f1 <<< $d)
 	section_c=$(cut -d'|' -f2 <<< $d)
  	device_section_orig=$(grep "$d" $tmp_orig)
- 	device_section_file=/tmp/$device_c.$section_c.*
+ 	device_section_file=$xorg_tmp_dir/$device_c.$section_c.*
 		for c in ${device_section_orig[@]}; do
 			device=$device_c
 			section=$section_c
@@ -5228,17 +5259,26 @@ x_yad_extract(){
 			[[ "$option_type" =~ Option|Screen|Inactive ]] && b='"' || b=''
 			## config output is always TRUE.
 			## does the section been modified ? FALSE/TRUE has changed.
-			if [ $(grep "$d" $tmp_orig | grep -c "$options") -eq 1 ]; then
+			line_c=$(grep "$option_def" $device_section_file)
+# 			setted_c=$(cut -d'|' -f1 <<< $line_c
+			option_type_c=$(cut -d'|' -f2 <<< $line_c)
+			option_c=$(cut -d'|' -f3 <<< $line_c)
+			value_c=$(cut -d'|' -f4 <<< $line_c)
+			if [ $(grep -c "$option_type_c.*$option_c.*$value_c" $xorg_cfg_mod ) -gt 0 ]; then
+# 			if [ $(grep "$d" $tmp_orig | grep -c "$options") -eq 1 ]; then
 				if [ $(grep -c "$options" $device_section_file) -eq 0 ]; then
 					if [ $(grep -c "$option_def" $device_section_file) -gt 0 ]; then
 						# TRUE
-						line_c=$(grep "$option_def" $device_section_file)
-	# 						setted_c=$(cut -d'|' -f1 <<< $line_c
-						option_type_c=$(cut -d'|' -f2 <<< $line_c)
-						option_c=$(cut -d'|' -f3 <<< $line_c)
-						value_c=$(cut -d'|' -f4 <<< $line_c)
+# 						line_c=$(grep "$option_def" $device_section_file)
+# 	# 						setted_c=$(cut -d'|' -f1 <<< $line_c
+# 						option_type_c=$(cut -d'|' -f2 <<< $line_c)
+# 						option_c=$(cut -d'|' -f3 <<< $line_c)
+# 						value_c=$(cut -d'|' -f4 <<< $line_c)
 						# does the line have "Option" ?
-						if [[ "$option_type_c" =~ "Option" ]]; then
+
+
+						if [[ "$option_type_c" =~ Option|Screen|Inactive ]]; then
+# 						if [[ "$option_type_c" =~ "Option" ]]; then
 							# write default 3 argument option line.
 							option_line_c="   $option_type_c\t\"$option_c\" ${a}$value_c${a}"
 						else
@@ -5272,8 +5312,8 @@ x_yad_extract(){
 					option_line="$prefix   $option_type ${b}$option${b} ${a}$value${a}"
 					echo -e "ALREADY TRUE $device $section :\t$option_line" >> $xorg_conf_log # we don't write, log only.
 				fi
-			else
-				echo -e "LINE DOESN'T EXIST, ADDING"
+# 			else
+# 				echo -e "LINE DOESN'T EXIST, ADDING"
 			fi
 		done
 	done
@@ -5287,8 +5327,9 @@ x_yad_tab(){ #
 			track=$(cut -d';' -f3 <<<$para)
 			if [ $(grep -c "$section" $xorg_cfg) -gt 0 ]; then
 			# create and trap tmp files.
-			tmp=$(mktemp --tmpdir $device.$section.$n.XXXX)
-			rem_tmp+=("rm -f $tmp")
+# 			tmp=$(mktemp --tmpdir $xorg_tmp_dir/$device.$section.$n.XXXX)
+			tmp=$(mktemp $xorg_tmp_dir/$device.$section.$n.XXXX)
+# 			rem_tmp+=("rm -f $tmp")
 # 			trap "rm -f $tmp" EXIT
 				# catch Xorg Section containing 'word' or without.
 				if [ $track -gt 0 ]; then
@@ -5301,9 +5342,11 @@ x_yad_tab(){ #
 				## catch array vnd_id variable
 				vendor_id=${5}
 				for section_line in ${section_list[@]}; do
-					if [ $(grep -c "$section_line" <<< $section_block) -gt 0 ]; then
+# 					if [ $(grep -c "$section_line" <<< $section_block) -gt 0 ]; then
+					if [ $(grep -wc "$section_line" <<< $section_block) -gt 0 ]; then
 						unset option_line # options_list
-						option_line=( $(grep "$section_line" <<< $section_block) )
+# 						option_line=( $(grep "$section_line" <<< $section_block) )
+						option_line=( $(grep -w "$section_line" <<< $section_block) )
 						for line in ${option_line[@]}; do
 							if [[ $line =~ \#{1}.*$ ]]; then setted='FALSE'; else setted='TRUE'; fi
 							option_type=$section_line
@@ -5379,11 +5422,11 @@ x_yad_tab(){ #
 								DEV='NVIDIA '$section
 								o_tip=$(x_check_nv_doc "$option")
 								if [ $(echo $o_tip | wc -w) -le 6 ]; then
-									o_tip=$(
+									o_tip=$"$(
 										cat <<-TIP
 											${r}$DEV TIP not found, undocumented or obsolete option.${end}
 										TIP
-									)
+									)"
 									if [[ "${5}" =~ "layout" ]]; then
 										DEV='XORG '$section
 										o_tip=$(x_check_man "xorg.conf" "$option" "$lines" "$key" '"')
@@ -5440,8 +5483,10 @@ x_yad_block(){ #
 	docs=$nvi_docs/html/xconfigoptions.html
 	xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	unset device_options tab_names rem_tmp device_section_list
+	## create a temp dir to remove at the end of the porcess.
+	xorg_tmp_dir=$(mktemp -d --tmpdir xorg.conf.XXXX)
 	## main window
-	server_sections="ServerLayout;Inactive,Option;0|Files;ModulePath;0|InputDevice;Option;0"
+	server_sections="ServerLayout;Screen,Inactive,Option;0|Files;ModulePath;0|InputDevice;Option;0"
 	device_sections="Device;Option;1|Screen;Option,DefaultDepth;1"
 	IFS=$(echo -en "\n\b")
 	w_text=$"$( cat <<-DEVICE
@@ -5461,9 +5506,10 @@ x_yad_block(){ #
 	device_options=($(tr '|' '\n' <<< $server_sections ))
 	## xorg server part analyse.
 	# create and trap temp file.
-	tmp_orig=$(mktemp --tmpdir xorgconf.orig.XXXX)
- 	rem_tmp+=("rm -f $tmp_orig")
-# 	trap "rm -f $tmp_orig" EXIT
+# 	tmp_orig=$(mktemp --tmpdir $xorg_tmp_dir/xorgconf.orig.XXXX)
+	tmp_orig=$(mktemp $xorg_tmp_dir/xorgconf.orig.XXXX)
+#  rem_tmp+=("rm -f $tmp_orig")
+	trap "rm -Rf $xorg_tmp_dir" EXIT
 	c='<span color="#16BBC1">' # BLUE
 	device='Xorg'
 # 	logfile=$(mktemp --tmpdir brief.logfile.XXXX) # DEBUG
@@ -5491,7 +5537,8 @@ x_yad_block(){ #
 		x_yad_extract
 	fi
 	if [ $from_install = 0 ]; then
- 		trap "${rem_tmp[*]}" EXIT
+ 		rm -Rf $xorg_tmp_dir
+#  		trap "${rem_tmp[*]}" EXIT
 		edit_xorg_conf
 	fi
 }
@@ -6508,6 +6555,7 @@ default_sets(){
 	ARCH=${ARCH:-$HOSTTYPE}
 	## default PRIME values.
 	opti_auto_set=${opti_auto_set:-0}
+	opti_preset_off=${opti_preset_off:-0}
 	offload=${offload:-0}
 	render=${render:-'NONE'}
 	enable_powerd=${enable_powerd:-0}
@@ -6566,8 +6614,8 @@ if [[ $(def_user) != "root" ]]; then
 	## then read script conf.
 	. $basic_conf
 	. $color_conf
-	[ $(chk_family) -gt 0 ] || { [ $optimus -gt 0 ] && opti_preset=1 ;}
-	[ $opti_preset_off = 0 ] || opti_preset=0
+	## force optimus check to off and unset opti_preset.
+	[ $opti_preset_off = 1 ] && opti_preset=0
 fi
 ## set default or null value after conf files reading in case reading failure.
 # hlp_txt=1 # TEST TO REMOVE.
