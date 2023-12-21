@@ -247,6 +247,19 @@
  - And a few others dev wont remind.
  - Bug : xorg conf gui doesn't managed display 'screens' in Layout config section, fix with the next patch. Temp files are not remove if the GUI is reload, anoying. try to find the right fix.
  - Other warning : Desktop manager reload system is not made for fresh install with nouveau still in place. It just freeze the TTY. Working on a way to use it, if any or just filter to avoid it.
+* 2023-12-21 - v2.3.13
+ - PRIME Display configurator tested (more than once, I mean). PRIME setup only tested, no PRIME render offload device available.
+ - xorg Layout section 'screen' option management done.
+ - xorg GUI config temp file issue fixed.
+ - Nouveau driver filter added for driver fresh install case.
+ - translation base files done and upload.
+ - removed initramfs rebuild from driver removal function. Useless.
+ - rewrote zenvidia configuration GUI to better fit PRIME settings needs.
+ - PRIME Display function in task bar was still using removed opti_preset set. Moved to xrandr modesetting detection to fix.
+ - Zenvidia color GUI manager wasn't display correctly on small screens (720p) and default window close button signal (252) wasn't managed and cause color conf file data to be removed. Fixed.
+
+
+
 
 
 

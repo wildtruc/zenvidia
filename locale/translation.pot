@@ -1,0 +1,2294 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: zenvidia-trans\n"
+"POT-Creation-Date: 2023-12-02\n"
+"PO-Revision-Date: 2023-12-02\n"
+"Last-Translator: translator team <translator@mail>\n"
+"Language-Team: language>\n"
+"Language: system language ID>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+#:
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"<b><big>Zenvida didn't find any Distro config file\n"
+"for $plug_version</big></b>\n"
+"\n"
+"<b>Zenvida distro name and su command are not congigured</b>\n"
+"\n"
+"Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,\n"
+"Zenvidia main functions are unusable.\n"
+"\n"
+"Please, enter distribution <b>name</b> if not found or unknown\n"
+"and <b>sudo</b> or <b>su</b> command line with options for default\n"
+"user admin priviledge.\n"
+"\n"
+"Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,\n"
+"Zenvidia main functions are unusable, and script will abort.\n"
+"\n"
+"<i>If you don't know what is talking about here, just abort.\n"
+"</i>\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "<b>Distribution name</b>"
+msgstr ""
+#: .. from initial pot line
+msgid "Enter the name of the distribution if not displayed."
+msgstr ""
+#: .. from initial pot line
+msgid "<b>su comman line</b>"
+msgstr ""
+#: .. from initial pot line
+msgid "Select a commande in the list or type one."
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"<b>Main $plug_version distro variables are now setted</b>\n"
+"\n"
+"You need to create a <u>new configuration</u> based on your distro environment variables.\n"
+"\n"
+"<i>Note : Even in case you are not sure of what you are doing, new configuratin file will be saved anyway.\n"
+"You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Zenvidia $plug_version edition"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"<b>Zenvida can't work without Distro config file for $plug_version</b>\n"
+"\n"
+"<u>Don't ask the dev, if didn't create one, it's probably he doesn't know how to.</u>\n"
+"\n"
+"You can try having a look at your distro's community forum and ask for help\n"
+"or see Zenvidia's git discussion feed (if exist).\n"
+"Then going back to the saved config file in $(user_CF_DIR)\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Snif"
+msgstr ""
+#: .. from initial pot line
+msgid "${red} # No distribution conf file found. Abort.${nc}"
+msgstr ""
+#: .. from initial pot line
+msgid "${red}XTERM missing, installing ...${nc}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"<b>Script Dependencies Check</b>\n"
+"\n"
+"Required dependencies are not met.\n"
+"${dep_text[@]} are missing.\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"$warn_text\n"
+"\n"
+"Will you install them now ?\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Install"
+msgstr ""
+#: .. from initial pot line
+msgid "Depencies installation, please wait . . ."
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"$warn_text\n"
+"\n"
+"<b>Your are not adminsitrator</b>.\n"
+"You need to restart with adminsitratior priviledges\n"
+"or use your packages manager to install them.\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"read -p \"Will you install them now ? (Y/N) :\" confirm\n"
+"if [[ \"\\$confirm\" =~ [yY] ]]; then\n"
+"echo -e \"\\n${grn}Depencies installation, please wait . . .${nc}\\n\"\n"
+"$(pkg_install_cmd) ${deplist[*]}\n"
+"sed -i \"s/resolve_dep=.*/resolve_dep=1/\" $script_conf\n"
+"else\n"
+"echo -e \"\\n${red}Those dependencies are mandatory for Zenvidia.${nc}\\n\"\n"
+"echo -e \"If you don't want Zenvidia to install them automatically,\"\n"
+"echo -e \"you need to use your packages manager instead\"\n"
+"echo -e \"BYE !\"\n"
+"fi\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"echo -e \"Zenvidia is start without admin priviledges.\"\n"
+"echo -e \"You need to restart with ${red}Zenvidia (admin)${nc} to install them.\"\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEP\n"
+"#set -x\n"
+"echo -e \"${red}Script Dependencies Check${nc}\\n\"\n"
+"\n"
+"echo -e \"Required dependencies are not met.\\n\"\n"
+"echo -e \"${dep_text[*]}\\n\"\n"
+"$EXEC\n"
+"echo -e \"\\n${cya}*****  Close window to escape *****${nc}\"\n"
+"DEP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${red}NO PACKAGE INSTALLER FOUND, ABORTING.${nc}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"No internet connection detected.\n"
+"A valid network connection is required for any download.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "NONE"
+msgstr ""
+#: .. from initial pot line
+msgid "Connected"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERR\n"
+"${j}${bf}Version text file not found.${end}${end}\n"
+"\n"
+"Look like driver isn't installed initialy.\n"
+"Go to ${y}<b>» Main menu » Install drivers</b>${end} first.\n"
+"ERR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${nc}*****  Close window to escape *****"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${nc}*****  Window will auto-close in $xt_delay seconds *****"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${jB}Nvidia Open Source Modules${end}\n"
+"${vB}Since 515 driver series, it is possible to use nvidia open source drivers\n"
+"By default, Zenvidia will build them alongside the main ones.\n"
+"\n"
+"AT THIS POINT, OPEN SOURCE DRIVERS WILL BE ONLY BUILD.\n"
+"You will be able to switch between version at any time with the ${j}Switch Tool${end}\n"
+"in ${j}Configuration and Tools${end} menu (restart Zenvidia is mandatory).\n"
+"\n"
+"${j}WARNING ${end}:${v}<i> Open drivers are in still in early state, many features are not\n"
+"accessible at this point.\n"
+"Check progress in Nvidia Changelog update regulary</i>.${end}\n"
+"\n"
+"Do you want to build open source drivers ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${jB}Nvidia Open Source Modules${end}\n"
+"\n"
+"${j}WARNING ${end}:${vB}By default, Zenvidia send alert about open driver building,\n"
+"If you select ${j}<i>NO</i>${end} here, the previous window won't be displayed again.\n"
+"\n"
+"${v}<i>(Choice will be saved in configuration file and could be changed)</i>${end}\n"
+"\n"
+"Do you want to be warn at each drivers upgrade ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TXT\n"
+"${rBB}REALTIME Kernel Detected${end}\n"
+"${vB}ATTENTION :${v} You are about to install driver on a realtime kernel.\n"
+"\n"
+"Don't forget Nvidia drivers is not normaly made for realtime.\n"
+"Troubles init at boot time could happen.\n"
+"Think about making a root partition backup if you have no fallback.\n"
+"\n"
+"${j}\"<b> dd if=/dev/sdxx of=root.img bs=1024k status=progress </b>\"${end}\n"
+"(from a live usb)\n"
+"\n"
+"Do you really want to use compilation over realtime kernel ?${end}${end}\n"
+"TXT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "not installed"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${j}<b>No tool were found to rebuild initramfs</b>${end}\n"
+"Modprobe reload could work for the used kernel,\n"
+"but probably not for an extra kernel.\n"
+"Updated Modules wont probably load at reboot.\n"
+"\n"
+"You have been warn !\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "#${j} ** Restoring previous drivers to $kernel_path ** ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${j} ** Restoring drivers to $kernel_path ** ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${yel}Uncompressing $cmd_ver archive for $KERNEL${nc} :\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($m s)${end}${ge}${sf} - Restoring from nvidia.$res_version.tar.$zip_type${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ($m sec.) - Restoring from nvidia.$res_version.tar.$zip_type"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}<b>Restoring $(old_version) Librairies installation</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Patching $(dm_serv).service for driver load at session restart (experimental)."
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"$warn_log_title\n"
+"${v}Restart display manager service${end} (${y}experimental${end})\n"
+"\n"
+"This experimental feature allow driver to be relaod\n"
+"at simple display manager restart.\n"
+"\n"
+"Potentialy usable : gdm, sddm, lightdm, lxdm\n"
+"Unsable : kdm\n"
+"(lighdm only tested at this point).\n"
+"\n"
+"Be aware that system driver management will be complete only\n"
+"after system reboot.\n"
+"\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "No, I will reboot"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}${bf}$drv_on switch${end}${end}\n"
+"${v}You are going to switch from ${j}$drv_off${end} to ${j}$drv_on${end}\n"
+"Are you sure ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Yes, switch to $drv_on"
+msgstr ""
+#: .. from initial pot line
+msgid "No, keep $drv_off"
+msgstr ""
+#: .. from initial pot line
+msgid "DRIVER SWITCH from DKMS ${j}$drv_off${end} to ${j}$drv_on${end} build"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Switching from ${y}$drv_off${end} to ${y}$drv_on.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}License is $license${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}ERROR!${end}${y}: License is steal $license, reversing all.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Set ${y}$drv_on${end} kernel options.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Unset ${y}$drv_off${end} kernel options.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Re-create ${j}$KERNEL${end} initramfs ...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}${sf} * Exec $KERNEL modules iniramfs ($m sec.)${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Exec ${j}$KERNEL${end} modules reload${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Restore ${j}$KERNEL${end} modules selinux connection ...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}${sf} * Exec $KERNEL modules reload ($m sec.)${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Set ${y}$drv_on${end} DKMS AUTOINSTALL option to \\\"yes\\\".${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Driver ${y}$drv_on${end} switch done.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}$drv_on switch${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}${bf}Open Driver removal${end}${end}\n"
+"${v}You are going to remove open source driver from driver tree.\n"
+"Are you sure ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Yes, remove"
+msgstr ""
+#: .. from initial pot line
+msgid "No, preserve"
+msgstr ""
+#: .. from initial pot line
+msgid "Open Source Drivers deletion"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Remove ${j}open source${end} drivers from DKMS tree${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Restoring ${y}default${end} Nvidia drivers.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}License is back to NVIDIA${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}ERROR!${end}${y}: License is still Dual MIT/GPL, abort.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Restore ${j}$KERNEL${end} modules connection ...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Set Nvidia DKMS AUTOINSTALL option to \\\"yes\\\".${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Unset ${y}$drv_off${end} kernel options (if any).${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Set back Configuration file to NVIDIA only.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Reboot for change to take effect.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Nvidia Driver refresh.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * GRUB conf options update.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * GRUB conf already set.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * Create GRUB conf for nouveau driver blacklisting and other options.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Update modprobe nvidia-drm option for $drm_msg."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * Update modprobe nvidia-drm option for $drm_msg.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Modprobe $drm_msg nvidia-drm option already set."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * Modprobe $drm_msg nvidia-drm option already set.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TIPS\n"
+"If set, GPU renderer choice will be set to PRIME by default\n"
+"You can changed this set in : > Configuration and Tools > Edit Zenvidia config.\n"
+"TIPS\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TIPS\n"
+"If set, this window wont be displayed at the next installation or update and recorded sets applicable.\n"
+"You can changed this set in : > Configuration and Tools > Edit Zenvidia config.\n"
+"TIPS\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${j}<b>PRIME Display GPU configuration</b>${end}\n"
+"${v}There a few usable method to use Nvidia GPU for applications or desktop.${end}\n"
+"${y}<u>PRIME</u>${end} : use NVIDIA dGPU as a primary renderer with iGPU off.\n"
+"${y}<u>PRIME render offload</u>${end} : use NVIDIA dGPU as renderer and iGPU as desktop default.\n"
+"${y}<u>NONE</u>${end} : use iGPU only, don't use NVIIDA dGPU (this cancel previous config too).\n"
+"${sf}\n"
+"${v}Notes${end} :\n"
+"<b>PRIME Render</b> is applicable for all version since 390 serie.\n"
+"<b>PRIME Render Offload</b> is applicable from 435 serie and X version 1.20.7\n"
+"\n"
+"<b>You're actually running the ${y}$xorg_version${end} Xorg version. ${j}Only applicables will be listed${end}</b>.\n"
+"\n"
+"${j}Notice${end} : <b>run_offload</b> script will be created during proces.\n"
+"It contains default ENV variables for <b>PRIME render offload</b>. This, is necessary to run any\n"
+"applications with dGPU render and need to be insert in desktop file or command line as below :\n"
+"> <b>[YOUR_ENV_VAR] run_offload [application]</b>\n"
+"\n"
+"<b>Full documentation can be found in</b> : > ${j}Help and Documentation${end} > ${j}Documentation Manual${end}\n"
+" - Chapter 17. <i>Using the NVIDIA Driver with Optimus Laptops</i>\n"
+" - Chapter 34. <i>Offloading Graphics Display with RandR 1.4</i>\n"
+" - Chapter 35. <i>PRIME Render Offload</i>\n"
+"${end}\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Select the default NVIDIA dGPU behaviour"
+msgstr ""
+#: .. from initial pot line
+msgid "Select in the list."
+msgstr ""
+#: .. from initial pot line
+msgid "Set Prime instead of Offload by default"
+msgstr ""
+#: .. from initial pot line
+msgid "Set Optimus Render config auto"
+msgstr ""
+#: .. from initial pot line
+msgid "Cleaning old ${j}$(old_version)${end} source and DKMS tree"
+msgstr ""
+#: .. from initial pot line
+msgid "# Cleaning $rep_clean $(old_version) DKMS tree"
+msgstr ""
+#: .. from initial pot line
+msgid "# Cleaning $rep_clean $(old_version) source tree"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Post install routines${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Create XORG config file for Nvidia device${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Librairies sub routines${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Linking $nv_root libs to system${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} libwfb\\t\\t${end}> ${y}link to system${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Fixing broken libs and links if needed${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " cleaned ($lib_x)\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} lib fix\\t\\t\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid " links updated $elf_x"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} link fix\\t\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Validating new librairies (ldconfig)${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Blacklisting and other routines${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Blacklist and GRUB conf update if needed${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Cleaning old $(old_version) source and DKMS tree if needed.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} old version\\t\\t${end}> ${y}$(old_version) directory cleaned${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} old source\\t\\t${end}> ${y}All $(old_version) version cleaned${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - DKMS MOK key/certificate are missing, generating new one for modules signin process.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}${j}($n%)${end} - MOK $mok_signing_key key not found and/or can't be generated, modules won't be signed${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERROR\n"
+"${r}MODULES SIGNATURE ERROR${end}.\n"
+"$(new_version) compilation can't be done successfully.\n"
+"\n"
+"$mok_signing_key and $mok_certificate can't be found\n"
+"and attempt to create new ones failed.\n"
+"\n"
+"Very sorry about that.\n"
+"ERROR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Workaround : Copying ${y}$_dkms${end} modules in $kernel_path from DKMS repository.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Compressing $_dkms modules if needed."
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge}${sf} ${line}${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " * Exec $KERNEL modules depmod ($m sec.)"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}${sf}${line}${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* All Clear modules loaded ($(new_version) modules moved from dkms dir)${end}."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}* --- ${r}ERROR${end} ---  Driver not found in path --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}* You can try ${y}Update drivers or modules</b> -> </b>Update driver only (dkms/force)${end} as workaround install${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " - ${r}(ERROR $_dkms, safe modules not copied)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${r} * --- ${r}ERROR${end} ---  Driver not found in path ---- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " - ${r}(ERROR $_dkms, no safe modules found)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* Checking $(new_version) in DKMS $KERNEL path${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* Checking $(new_version) in DKMS $KERNEL build path${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}* --- ${r}ERROR${end} --- No $_dkms modules found in DKMS build path${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " - ${r}(ERROR $_dkms, no modules found)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Removing previous ${j}$(old_version)${end} ${y}$_dkms${end} DKMS modules from DKMS tree.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Add ${j}$(new_version)${end} ${y}$_dkms${end} modules to DKMS tree.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge}* Removing out of DKMS tree $mod_installed $_dkms from kernel modules path.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Executing clean depmod before next step.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Done.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* No previous driver found. Installing $(new_version) $_dkms.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Building ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* All Clear for $(new_version) $_dkms already build.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* All Clear for $(new_version) $_dkms is build.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Build and Install ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} modules in $kernel_path ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Check validated (pass=$pass)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Check unvalidated (pass=$pass)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}* All Clear for $(new_version) $_dkms in $KERNEL kernel.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y} ---  $_dkms script ended  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* $_dkms $(new_version) log found.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* $_dkms make log copied to $make_log_file.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* No $(new_version) $_dkms build log found.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* $(new_version) ${r}FAILURE log found${end}.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${y} ---  $_dkms script start  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Done$with_error${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Build and install DKMS modules...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Build and install DKMS modules."
+msgstr ""
+#: .. from initial pot line
+msgid "Installing ${j}$(new_version)${end} driver over ${y}$KERNEL${end} kernel with DKMS"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Signing $mod ...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Compressing $module modules${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Copying $module modules in $install_path${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}* Executing $module $KERNEL depmod${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${y} ---  $module Compilation done  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Signing ${j}$(new_version)${end} ${y}$module${end} modules.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Installing"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Reserving: Not installing, ${j}$(new_version)${end} ${y}$module${end} is not used.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Backup"
+msgstr ""
+#: .. from initial pot line
+msgid "#${j} ---  ${r}ERROR${end}  ---  No modules found in source path  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Checking ${j}$(new_version)${end} ${y}$module${end} build log presence.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} * $module $(new_version) log found.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} * $module make log copied to $make_log_file.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} * No $(new_version) $module build log found.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} * $module control passed (pass=$pass).${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} * $module control not passed (pass=$pass).${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${j} ---  ${r}ERROR${end}  ---  No modules found in destination path  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " - ${r}with ERRORs${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${y} ---  $module compilation start  --- ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${ge} Compilation $make_env.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Source ${j}$(new_version)${end} ${y}$module${end} unaviable.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}Check your kernel source three.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Done$with_error.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Build & install modules from source..."
+msgstr ""
+#: .. from initial pot line
+msgid "Installing ${y}$KERNEL${end} kernel modules from ${j}$(new_version)${end} source directory"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}${j}($n%)${end} DKMS compilation ERROR !!${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Nvidia MODULES compilation from source...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# DKMS compilation ERROR !!"
+msgstr ""
+#: .. from initial pot line
+msgid "# Nvidia MODULES compilation from source..."
+msgstr ""
+#: .. from initial pot line
+msgid "# Updating $KERNEL modules."
+msgstr ""
+#: .. from initial pot line
+msgid "# Exec $KERNEL modules reload "
+msgstr ""
+#: .. from initial pot line
+msgid "# Rebuilding $KERNEL INITRAMFS ($m sec.)"
+msgstr ""
+#: .. from initial pot line
+msgid "# ERROR ! $KERNEL modules do not match $(new_version). Abort."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Install Nvidia default librairies${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Installing ${j}$(new_version)${end} librairies to $nv_root/nvidia.$(new_version)"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}<b>Librairies installation in background</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}Please wait...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Nvidia-installer:\\t${end}${jB} no effect\\t\\t${end}> ${y}WARNING on missing /usr/lib(32/64)/LibGL.so link,\\n\\t\\t\\t\\t\\t\\t    LibGL.so is already link in default nvidia's libraies directory${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${jB} no effect\\t\\t${end}> ${y}WARNING missing libglvnd developpement files.${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\\nCheck $lib_logfile for more details.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Abort install"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Libraries install:\\t${end}${gB} success\\t\\t${end}> ${y}normal install process${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# Modules build done."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Modules build done.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Driver build$show_dkms:\\t${end}${gB} success\\t\\t${end}> ${y}Installation complete with no error${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# Modules build ERROR."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${r}${j}($n%)${end} - Modules build ERROR.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Driver build:\\t\\t${end}${rB} failure\\t\\t${end}> ${y}ERROR, 'make' exit with 'failed' state${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERROR\n"
+"${r}MODULES BUILD RETURN ERRORS.${end}.\n"
+"$(new_version) compilation failed.\n"
+"Source make.log has been saved in <i>$make_log_file</i>.\n"
+"\n"
+"Do you want to read $make_log_file ?\n"
+"ERROR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "No thanks, shits happens"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}$(new_version)${end} compilation log text"
+msgstr ""
+#: .. from initial pot line
+msgid "# Modules already build and present in $kernel_path."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Modules already build and present in $kernel_path.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERROR\n"
+"${r}MODULES ALREADY BUILD.${end}.\n"
+"$(new_version) is the same as in kernel path.\n"
+"\n"
+"If you decide to continue anyway, consider the section\n"
+"${j}update driver${end} > ${j}update driver only${end} or\n"
+"restoring $(new_version) backup, if you experience any issue.\n"
+"\n"
+"What do you want to do ?\n"
+"ERROR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\t\\t\\t${gB} kernel option\\t${end}>${y} Kernel $KERNEL is REALTIME${end}.\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "open driver loaded"
+msgstr ""
+#: .. from initial pot line
+msgid "close source loaded"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Open Driver:\\t\\t${end}$gB compiled\\t\\t${end}>${y} $append${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Install Report${end}${end}${v}:\\n $(cat <<< ${report_log[*]})${end}\\n$rep_msg"
+msgstr ""
+#: .. from initial pot line
+msgid "edit later"
+msgstr ""
+#: .. from initial pot line
+msgid "edit now"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"$menu_msg\n"
+"${v}Installing driver ${j}$(new_version)${end} for hardware : ${j}$install_dev${end}${end}.\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Installing ${j}$(new_version)${end} driver version for ${y}$dev_name${end}."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Compat check and package extraction${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Checking compatibility data files${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Backing up old driver version, if any${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Driver already backed up. Skipped.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Previous version:\\t${end}${gB} passed\\t\\t${end}> ${y}previously backed up${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "Backup : $bak_version backup archive creation"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Previous version:\\t${end}${gB} success\\t\\t${end}> ${y}$bak_version normal backup process${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Previous version:\\t${end}${jB} warning\\t\\t${end}> ${y}no directory to archive.${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Package compil and install${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Old Nvidia serie BUG - driver install lost.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Restoringg from backup.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Linking ${y}$(new_version)${end} directory to the system.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - ${mf}Re-create ${j}$KERNEL${end} initramfs.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${ge}${sf} * ($m%) Exec $KERNEL modules init/reload${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Backup new Nvidia-Installer to $nvdir${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Update new driver version file${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Driver $(new_version) release package backup success${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Driver ${j}$(new_version)${end} release backup mistake. Not fatal.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - nv-update-$(new_version) already present in path, skip${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-RPT\n"
+"${v}<b><big><i>Congratulations !</i></big></b>${end}\n"
+"<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.\n"
+"\n"
+"${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting\n"
+"your computer with the new installed drivers.\n"
+"You may also do it later if you like, but it's not really recommanded.\n"
+"\n"
+"What do you want to do ?${end}\n"
+"RPT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-RPT\n"
+"${r}<b><big>Unexpected ERROR.</big></b>${end}\n"
+"${j}<b>$inst_mod_version isn't $(new_version)</b>${end}.\n"
+"Really weird. ${jB}O_o${end} !\n"
+"Some unknown bug pops up during driver installation.\n"
+"Or developper fucked out something ?\n"
+"Can't tell.\n"
+"RPT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<big>$(new_version) installed ended</big>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-RPT\n"
+"${y}<b><big>Driver installation complete</big></b>${end}\n"
+"\n"
+"Because <b>Nouveau driver</b> is still loaded you need\n"
+"to reboot the system for change to take effects.\n"
+"\n"
+"RPT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-RPT\n"
+"${rB}${bf}Ouch!${end}${end}\n"
+"${jB}No proper Nvidia package found.${end}\n"
+"\n"
+"RPT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TXT\n"
+"<!DOCTYPE html>\n"
+"<html>\n"
+"<head>\n"
+"<style>\n"
+"html { border: 3px solid #F53000; border-radius: 5px; }\n"
+"body { background:#3F3E3E; color: ${main}; height=120px; }\n"
+"a { color: ${log_msg}; text-decoration: none; }\n"
+"a:hover { font-weight:bold;}\n"
+"</style>\n"
+"</head>\n"
+"<body>\n"
+"You need to download the right package manually for your ${dev_name}.<br>\n"
+"Got to the Nvidia <a href=\"http://www.nvidia.fr/Download/Find.aspx?lang=en\">download center</a> site,\n"
+"or directly to the NVIDIA ftp repository <a href=\"https://download.nvidia.com/XFree86/\">here</a>.<br>\n"
+"</body>\n"
+"</html>\n"
+"TXT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - $(new_version) package already extracted${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${v}${j}($n%)${end} - Primary package extraction${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($m%)${end}${ge}${sf} * ($m%) Extracting $extracted_release${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Nvidia repository not found${end}${end}.${v} Extraction failure.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ($m s) - Backup : $bak_version tar ball creation"
+msgstr ""
+#: .. from initial pot line
+msgid "# ($m s) - Backup : $bak_version $ZIP archive creation"
+msgstr ""
+#: .. from initial pot line
+msgid "# Backup: $bak_version $ZIP archive created"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"$menu_msg\n"
+"Driver install ${j}$up_version${end} for hardware ${j}${dev_name}${end}.\n"
+"Pick the up to date kernel\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>Kernel driver update</b>${end}\\n${y}$KERNEL${end} drivers will be update."
+msgstr ""
+#: .. from initial pot line
+msgid "Update"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Kernel ${j}$KERNEL${end} driver update${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Kernel update $KERNEL ..."
+msgstr ""
+#: .. from initial pot line
+msgid "${j}INSTALL ABORT ABNORMALY, check $(echo \"$logfile\" | sed -n 's/^.*=//p')${end}."
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"${v}<b>Select the driver version type to install</b>${end}\n"
+"${sf}\n"
+"   - <b>Look up for latest</b>:\n"
+"   Look for the last available packges from Nvidia repos site.0\n"
+"   - <b>Look up for older version</b>:\n"
+"   Look for a previous packeges available in Nvidia repos site.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}<b>Select the driver version type to install</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Look for latest version"
+msgstr ""
+#: .. from initial pot line
+msgid "Look for older version"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Driver version type to install${end}\\n${end}${v}$hlp_tip${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "NVIDIA Download center data check"
+msgstr ""
+#: .. from initial pot line
+msgid "NVIDIA Download center compatibility check (${j}$DRV${end})..."
+msgstr ""
+#: .. from initial pot line
+msgid "install_msg='# ${v}${j}($n%)${end} - Compatiblity found in ${y}$(echo \"$DRV\" | cut -d. -f1)${end} serie, proceed to install${end}'"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERR\n"
+"${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}\n"
+"${v}The ${j}$pci_class${end} is not compatible with ${j}$DRV${end} driver.\n"
+"Check in ${j}$comp_file${end} serie or greater instead.\n"
+"Abort.${end}\n"
+"ERR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ERR\n"
+"${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}\n"
+"${v}The ${j}$pci_class${end} is not supported by ${j}NIVDIA${end} driver.\n"
+"and there's no solution here except reverse to ${j}Nouveau${end} driver.\n"
+"Abort.${end}\n"
+"ERR\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid " (installed)"
+msgstr ""
+#: .. from initial pot line
+msgid "(VDPAU class $_vclass)"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${y}but is not downloadable yet (wont be list)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}uncompatible${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${y}$_drive${end} ${rB} driver doesn't manage your hardware${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "compatible"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}$_drive${end} ${v} driver fit your hardware${end} ${y}$(echo -e '\\u2764')${end}\\n"
+msgstr ""
+#: .. from initial pot line
+msgid "official"
+msgstr ""
+#: .. from initial pot line
+msgid "beta"
+msgstr ""
+#: .. from initial pot line
+msgid "last release"
+msgstr ""
+#: .. from initial pot line
+msgid "legacy"
+msgstr ""
+#: .. from initial pot line
+msgid "is not in your repository"
+msgstr ""
+#: .. from initial pot line
+msgid "is in your repository"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}$_name${end} ${v}($_drive), $comp_a${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}The $set_beta version is :${end}${ge} ${tab} - - - - - - ${end}${y}$_drive${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${j}$_drive${end}${vB} $in_repos.${end}${v}$set_in${end}$dl_warn"
+msgstr ""
+#: .. from initial pot line
+msgid "Nothing to do."
+msgstr ""
+#: .. from initial pot line
+msgid "${y}this driver is not supported anymore${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "(last legacy)"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Last ${y}$family_last${end} will be list.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Devices compatibility found in ${y}$family${end} serie${end}$comp_d"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Compatible driver for ${y}$family${end} serie already installed.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${j}$family_last${end}${vB} $in_repos.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${jB}${bf}Available drivers${end}${end}\n"
+"\n"
+"${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$(drv_installed)${end}\n"
+"$(cat <<< ${main_msg[@]})\n"
+"\n"
+"$compat_msg\n"
+"$extra_msg\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Download"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${j}${bf}Install from stock${end}${end}\n"
+"\n"
+"Driver list in $nvdl\n"
+"\n"
+"$loaded\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${j}${bf}Install from user directory${end}${end}\n"
+"\n"
+"Select a driver from ${j}$(def_user)${end} download directory\n"
+"\n"
+"$loaded\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}<i>${y}$(version)${end} actually installed and loaded.</i>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Use Zenvidia stock directory"
+msgstr ""
+#: .. from initial pot line
+msgid "Use a user local directory"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${j}<b>Local NVIDIA drivers STOCK</b>${end}\n"
+"\n"
+"Zenvidia release stock :	${j}<b>${#nvdl_list[*]}</b>${end} object(s) found.\n"
+"User home directory :		${j}<b>${#home_list[*]}</b>${end} object(s) found.\n"
+"\n"
+"${v}<b>Select the directory to install from.</b>${end}\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${jB}${bf}Downloads${end}${end}\n"
+"Select the drivers version you wish to $ok_label.\n"
+"in the list below\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${jB}${bf}Downloads${end}${end}\n"
+"NVIDIA ${y}$dl_cmd${end} driver is going to be $ok_label.\n"
+"\n"
+"${v}Are you sure ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${r}Driver download failure${end}\\nOutput is empty."
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Driver download ${j}$LAST_PACK${end} failure.\\n The package ${j}$run_pack${end} doesn't exist.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Remote content control...${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Choose the version to install${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "<b>Downlaoding ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>Download check sum error</b>${end}.\\nTransaction aborted\\nTry to restart driver download from <b>Update menu</b>"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>Download unexpected end</b>${end}.\\nPlease restart driver download from <b>Update menu</b>"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${r}<b>$fatal_dev Remote directory is empty.</b>${end}\n"
+"Nvidia devs have probably forgoten to upload data.\n"
+"Feel free to try at a later time.\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${nr}*****  Close window to escape *****${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${y}<b>Open Source driver</b>${end} will apply."
+msgstr ""
+#: .. from initial pot line
+msgid "${y}<b>Closed Source driver</b>${end} will apply."
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>Open Source Driver</b>${end} will be removed."
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-SPW\n"
+"${j}${bf}Task bar Driver switch${end}${end}\n"
+"\n"
+"<b>Nvidia Open driver configuration sets has been change</b>.\n"
+"$drv_swt_message\n"
+"${sf}<i>(driver license $($d_modinfo -F license nvidia -k $KERNEL) actualy loaded)</i>${end}\n"
+"\n"
+"Press button to apply.\n"
+"Confirmation window will be displayed.\n"
+"SPW\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${v}${j}${bf}Driver switch${end}${end}\n"
+"\n"
+"<b>Driver type selection (open source / proprietary)</b>.\n"
+"\n"
+"<i>( ${y}driver with license $($d_modinfo -F license nvidia -k $KERNEL) actualy loaded${end} )</i>${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Load proprietary drivers"
+msgstr ""
+#: .. from initial pot line
+msgid "Load Open Source Drivers"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"\n"
+"\n"
+"${v}<u>Note</u>${end} : <i>In case of issue after restoration (ex: driver not loading),\n"
+"try command line tools in first place after reboot.\n"
+"Many distro auto reload desktop manager at boot. If you meet this issue,\n"
+"you have to disable the desktop manager with systemcl before operating\n"
+"with \"zenvidia rebuild [version]\" command line</i>.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"${sf}\n"
+"- <b>Remove downloaded packages</b>:\n"
+"Manage downloaded packages in Zenvidia directory.\n"
+"- <b>Backup tools</b>:\n"
+"Make a drivers and librairies backup of the current version.\n"
+"- <b>Restore tool</b>:\n"
+"Make a restoration of previously backed up drivers installation.\n"
+"- <b>Remove Nvidia and restore to default</b>:\n"
+"Remove completly Nvidia Drivers installation and restore default Nouveau drivers.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Manage drivers packages${end}${end}$w_text$hlp_tip"
+msgstr ""
+#: .. from initial pot line
+msgid "Remove downloaded package"
+msgstr ""
+#: .. from initial pot line
+msgid "Backup tools"
+msgstr ""
+#: .. from initial pot line
+msgid "Restore a backup"
+msgstr ""
+#: .. from initial pot line
+msgid "Remove Nvidia and restore to default"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}<b>Remove downloaded package</b>${end}\n"
+"Select on or more packages to be removed.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"Selected to be removed:\n"
+"${j}${rm_packs[*]}${end} driver(s).\n"
+"\n"
+"Please, confirm.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"${j}<b>$pack_version still exist in DKMS tree</b>.${end}\n"
+"\n"
+"Remove all associated package and directory ?\n"
+"<i>(All reference in $nv_root will be also removed if found)</i>\n"
+"\n"
+"Please, confirm.\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"<b>WARNING</b>\n"
+"The associated directory you're about to remove is the same as the actually running.\n"
+"\n"
+"This action will fataly break ${j}$pack_version${end} installation\n"
+"You don't want to do this.\n"
+"\n"
+"Action skipped.\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "I understand my mistake"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${v}<b>Driver(s)</b>:${end}\n"
+"${j}${rm_packs[*]}${end} package(s) removed.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}<b>Remove backed up package</b>${end}\n"
+"Select on or more archives to be removed.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"Selected driver(s) to be removed:\n"
+"${j}${rm_bak[*]}${end}\n"
+"\n"
+"Please, confirm.\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Driver(s) Archive(s) removed.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}<b>NVIDIA driver installation will be completaly removed.</b>${end}\n"
+"Only Nouveau driver will usable after reboot.\n"
+"\n"
+"${y}Please, confirm.${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${y}<b>Nvidia drivers complete removal</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Making security $(version) backup."
+msgstr ""
+#: .. from initial pot line
+msgid "Backup : ${j}$bak_version${end} backup archive creation"
+msgstr ""
+#: .. from initial pot line
+msgid "# Nvidia Installation removal ..."
+msgstr ""
+#: .. from initial pot line
+msgid "# Libraries registry update."
+msgstr ""
+#: .. from initial pot line
+msgid "# Grub update."
+msgstr ""
+#: .. from initial pot line
+msgid "# Perform modules dependencies and initramfs update."
+msgstr ""
+#: .. from initial pot line
+msgid "# Depmod $KERNEL modules ($m sec.)"
+msgstr ""
+#: .. from initial pot line
+msgid "# Exec $KERNEL modules init/reload ($m sec.)"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}<b>NVIDIA driver installation is now completaly removed</b>${end}.\n"
+"\n"
+"Restart the computer for change to take effect.\n"
+"\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"\n"
+"${v}Select the driver tool to use.${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-INFO\n"
+"\n"
+"${sf}\n"
+"<b>Make a backup</b> :\n"
+"- Back up the current isntalled driver installation.\n"
+"<b>Remove a backup</b> :\n"
+"- Remove archived installation driver packages.\n"
+"${end}\n"
+"INFO\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Backup manager${end}${end}$hlp_tip$w_text"
+msgstr ""
+#: .. from initial pot line
+msgid "Make a backup"
+msgstr ""
+#: .. from initial pot line
+msgid "Remove a backup"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}$bak_version${end} is already backed up.\n"
+"No reason to do it again.\n"
+"\n"
+"Do you want to overwrite ?\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"You are going to backup ${j}$bak_version${end} driver installation\n"
+"\n"
+"Please, confirm.\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${jB}Driver install overwrite${end}\n"
+"\n"
+"${v}The backup you are going to restore is the same as the one used by the system.\n"
+"\n"
+"In previous driver version before <b>libglxserver_nvidia.so</b> usage, overwrite\n"
+"libGL.so crash the X server.\n"
+"To prevent data loss when restoring and others ugly deasagrements, Zenvidia wont\n"
+"replace the actual install by overwriting ${j}$res_version${end} over itself.\n"
+"\n"
+"If you really wish to overwrite, use the command line tool with desktop manager\n"
+"service disabled, closed the actual desktop session and press ctrl+alt+F[1-4].\n"
+"And type : <i>zenvidia restore [version]</i> (help will display)\n"
+"\n"
+"(<i>Desktop Manager, ex: systemctl disable $(dm_serv).service</i>)${end}\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}<b>Restoration tool</b>${end}\n"
+"\n"
+"Driver actually loaded $(drv_installed).\n"
+"\n"
+"${v}Select the driver you want to restore.${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$(version)${end}."
+msgstr ""
+#: .. from initial pot line
+msgid "Yes, restore and replace"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Restore driver ${j}$res_version${end} and missing modules, if any.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Restoring from nvidia.$res_version.tar$zip_ex..."
+msgstr ""
+#: .. from initial pot line
+msgid "# ($m sec.) - Rebuild modules dependencies (depmod)"
+msgstr ""
+#: .. from initial pot line
+msgid "# Rebuilding missing $res_version drivers for $KERNEL kernel.."
+msgstr ""
+#: .. from initial pot line
+msgid " (restored)"
+msgstr ""
+#: .. from initial pot line
+msgid "# FAILURE : DKMS compilation ERROR !!"
+msgstr ""
+#: .. from initial pot line
+msgid "# FAILURE : See 'Update drivers or modules' > 'Update driver only (dkms/force)' to force build."
+msgstr ""
+#: .. from initial pot line
+msgid "# FAILURE : No source directory found for $res_version"
+msgstr ""
+#: .. from initial pot line
+msgid "Rebuilding INITRAMFS (required)\\t\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid "# ($m sec.) - Rebuilding INITRAMFS"
+msgstr ""
+#: .. from initial pot line
+msgid "# Clear : $res_version modules checked in $KERNEL kernel."
+msgstr ""
+#: .. from initial pot line
+msgid "# Restore $res_version modules system symlinks."
+msgstr ""
+#: .. from initial pot line
+msgid "${v}\\nDefine options and functions you would like to use of change\\n${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Zenvidia Configuration${end}$help_tip${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Reconfigure grub and/or modules options sets"
+msgstr ""
+#: .. from initial pot line
+msgid "Yes, apply"
+msgstr ""
+#: .. from initial pot line
+msgid "No, I'll apply later"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${jB}Open Driver Switch${end}\n"
+"${v}<b>Open driver settings have been change</b>.\n"
+"\n"
+"Do you want to apply now ?${end}\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${jB}Driver Switch${end}\n"
+"${v}<b>Open driver settings have been change.</b>\n"
+"\n"
+"${j}You don't have superuser priviledges${end}.\n"
+"Please launch ${y}Open Driver switch${end} task bar menu entry to apply.${end}\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-SPL\n"
+"DISPLAY PREVIEW :\n"
+"${rBB}TITLE${end}\n"
+"${j}${bf}Sub TTILE${end}${end}\n"
+"TEXT, comment and sub comment :\n"
+"Main is desktop default text color\n"
+"${v}Once upon a time in south west ? I don't care !${end}.\n"
+"${y}But I can alternate between East and West,\n"
+"but I still don't care ...${end}\n"
+"LOGS :\n"
+"${vB}Command cleared${end}		${gB}passed${end}		> ${y}log message values.${end}\n"
+"${vB}Command issue warning${end}	${jB}warning${end}	> ${y}log message values.${end}\n"
+"${vB}Command non fatal error${end} ${rB}error${end}		> ${y}log message values.${end}\n"
+"SPL\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TXT\n"
+"${j}${bf}Basic font colors and style${end}${end}\n"
+"${v}Change GUI font colors to fit your desktop theme.${end}\n"
+"TXT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-SPL\n"
+"${rBB}TITLE${end}\\t${j}${bf}Sub TTILE${end}${end}\n"
+"${v}main text${end} ${y}Log messages${end}\n"
+"${gB}Log cleared${end} ${jB}Log warnings${end} ${rB}Log Errors${end}\n"
+"SPL\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TIP\n"
+"${j}* NOTICE *${end}\n"
+"${sf}Colors will apply immediatly after validation.\n"
+"Do not forget Xterm only support a limited type of colors.\n"
+"${y}Xterm colors are also applied to Yad's text logging windows.${end}${end}\n"
+"TIP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid " Title and warning messages font color"
+msgstr ""
+#: .. from initial pot line
+msgid " Sub window title font color"
+msgstr ""
+#: .. from initial pot line
+msgid " Comment font color\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid " Sub comment font color\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid " Log clear font color\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid " Log warning font color\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid " Log error font color\\t\\t"
+msgstr ""
+#: .. from initial pot line
+msgid " Sub Titles font type"
+msgstr ""
+#: .. from initial pot line
+msgid " Normal font type"
+msgstr ""
+#: .. from initial pot line
+msgid " Xterm and log forground color"
+msgstr ""
+#: .. from initial pot line
+msgid " Xterm and log background color"
+msgstr ""
+#: .. from initial pot line
+msgid "Preview"
+msgstr ""
+#: .. from initial pot line
+msgid "Reload with newly setted values"
+msgstr ""
+#: .. from initial pot line
+msgid "Done"
+msgstr ""
+#: .. from initial pot line
+msgid "${r}$DEV TIP not found, undocumented or obsolete option.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-TIP\n"
+"${r}$DEV TIP not found, undocumented or obsolete option.${end}\n"
+"TIP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "<b>${3} :</b> ${c}${2}${end} - Section \\\"$section\\\""
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-DEVICE\n"
+"${j}${bf}Graphic Display Configuration${end}${end}\n"
+"<i>From Xorg configuration file ($xorg_cfg)</i>\n"
+"${sf}\n"
+"<b>Full documentation can be found in</b> :\n"
+"> ${j}Help and Documentation${end} > ${j}Documentation Manual${end} - Appendic B. <i>X Config Options</i>\n"
+"${end}\n"
+"Device(s) detected :\n"
+"${y}${dev_name[*]}${end}\n"
+"DEVICE\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Xorg Server"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"${sf}\n"
+"- <b>Edit full Xorg (GUI)</b>\n"
+"Edit all non sensitives Xorg option and sets in tabed GUI.\n"
+"- <b>Edit full Xorg (text)</b>\n"
+"Edit Xorg configuration file in a text editor.\n"
+"- <b>Manage NVIDIA Options only</b>\n"
+"Edit NVIDIA device only options in a GUI.\n"
+"- <b>Execute Xorg auto config</b>\n"
+"Re-create Zenvidia Xorg configuration file creation automation.\n"
+"${end}\n"
+"\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit full Xorg (GUI)"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit full Xorg (text)"
+msgstr ""
+#: .. from initial pot line
+msgid "Execute Xorg auto config"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Edit Xorg Config File${end}${end}\\nEdit or manage Xorg config and options.\\n$hlp_tip"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${j}<b>You are going to modify $plug_version configuration file</b>${end}\n"
+"\n"
+"Variables and datas from this file are very sensitives and could potentialy\n"
+"breaks Zenvidia.\n"
+"\n"
+"${r}<i>Are you sure about what you are doing ?</i>${end}\n"
+"\n"
+"WRN\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "I live dangerously"
+msgstr ""
+#: .. from initial pot line
+msgid "Well, I'm finally a coward"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>$plug_version configuration file</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Abort (panic button)"
+msgstr ""
+#: .. from initial pot line
+msgid "Write"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}<b>Zenvidia help text</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-ABOUT\n"
+"${v}${j}${bf}About Zenvidia${end}${end}\n"
+"Version :	${y}$(cat $(user_CF_DIR)/zen_version)${end}\n"
+"License :	${y}LGPLv3${end}\n"
+"Author :	${y}@PirateProd - 2020-2023${end}\n"
+"website :	${y}$zenvidia_git${end}\n"
+"contact :	${y}wildtruc@noneltd.net${end}\n"
+"${end}\n"
+"ABOUT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Nvidia Documentation ${end}$help_tip${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}Nvidia $(version) Documentation - ${y}$chap_start${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n\\nNothing to display here.\\n\\nLog file empty."
+msgstr ""
+#: .. from initial pot line
+msgid "${bf}${j}Changelog : ${y}$entrylog${end}${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Nvidia Change Logs list $relist_title${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-BRIEF\n"
+"Zenvidia changelog : ( $log_version )\n"
+"\n"
+"$log_brief\n"
+"BRIEF\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Zenvidia changelog ( $log_verion ) :\\n\\nNothing to display here.\\nLog file empty."
+msgstr ""
+#: .. from initial pot line
+msgid "${v}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Autostart launcher will be set to :\\n<b>></b>${end} ${j}$_notif${end}"
+msgstr ""
+
+#: .. from initial pot line
+msgid "Check driver update only;driver check only;n"
+msgstr ""
+#: .. from initial pot line
+msgid "Check zenvidia and driver update;driver and zenvidia check;z"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"<i>You can leave it as it is or choose between\n"
+"one of the sets below</i>.\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-MSG\n"
+"${j}${bf}Notifications config${end}${end}\n"
+"\n"
+"Notification is currently set to: ${y}$c_set_cnf${end}\n"
+"\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "driver check only"
+msgstr ""
+#: .. from initial pot line
+msgid "driver and zenvidia check"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"${v}Select here the install type${end}\n"
+"${sf}\n"
+"- <b>From a local package</b>:\n"
+"   Install a new driver from a user directory local package\n"
+"   or a listed already downloaded with zenvidia.\n"
+"- <b>From Nvidia server</b>:\n"
+"   Will display the full drivers list from the Nvidia server.\n"
+"   Install and download will be executed in the next step.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Select here the install type${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "From a local package"
+msgstr ""
+#: .. from initial pot line
+msgid "From NVIDIA server"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Install new drivers${end}\\n${end}$hlp_tip"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}NVIDIA package update from local dir. ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}NVIDIA package from NVIDIA server.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"${v}Select here the element to update or install${end}\n"
+"${sf}\n"
+"- <b>Driver upgrade</b>\n"
+"   Check for new driver update.\n"
+"   You can select during the process to download only or install directly.\n"
+"   If <i>download only</i> is chosen, for installation afterward\n"
+"   go back to : » ${j}main${end} menu » ${j}Install Drivers${end}\n"
+"   <u>Note</u> : All download are stored.\n"
+"- <b>Update driver only (dkms)</b>\n"
+"   Install nvidia dkms modules for a new running kernel.\n"
+"- <b>Update driver only (force)</b>\n"
+"   Optional command to force install from driver sources in case of\n"
+"   DKMS failure.\n"
+"- <b>Update driver for an other kernel (dkms)</b>\n"
+"   Optional command to update nvidia modules for an other kernel.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Select here the element to update or install${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Driver upgrade"
+msgstr ""
+#: .. from initial pot line
+msgid "Update driver only (dkms)"
+msgstr ""
+#: .. from initial pot line
+msgid "Update driver only (force)"
+msgstr ""
+#: .. from initial pot line
+msgid "Update driver for an other kernel (dkms)"
+msgstr ""
+#: .. from initial pot line
+msgid "Update driver only"
+msgstr ""
+#: .. from initial pot line
+msgid "Update driver for an other kernel"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Update Drivers or kernel modules${end}${end}$hlp_tip"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Check driver updates list${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Build module for current kernel (dkms)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Build module for current kernel (force)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}Build module for the selected kernel (dkms)${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-HLP\n"
+"\n"
+"${v}Select here the element to modify or edit:${end}\n"
+"${sf}\n"
+"- <b>Edit Xorg config file</b>:\n"
+"Edit the current xorg configuration file in /etc/X11.\n"
+"- <b>Edit script config</b>:\n"
+"Edit Zenvidia basic user conf script to set or unset mostly everything.\n"
+"- <b>Edit GUI font colors</b>:\n"
+"Change defaults font colors.\n"
+"- <b>Nvidia settings</b>:\n"
+"Start Nvidia-setting graphic UI tool.\n"
+"- <b>Edit distro config</b>:\n"
+"Modify the distribution configation file.\n"
+"<u>Notice</u> : You can add here the very specifics distro's variables.\n"
+"- <b>Manage drivers packages</b>:\n"
+"This tool is to backup, restore and remove old or current driver install.\n"
+"It also manage dowloaded nvidia's .run pack.\n"
+"<u>Note</u> : if old installation is found during driver update,\n"
+"it is automatically backed up prior to new version installation.\n"
+"- <b>Notication settings</b>:\n"
+"Configuration tool for Zen_notify daily update checker.\n"
+"- <b>Open driver switch tool</b> (optional):\n"
+"When available, this tool allow to switch between\n"
+"open and proprietary source drivers.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit xorg config file"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit Zenvidia config"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit GUI Colors"
+msgstr ""
+#: .. from initial pot line
+msgid "Nvidia-settings"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit Distro config"
+msgstr ""
+#: .. from initial pot line
+msgid "Manage drivers packages"
+msgstr ""
+#: .. from initial pot line
+msgid "Zenvidia notification config"
+msgstr ""
+#: .. from initial pot line
+msgid "Open driver switch tool"
+msgstr ""
+#: .. from initial pot line
+msgid "PRIME Display config"
+msgstr ""
+#: .. from initial pot line
+msgid "${j}${bf}Configuration and Tools${end}${end}$hlp_tip"
+msgstr ""
+#:
+#: .. from initial pot line
+msgid "$(cat <<-TIP\n"
+"\n"
+"${v}README and Help file from Nvidia $(version) and other.${end}\n"
+"${sf}\n"
+"- <b>Documanetation</b>:	Read the current Nvidia help file.\n"
+"- <b>Change Logs</b>:		Read the current Nvidia changelog file.\n"
+"- <b>Zenvidia Logs</b>:		Read the Zenvidia changelog file.\n"
+"- <b>Zenvidia Help</b>:		Read Zenvidia doc file.\n"
+"- <b>About Zenvidia</b>:	Read current Zenvidia README file.\n"
+"${end}\n"
+"TIP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}README and Help file from Nvidia $(version) and other.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "Documention manual ($(version))"
+msgstr ""
+#: .. from initial pot line
+msgid "Change Logs ($(version))"
+msgstr ""
+#: .. from initial pot line
+msgid "Zenvidia Logs"
+msgstr ""
+#: .. from initial pot line
+msgid "Zenvidia Help"
+msgstr ""
+#: .. from initial pot line
+msgid "About Zenvidia"
+msgstr ""
+#:
+msgid "${j}${bf}Help and Documentation${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WRN\n"
+"${y}${bf}Your are not superuser${end}${end}\n"
+"This command can't be executed with ${j}<b>Zenvidia (user)</b>${end} unprivilegded.\n"
+"See ${j}<b>Zenvidia</b> <i>(admin)</i>${end} instead.\n"
+"WRN\n"
+")"
+msgstr ""
+#: ###
+#: NOTE : TAKE CARE HERE OF OF NEEDED TABS IN YOUR LANGUAGE.
+#: .. from initial pot line
+msgid "${vB}Card $((${dev_n[$e]}+1)) :${end}${ge}			${end}${j}${dev[$e]} ($(echo ${vnd[$e]} | awk '{print $1}'))${end}"
+msgstr ""
+#: .. from initial pot line
+msgid " and in use"
+msgstr ""
+#: .. from initial pot line
+msgid ", but unused"
+msgstr ""
+#: .. from initial pot line
+msgid ", closed source used"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Open Source modules :${end}${ge}	${end}${j}installed$open_used${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "${vB}Modules license :${end}${ge}		${end}${j}$($d_modinfo -F license nvidia)\\n${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "$USER\\n(system write priviledge not allowed)$scan_alert"
+msgstr ""
+#: .. from initial pot line
+msgid "$(cat <<-HLP\n"
+"${v}Help tips text is currently set${end}\n"
+"${sf}You can unset it at any moment in:\n"
+"${j}Configuration and Tools${end} menu » ${j}Edit script config${end}.\n"
+"${end}\n"
+"HLP\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "$(cat <<-MSG\n"
+"${r}<big><b>A Free Nvidia drivers manager</b></big>${end}\n"
+"${y}Close and Open Source versions support${end}\n"
+"\n"
+"${vB}System :${end}${ge}			${end}${j}$(distro_name)${end}\n"
+"${vB}Processor type :${end}${ge}		${end}${j}$ARCH${end}\n"
+"$(devices)\n"
+"\n"
+"${vB}Driver version installed :${end} ${j}$(drv_installed)${end}$restore_msg\n"
+"${vB}Kernel version :${end}${ge}		${end}${j}$KERNEL${end}\n"
+"${vB}GCC version :${end}${ge}		${end}${j}$GCC${end}\n"
+"${vB}NVIDIA binary version :${end}${ge}	${end}${j}$NV_bin_ver${end}$restore_msg\n"
+"$(open_check)\n"
+"${v}Network connection :${end} ${j}$cnx_msg${end}\n"
+"${v}Rights :${end} ${j}$(right_check)${end}\n"
+"\n"
+"${hlp_wrn}\n"
+"${v}What do you want to do ?${end}\n"
+"MSG\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid "Install drivers"
+msgstr ""
+#: .. from initial pot line
+msgid "Update drivers or modules"
+msgstr ""
+#: .. from initial pot line
+msgid "Configuration and Tools"
+msgstr ""
+#: .. from initial pot line
+msgid "Help and Documentation"
+msgstr ""
+#:
+# msgid ""
+# msgstr ""
+#: .. from initial pot line
+msgid "Back to menu"
+msgstr ""
+#: .. from initial pot line
+msgid "Back to index"
+msgstr ""
+#: .. from initial pot line
+msgid "Back to list"
+msgstr ""
+#: .. from initial pot line
+msgid "Back to previous"
+msgstr ""
+#: .. from initial pot line
+msgid "Yes"
+msgstr ""
+#: .. from initial pot line
+msgid "Read"
+msgstr ""
+#: .. from initial pot line
+msgid "Ok"
+msgstr ""
+#: .. from initial pot line
+msgid "Apply"
+msgstr ""
+#: .. from initial pot line
+msgid "Got it"
+msgstr ""
+#: .. from initial pot line
+msgid "Set"
+msgstr ""
+#: .. from initial pot line
+msgid "Continue"
+msgstr ""
+#: .. from initial pot line
+msgid "Overwrite"
+msgstr ""
+#: .. from initial pot line
+msgid "Proceed"
+msgstr ""
+#: .. from initial pot line
+msgid "Select"
+msgstr ""
+#: .. from initial pot line
+msgid "Yes, please"
+msgstr ""
+#: .. from initial pot line
+msgid "No thanks"
+msgstr ""
+#: .. from initial pot line
+msgid "Back to main"
+msgstr ""
+#: .. from initial pot line
+msgid "Back"
+msgstr ""
+#: .. from initial pot line
+msgid "Previous"
+msgstr ""
+#: .. from initial pot line
+msgid "Cancel"
+msgstr ""
+#: .. from initial pot line
+msgid "Close"
+msgstr ""
+#: .. from initial pot line
+msgid "No"
+msgstr ""
+#:
+msgid "Exit"
+msgstr "Sortie"
+#: .. from initial pot line
+msgid "Abort"
+msgstr ""
+#: .. from initial pot line
+msgid "Panic Button"
+msgstr ""
+#: .. from initial pot line
+msgid "Abort installation"
+msgstr ""
+#: .. from initial pot line
+msgid "${v}What do you want to do ?${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "What do you want to do ?"
+msgstr ""
