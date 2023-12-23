@@ -32,7 +32,8 @@ version=$(cat $local_conf_dir/version.txt)
 test -s $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 [ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
-[ $(xrandr --listproviders|grep -c "modesetting" ) = 1 ] && opti_menu=$"PRIME Display configuration"'!zen_start -p!zen-prime,'
+[ $(xrandr --listproviders|grep -wc "Provider" ) -gt 1 ] && \
+[ $(xrandr --listproviders|grep -c "NVIDIA" ) = 1 ] && opti_menu=$"PRIME Display configuration"'!zen_start -p!zen-prime,'
 
 if [ -f $local_conf_dir/version.txt ]; then
 	driver_changelog=$" Read ${version} change log!${d_zen} -d!zen-info,"
