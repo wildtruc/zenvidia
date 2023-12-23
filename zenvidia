@@ -23,6 +23,9 @@
 ## TODO add more distro autodetection features
 ## TODO create a doc file extract for xorg tips (?)
 ## TODO Clean old profile version if exist before new one.
+## TODO CHECK xt_delay setups. CHECK escape message for xt_delay.
+## TODO CHECK modules opens source first display.
+## CHECK nouveau message on first driver install.
 
 
 ### ZENVIDIA VARS
@@ -722,7 +725,7 @@ nv_open_modules_set(){ #
 					By default, Zenvidia will build them alongside the main ones.
 
 					AT THIS POINT, OPEN SOURCE DRIVERS WILL BE ONLY BUILD.
-					You will be able to switch between version at any time with the ${j}Switch Tool${end}
+					You will be able to switch between version with the ${j}Open Driver Switch Tool${end}
 					in ${j}Configuration and Tools${end} menu (restart Zenvidia is mandatory).
 
 					${j}WARNING ${end}:${v}<i> Open drivers are in still in early state, many features are not
@@ -2520,6 +2523,21 @@ nv_build_dkms(){
  	{ build_dkms; } | win_yad_progress
 }
 build_source(){ #
+	# NOTE : Since 545 serie nvidia-installer can install over a loaded driver, but ... it doesn't reallyt works.
+	# kept for infos only.
+	nv_installer(){
+		[ $(chk_version) -ge 545 ] && {
+		## nvidia_installer command line.
+		# -k kernel_name, -Z disable nouveau, -z no nouveau check, -b no backup, -n no precompiled.
+# 		nvidia-installer -s -z -N -K -b --no-x-check --no-check-for-alternate-installs --dkms \
+		nvidia-installer -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms \
+		--skip-module-unload --no-distro-scripts --allow-installation-with-running-driver \
+		--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
+		--tmpdir=$buildtmp --log-file-name=$driver_logfile
+		# -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver
+		}
+		# nvidia-installer -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver --kernel-source-path=/usr/src/kernels/6.6.6-100.fc38.x86_64/ --kernel-install-path=/usr/lib/modules/6.6.6-100.fc38.x86_64/extra --tmpdir=/tmp --log-file-name=./logfile.txt
+	}
 	unset drv_src
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
@@ -2702,20 +2720,7 @@ nv_cmd_make_src(){
  	y_text=$"Installing ${y}$KERNEL${end} kernel modules from ${j}$(new_version)${end} source directory"
 	{ build_source; } | win_yad_progress
 }
-nv_cmd_install_driver(){ ## NOTE : Since 545 serie nvidia-installer can install over a loaded driver.
-		nv_installer(){
-			[ $(chk_version) -ge 545 ] && {
-			## nvidia_installer command line.
-			# -k kernel_name, -Z disable nouveau, -z no nouveau check, -b no backup, -n no precompiled.
-	# 		nvidia-installer -s -z -N -K -b --no-x-check --no-check-for-alternate-installs --dkms \
-			nvidia-installer -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms \
-			--skip-module-unload --no-distro-scripts --allow-installation-with-running-driver \
-			--kernel-source-path=$kernel_src --kernel-install-path=$kernel_path \
-			--tmpdir=$buildtmp --log-file-name=$driver_logfile
-			# -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver
-			}
-			# nvidia-installer -s -z -n -K -b -j12 --no-x-check --dkms --no-rpms --skip-module-unload --no-distro-scripts --allow-installation-with-running-driver --kernel-source-path=/usr/src/kernels/6.6.6-100.fc38.x86_64/ --kernel-install-path=/usr/lib/modules/6.6.6-100.fc38.x86_64/extra --tmpdir=/tmp --log-file-name=./logfile.txt
-		}
+nv_cmd_install_driver(){ #
 		## we need to give it a chance.
 		probe_open=/etc/modprobe.d/open-NVIDIA.conf
 		## prevent installer to doing think for 'upgrade an other kernel'.
@@ -4979,7 +4984,7 @@ edit_script_conf(){
 			a=''
 			if [[ "$value" =~ "TRUE" ]]; then value=1; else value=0; fi
 			if [[ "$bis_value" ]]&&[[ "$bis_value" != 'none' ]]; then
-				[[ $bis_value =~ [A-Z] ]] && a='\"'
+				[[ "$bis_value" =~ [Aa-Zz] ]] && a='\"'
 				value=$bis_value
 			fi
 			if [ $(grep -E -c "$set=[\"]?$value[\"]?" $basic_conf) -eq 0 ];then
@@ -4995,9 +5000,13 @@ edit_script_conf(){
 		#extra=$(echo "$input"| cut -d';' -f3)
 		if [ $(grep -c "$value.*$set" <<< ${conf_base[@]}) -eq 0 ]; then
 			if [[ ! "$value" = "FALSE" ]]; then
+				bis_value=$(echo "$input"| cut -d';' -f3)
+				[[ "$bis_value" ]] && [[ "$bis_value" =~ [Aa-Zz] ]] && [[ "$bis_value" != 'none' ]] && a='\"' || a=''
 				value=0
+				# add special set below.
+				[ "$set" = "render" ] && value='NONE'
 				if [ $(grep -E -c "$set=[\"]?$value[\"]?" $basic_conf) -eq 0 ];then
-					sed -Ei "s/^($set)=.*$/\1=$value/" $basic_conf
+					sed -Ei "s/^($set)=.*$/\1=${a}$value${a}/" $basic_conf
 					if [[ $set == "use_open" ]]; then export use_open=$value; fi
 					eval $set=$value
 				fi
