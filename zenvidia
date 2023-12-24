@@ -15,18 +15,10 @@
 #
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with main.c;if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
- set -mb
-
-## TODO add more distro autodetection features
-## TODO create a doc file extract for xorg tips (?)
-## TODO Clean old profile version if exist before new one.
-## TODO CHECK xt_delay setups. CHECK escape message for xt_delay.
-## TODO CHECK modules opens source first display.
-## CHECK nouveau message on first driver install.
-
+set -mb
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -49,7 +41,7 @@ profile="--application-profile-path=$profile_path"
 icon_stock=$install_dir/share/pixmaps
 img_zen_desktop=$icon_stock/zen-emblem.png
 img_zen_bar=zen-emblem
-# user_DL_DIR=$(su "$(who | awk '{print $1}')" xdg-user-dir DOWNLOAD)
+# need by xterm to install it self for first and fresh launch.
 xt_hold=0
 xt_delay=4
 
@@ -1079,11 +1071,11 @@ restore_broken_install(){
 	fi
 }
 ## configuration ###
-dm_service_patch(){ # # ALERT fix to remove
+dm_service_patch(){ # # ALERT fix to remove nvidia-modules-reload
 	systemd_dir=/usr/lib/systemd/system
 	ExecStartPre=$(command -v zenvidia-modules-reload)
 	ExecStart=$(command -v $(dm_serv))
-	#### ALERT previous fix to remove in next reease.
+	#### ALERT previous fix to remove in next release.
 	if [ $(cat $systemd_dir/$(dm_serv).service | grep -c "Pre=/usr/local/bin/nvidia-modules-reload") -gt 0 ]; then
 		cp -f $systemd_dir/$(dm_serv).service.bak $systemd_dir/$(dm_serv).service
 	fi
@@ -1100,8 +1092,9 @@ dm_service_patch(){ # # ALERT fix to remove
 			echo $"# Patching $(dm_serv).service for driver load at session restart (experimental)."
 		fi
 		sed -Ei 's|^(ExecStart='${ExecStart}')$|ExecStartPre='${ExecStartPre}'\n\1|' $systemd_dir/$(dm_serv).service
-		$d_sys daemon-reload
+# 		$d_sys daemon-reload
 	fi
+	$d_sys daemon-reload
 }
 restart_dm_warn(){ #
 	# can be potentially add : gdm, sddm, lightdm, lxdm (gdm,kdm,xdm,lightdm,lxdm,slim,sddm)
@@ -1335,7 +1328,7 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 	## drm_modset 0. NOTE : 440 serie is set as default, but the real serie where
 	## this option is needed is not known > too old.
 	[ $(chk_family) -le 440 ] && drm_modset=0
-	[ $(chk_family) -ge 545 ] && drm_fbdev='nvidia-drm.fbdev=1'
+	[ $(chk_family) -ge 545 ] && drm_fbdev=' nvidia-drm.fbdev=1'
 	## take care of modeset 1 for 515 serie too.
 	if [ $opti_preset = 1 ]; then
 		## optimus section.
@@ -1348,17 +1341,29 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 	fi
 	if [ $(grep -c "GRUB_CMD.*nouveau" $grub_def) -gt 0 ]; then
 		if [ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev.*$") -eq 0 ]; then
-			echo $"# ${fonts} * GRUB conf options update.${end}${end}"; sleep 2
+			if [ "$timeout" != '' ];then
+				echo $"# GRUB conf options update."; sleep 2
+			else
+				echo $"# ${fonts} * GRUB conf options update.${end}${end}"; sleep 2
+			fi
 			## then, replace default env grub with new vars and update grub.cfg.
 			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \3\"/" \
 			$grub_def
 			$d_grub-mkconfig -o $grub_cfg 2>&1 | \
 			while read -r line; do echo "# ${sub_fonts} * ${line}${end}${end}"; ((n++)); echo $n; done
 		else
-			echo $"# ${fonts} * GRUB conf already set.${end}${end}"; sleep 2
+			if [ "$timeout" != '' ];then
+				echo $"# GRUB conf already set."; sleep 2
+			else
+				echo $"# ${fonts} * GRUB conf already set.${end}${end}"; sleep 2
+			fi
 		fi
 	else
-		echo $"# ${fonts} * Create GRUB conf for nouveau driver blacklisting and other options.${end}${end}"; sleep 2
+		if [ "$timeout" != '' ];then
+			echo $"# Create GRUB conf for nouveau driver blacklisting and other options."; sleep 2
+		else
+			echo $"# ${fonts} * Create GRUB conf for nouveau driver blacklisting and other options.${end}${end}"; sleep 2
+		fi
 		sed -En "s/^GRUB_CMD.*=\"(.*)\"$/grub_orig='\1'/p" $grub_def > $(user_CF_DIR)/grub-orig
 		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \2\"/" $grub_def
 		$d_grub-mkconfig -o $grub_cfg 2>&1 | \
@@ -3426,7 +3431,7 @@ upgrade_new_kernel(){ #
 	w_text=$"$( cat <<-MSG
 		$menu_msg
 		Driver install ${j}$up_version${end} for hardware ${j}${dev_name}${end}.
-		Pick the up to date kernel
+		Select the kernel to update.
 	MSG
 	)"
 	l_text=$w_text
@@ -4204,9 +4209,15 @@ last_pack(){ #
 # 	zen-info			gtk-info				|	zen-color			yad color config
 
 win_log_options(){
+	x_sleep=''
 	if [ $xt_hold = 1 ]; then
 		esc_message=$"# ${nr}*****  Close window to escape *****${end}"
 		x_hold=''
+		if [ $xt_delay -gt 0 ]; then
+			esc_message=$"# ${nr}*****  Window will auto-close in $xt_delay seconds *****${end}"
+			x_sleep="sleep $xt_delay"
+			x_hold='--auto-close'
+		fi
 	else
 		esc_message=''
 		x_hold='--auto-close'
@@ -4982,10 +4993,20 @@ edit_script_conf(){
 			value=$(echo "$output"| cut -d';' -f1)
 			bis_value=$(echo "$output"| cut -d';' -f4)
 			a=''
+			# below filter is not necesary, but add for better reading understanding.
 			if [[ "$value" =~ "TRUE" ]]; then value=1; else value=0; fi
-			if [[ "$bis_value" ]]&&[[ "$bis_value" != 'none' ]]; then
-				[[ "$bis_value" =~ [Aa-Zz] ]] && a='\"'
-				value=$bis_value
+			if [[ "$bis_value" ]]; then
+				if [[ "$bis_value" != 'none' ]]; then
+					[[ "$bis_value" =~ [Aa-Zz] ]] && a='\"'
+					value=$bis_value
+				else
+					# lock special value to its list.
+					set_list='xt_delay|render'
+					if [[ "$set" =~ $set_list ]]; then
+						# preset special bis_value below.
+						[ "$set" = "xt_delay" ] && { [ $value = 1 ] && value=4 ;}
+					fi
+				fi
 			fi
 			if [ $(grep -E -c "$set=[\"]?$value[\"]?" $basic_conf) -eq 0 ];then
 				sed -Ei "s/^($set)=.*$/\1=${a}$value${a}/" $basic_conf
@@ -6562,6 +6583,8 @@ default_sets(){
 	use_gzip=${use_gzip:-0}
 	exec_mod_tool=${exec_mod_tool:-0}
 	ARCH=${ARCH:-$HOSTTYPE}
+	xt_hold=${xt_hold:-0}
+	xt_delay=${xt_delay:-4}
 	## default PRIME values.
 	opti_auto_set=${opti_auto_set:-0}
 	opti_preset_off=${opti_preset_off:-0}
@@ -6571,7 +6594,6 @@ default_sets(){
 	## define if task bar menu entry are used
 	task_opt=${task_opt:-0}
 	## default warn display set is null.
-	no_warn=${no_warn:-0}
 	open_wrn=${open_wrn:-1}
 	first_open=${first_open:-0}
 	hlp_txt=${hlp_txt:-1}
