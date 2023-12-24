@@ -2,14 +2,16 @@
 
 if [ -e /var/run/nv-modules-reload.pid ]; then
 	set -x
-	export PATH=$PATH:$install_dir/bin
-
+	
 	d_nv_persistenced=$(command -v nvidia-persistenced)
 	d_probe=$(command -v modprobe)
 	d_sys=$(command -v systemctl)
 	install_dir=/usr/local
 	nv_persist_ctl=/etc/systemd/system/multi-user.target.wants/nvidia-persistenced.service
 
+	export PATH=$PATH:$install_dir/bin
+
+	echo "# log : zenvidia-modulees reload > dm-service patch."
 	[ -e $nv_persist_ctl ] && $d_sys stop nvidia-persistenced.service
 	sleep 1
 	if [ $(lsmod | grep -c "nouveau") -gt 0 ]; then
@@ -25,4 +27,12 @@ if [ -e /var/run/nv-modules-reload.pid ]; then
 	fi
 	[ -e $nv_persist_ctl ] && systemctl start nvidia-persistenced.service
 	rm -f /var/run/nv-modules-reload.pid
+	echo "# log : zenvidia-modulees relaod > reload daemon service."
+	#$d_sys daemon-reload
+	$d_sys daemon-reexec
+	#exit 0
+else
+	echo "# log : zenvidia-modulees reload > Nothing to do."
+	#exit 0
 fi
+

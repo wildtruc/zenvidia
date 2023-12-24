@@ -261,9 +261,12 @@
  - wrong quote in basic conf file for PRIME display set. Fixed.
  - zen_task_menu PRIME has been change to modesetting detection to menu display in prevous patch. It wasn't known by the dev that nouveau is also name as modesetting by xrandr. So, PRIME detection has been change to more than one provider and Nvidia as one of them.
  - tested the new nvidia-isntaller 545 serie option '--allow-installation-with-running-driver': nvidia-isntaller still not overwrite existing drivers and abort for both dkms and no-dkms for current kernel. Build and install work for an other kernel, but driver are not compressed and install a brut ko file if no-dkms option. Conclusion : nvidia-installer new feature didn't met hopes and expectation and is still useless for zenvidia.
-
-
-
+* 2023-12-24 - v2.3.20
+ - Reintroduction of the "delay" option instead of a simple "hold" for log windows. Default delay is 4 secondes.
+ - zenvidia config GUI has been update to better filter uncheck value to a default state.
+ - remove old 'no_warn' set from basic conf, useless. Change message in conf file.
+ - Fix a missing space in grub config for fbdev option in 545 serie.
+ - systemctl deamon-reload was not enought in zenvidia-modules-reload and dm-service wont start after driver install/update on sys reboot. Replace by systemctl daemon-reexec whitch seems doing the job better.
 
 
 
