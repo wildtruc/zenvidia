@@ -18,7 +18,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
-set -mb
+# set -emb
+# set -mb
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -496,9 +497,6 @@ dep_exec_check(){
 	d_nv_persistenced=$(command -v nvidia-persistenced)
 	d_nv_probe=$(command -v nvidia-modprobe)
 	d_probe=$(command -v modprobe)
-	i_sys=$(command -v dracut)
-	i_init=$(command -v update-initramfs)
-	i_cpio=$(command -v mkinitcpio)
 	# grub could be, grub-[command] or grub2-[command]. Let 'find' catch it for us.
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
 # 	p_git=$(command -v git) && deplist+=("git") ## TEST CASE DEVEL ONLY
@@ -578,7 +576,7 @@ dep_control(){
 					cat <<-DEP
 						$warn_text
 
-						<b>Your are not adminsitrator</b>.
+						<b>Your are not administrator</b>.
 						You need to restart with adminsitratior priviledges
 						or use your packages manager to install them.
 					DEP
@@ -918,15 +916,14 @@ initramfs_tools(){
 	## try to find 'dracut' first, then fallbback to 'update-initramfs' if not found.
 	## look the possibility to add /usr/bin/mkinitcpio -p linux. how-to ?
 	## if none are found, disable ramfs rebuild and warn.
-	if test $i_sys; then
-		echo "$i_sys -f --kver"
-	elif test $i_init; then
-		echo "update-initramfs -u -k"
-	elif test $i_cpio; then
-		echo "mkinitcpio -p linux --kernel"
-	else
-		echo 0
-	fi
+	for init_sys in {dracut,update-initramfs,mkinitcpio}; do
+# 	for init_sys in {update-initramfs,mkinitcpio,dracut}; do
+		command -v $init_sys &>/dev/null && {
+		[ "$init_sys" = "dracut" ] && echo "$init_sys -f --kver" && return
+		[ "$init_sys" = "update-initramfs" ] && echo "$init_sys -u -k" && return
+		[ "$init_sys" = "mkinitcpio" ] && echo "$init_sys -p linux --kernel" && return
+		} || echo 0
+	done
 }
 test_ramfs_tool(){
 ## detect if ramfs tool exist then send to initramfs_warn if none.
@@ -1075,12 +1072,12 @@ dm_service_patch(){ # # ALERT fix to remove nvidia-modules-reload
 	systemd_dir=/usr/lib/systemd/system
 	ExecStartPre=$(command -v zenvidia-modules-reload)
 	ExecStart=$(command -v $(dm_serv))
-	#### ALERT previous fix to remove in next release.
-	if [ $(cat $systemd_dir/$(dm_serv).service | grep -c "Pre=/usr/local/bin/nvidia-modules-reload") -gt 0 ]; then
-		cp -f $systemd_dir/$(dm_serv).service.bak $systemd_dir/$(dm_serv).service
-	fi
-	test -f /usr/local/bin/nvidia-modules-reload && rm -f /usr/local/bin/nvidia-modules-reload
-	####
+# 	#### ALERT previous fix to remove in next release.
+# 	if [ $(cat $systemd_dir/$(dm_serv).service | grep -c "Pre=/usr/local/bin/nvidia-modules-reload") -gt 0 ]; then
+# 		cp -f $systemd_dir/$(dm_serv).service.bak $systemd_dir/$(dm_serv).service
+# 	fi
+# 	test -f /usr/local/bin/nvidia-modules-reload && rm -f /usr/local/bin/nvidia-modules-reload
+# 	####
 	## make dm.service backup
 	[ -e $systemd_dir/$(dm_serv).service.bak ] || cp -f $systemd_dir/$(dm_serv).service $systemd_dir/$(dm_serv).service.bak
 	if [ $(grep -c "$ExecStartPre" $systemd_dir/$(dm_serv).service) -eq 0 ]; then
@@ -1102,10 +1099,10 @@ restart_dm_warn(){ #
 		$warn_log_title
 		${v}Restart display manager service${end} (${y}experimental${end})
 
-		This experimental feature allow driver to be relaod
+		This is a experimental feature allowing drivers to be relaod
 		at simple display manager restart.
 
-		Potentialy usable : gdm, sddm, lightdm, lxdm
+		Potentialy usable : gdm, sddm, lightdm, lxdm.
 		Unsable : kdm
 		(lighdm only tested at this point).
 
@@ -1328,7 +1325,7 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 	## drm_modset 0. NOTE : 440 serie is set as default, but the real serie where
 	## this option is needed is not known > too old.
 	[ $(chk_family) -le 440 ] && drm_modset=0
-	[ $(chk_family) -ge 545 ] && drm_fbdev=' nvidia-drm.fbdev=1'
+	[ $(chk_family) -ge 545 ] && drm_fbdev=' nvidia-drm.fbdev=1' || drm_fbdev=''
 	## take care of modeset 1 for 515 serie too.
 	if [ $opti_preset = 1 ]; then
 		## optimus section.
@@ -1340,17 +1337,22 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 		drm_msg=$(chk_family)' serie'
 	fi
 	if [ $(grep -c "GRUB_CMD.*nouveau" $grub_def) -gt 0 ]; then
-		if [ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev.*$") -eq 0 ]; then
+		if [ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev $grub_orig.*$") -eq 0 ]; then
 			if [ "$timeout" != '' ];then
 				echo $"# GRUB conf options update."; sleep 2
 			else
 				echo $"# ${fonts} * GRUB conf options update.${end}${end}"; sleep 2
 			fi
 			## then, replace default env grub with new vars and update grub.cfg.
-			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \3\"/" \
-			$grub_def
+			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \3\"/" $grub_def
 			$d_grub-mkconfig -o $grub_cfg 2>&1 | \
-			while read -r line; do echo "# ${sub_fonts} * ${line}${end}${end}"; ((n++)); echo $n; done
+			while read -r line; do
+				if [ "$timeout" != '' ];then
+					echo "# * ${line}"
+				else
+					echo "# ${sub_fonts} * ${line}${end}${end}"; ((n++)); echo $n
+				fi
+			done
 		else
 			if [ "$timeout" != '' ];then
 				echo $"# GRUB conf already set."; sleep 2
@@ -1367,7 +1369,13 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 		sed -En "s/^GRUB_CMD.*=\"(.*)\"$/grub_orig='\1'/p" $grub_def > $(user_CF_DIR)/grub-orig
 		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \2\"/" $grub_def
 		$d_grub-mkconfig -o $grub_cfg 2>&1 | \
-		while read -r line; do echo "# ${sub_fonts} * ${line}${end}${end}"; ((n++)); echo $n; done
+		while read -r line; do
+			if [ "$timeout" != '' ];then
+				echo "# * ${line}"
+			else
+				echo "# ${sub_fonts} * ${line}${end}${end}"; ((n++)); echo $n
+			fi
+		done
 	fi
 	## blacklist nouveau
 	[ -e /etc/modprobe.d/blacklist-nouveau.conf ] || echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
@@ -2414,6 +2422,7 @@ build_dkms(){ #
 				#echo -e "# build $_dkms"
 				if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.*[ko\|ko.xz] ]; then
 					echo -e $"# ${y}* All Clear for $(new_version) $_dkms already build.${end}"
+					echo -e "exec_mod_tool=1" >> $tmp_b
 				else
 					$p_dkms build -m $_dkms/$(new_version) -k $KERNEL $force 2>&1 | \
 					while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
@@ -3423,7 +3432,7 @@ backup_old_version(){ #
 upgrade_new_kernel(){ #
 	unset kern_list
 	up_version=$(version)
-	ls_kern=$(ls -1 /boot| grep -v "rescue"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
+	ls_kern=$(ls -1 /boot| grep -v "rescue\|$(uname -r)"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
 	for linuz in ${ls_kern}; do
 		kern_list+=("false")
 		kern_list+=("$linuz")
@@ -6090,6 +6099,7 @@ menu_update(){ #
 	IFS=$ifs
 	home=/home/$(def_user)
 	tmp_dir
+	force=''
 	if [ $use_dkms = 1 ]; then
 		case $menu_upd in
 			"1")	menu_msg=$"${v}Check driver updates list${end}"; legacy_drv=0; check_for_newer; check_update ;;
