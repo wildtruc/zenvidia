@@ -267,6 +267,15 @@
  - remove old 'no_warn' set from basic conf, useless. Change message in conf file.
  - Fix a missing space in grub config for fbdev option in 545 serie.
  - systemctl deamon-reload was not enought in zenvidia-modules-reload and dm-service wont start after driver install/update on sys reboot. Replace by systemctl daemon-reexec whitch seems doing the job better.
+* 2023-12-27 - v2.3.25
+ - modifed grub function update regex to remove fbdev=1 from grub config (back from 545 serie test), if any.
+ - fixed 'update driver' pulsing window message whitch was still displaying markup.
+ - updating an already build driver was rebuilding initramfs, useless. Replace by modprobe/selinux modules reload.
+ - initrmafs command detection has been rewrite for a better inter distro interpretation.
+ - Remove systemctl daemon-reexec/reload from zenvidia-modules-reload, useless. Issue apprently came from script output was empty and systemctl looks to not appriciaite it. Still under watch.
+ - fixed nut shells.
+ - translation fr_FR made up at 30%.
+ - Note : my old 12 years old laptop screen passed away. 'Out of the box' tests should become delicates.
 
 
 
