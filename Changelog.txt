@@ -276,6 +276,12 @@
  - fixed nut shells.
  - translation fr_FR made up at 30%.
  - Note : my old 12 years old laptop screen passed away. 'Out of the box' tests should become delicates.
+* 2023-12-30 - v2.3.27
+ - Yad exit code 252 fixed. It is now same as code exit 1. Filter is still under watch to be sure of the best behaviour.
+ - Task bar open driver switch were still display message from script config edit even if set or unset. Wrong ordered old sets variables and temp file were in cause. Fixed.
+ - Missing initramfs message in open driver switch. Fixed.
+ - translation fr_FR made up at 40%.
+ - Note : Fixes are not fatal for the previous patch, but uploaded because they are atleast anoying. It could be a been soon, so, some others could appear in between (sic).
 
 
 

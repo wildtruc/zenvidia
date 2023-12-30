@@ -349,6 +349,9 @@ msgstr ""
 msgid "# ${v}Exec ${j}$KERNEL${end} modules reload${end}"
 msgstr ""
 #: .. from initial pot line
+msgid "# ${v}Exec ${j}$KERNEL${end} modules initramfs update${end}"
+msgstr ""
+#: .. from initial pot line
 msgid "# ${v}Restore ${j}$KERNEL${end} modules selinux connection ...${end}"
 msgstr ""
 #: .. from initial pot line
@@ -1885,6 +1888,9 @@ msgid ""
 ")"
 msgstr ""
 #: .. from initial pot line
+msgid "${j}${bf}Zenvidia Change Logs list${end}${end}"
+msgstr ""
+#: .. from initial pot line
 msgid "${j}${bf}Nvidia Documentation ${end}$help_tip${end}"
 msgstr ""
 #: .. from initial pot line
@@ -1981,7 +1987,7 @@ msgstr ""
 msgid "${vB}NVIDIA package update from local dir. ${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}NVIDIA package from NVIDIA server.${end}"
+msgid "${vB}NVIDIA package update from NVIDIA server.${end}"
 msgstr ""
 #: .. from initial pot line
 msgid ""
@@ -2072,6 +2078,9 @@ msgid ""
 "${end}\n"
 "HLP\n"
 ")"
+msgstr ""
+#: .. from initial pot line
+msgid "\\n${v}Select here the element to modify or edit${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "Edit xorg config file"
