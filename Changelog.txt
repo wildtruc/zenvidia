@@ -281,7 +281,14 @@
  - Task bar open driver switch were still display message from script config edit even if set or unset. Wrong ordered old sets variables and temp file were in cause. Fixed.
  - Missing initramfs message in open driver switch. Fixed.
  - translation fr_FR made up at 40%.
- - Note : Fixes are not fatal for the previous patch, but uploaded because they are atleast anoying. It could be a been soon, so, some others could appear in between (sic).
+ - Note : Fixes are not fatal for the previous patch, but uploaded because they are atleast anoying. It could be a bit been soon, so, some others could appear in between (sic).
+* 2023-12-31 - v2.3.29
+ - Add grub default config to driver backup to reflect 545 serie fbdev option in line.
+ - Add grub re-build in driver backup restoration.
+ - Bug : Fixed user config dir priviledges during first script launch on a tester feedback. Thanks to him.
+
+
+
 
 
 

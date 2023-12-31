@@ -878,7 +878,7 @@ msgstr ""
 #: .. from initial pot line
 msgid ""
 "$(cat <<-ERROR\n"
-"${r}MODULES ALREADY BUILD.${end}.\n"
+"${r}<b>MODULES ALREADY BUILD.${end}</b>.\n"
 "$(new_version) is the same as in kernel path.\n"
 "\n"
 "If you decide to continue anyway, consider the section\n"
