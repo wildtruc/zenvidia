@@ -18,8 +18,8 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
-# set -emb
-# set -mb
+# set -vxEmb
+# set -xmb
 
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
@@ -288,6 +288,7 @@ distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
 	plug_version=$(distro_version)
 	plug_conf=$plug_version.conf
 	if [ "$(def_user)" != "root" ]; then
+		default_zen_dir
 		if [ ! -f $conf_dir/distro/$plug_conf ]; then
 			if [[ $(ls -1 $conf_dir/distro | grep -ic "$plug_conf" ) -gt 0 ]]; then
 # 			if [ $(ls -1 $conf_dir/distro | grep -ic "$plug_conf" ) -eq 0 ]; then # TEST
@@ -375,7 +376,7 @@ distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
 		else
 			dest_conf=$(ls -1 $conf_dir/distro | grep -i "$plug_conf")
 		fi
-		test -f $(user_CF_DIR)/$plug_conf || cp -f $conf_dir/distro/$dest_conf $(user_CF_DIR)/$plug_conf
+		test -f $(user_CF_DIR)/$plug_conf || { cp -f $conf_dir/distro/$dest_conf $(user_CF_DIR)/$plug_conf ;}
 		. $(user_CF_DIR)/$plug_conf
 	else
 		## this is here add to get compatibility in terminal only mode and isn't used in graphic mode.
@@ -828,7 +829,7 @@ version(){ # NOTE : user config dir or not ?
 	return
 }
 new_version(){
-	if [ $from_install = 1 ]; then
+	if [ $from_install ]&&[ $from_install = 1 ]; then
 			if [ "$run_pkg" ]; then
 				echo "$run_pkg" | sed -En "s/^.*-(.*)/\1/; s/.run//g;p"
 			else
@@ -1914,6 +1915,10 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	fi
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
 	echo $"# ${j}($n%)${end}${ge}${sf} * Fixing broken libs and links if needed${end}${end}"; sleep 2
+	## set old_version and new_version function in the first place for loop,
+	## the modinfo calculation slow down the process to much.
+	local old_lib_version=$(old_version)
+	local new_lib_version=$(new_version)
 	## wayland-client and vulkan-producer are dedicate to wayland.
 	## NOTE need to understand how wayland is detected.
 	[ $wayland_link = 1 ] && wayland="wayland-client"
@@ -1926,8 +1931,8 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	unset lib_x fixed_lib_log
 	for lib_X in "${ELF_LIB_LIST[@]}"; do
 		for old_lib in ${link_list[@]}; do
-			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$(old_version) ]; then
-				rm_lib=libnvidia-$old_lib.so.$(old_version)
+			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$old_lib_version ]; then
+				rm_lib=libnvidia-$old_lib.so.$old_lib_version
 				rm -f $install_dir/$lib_X/$rm_lib
 				if [ -h $install_dir/$lib_X/libnvidia-$old_lib.so ]||\
 				[ -h $install_dir/$lib_X/libnvidia-$old_lib.so.1 ]; then
@@ -1951,13 +1956,13 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	unset fixed_lib_log
 	r_dir=$install_dir/$master$ELF_64
 	for links in ${link_list[@]}; do
-		if [ ! -e $r_dir/libnvidia-$links.so.$(new_version) ]; then
-			cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$(new_version) $r_dir/
+		if [ ! -e $r_dir/libnvidia-$links.so.$new_lib_version ]; then
+			cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$new_lib_version $r_dir/
 		fi
 		if [ ! -h $r_dir/libnvidia-$links.so.1 ]; then
-			if [ -f $r_dir/libnvidia-$links.so.$(new_version) ]; then
+			if [ -f $r_dir/libnvidia-$links.so.$new_lib_version ]; then
 				ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
-				ln -sfr $r_dir/libnvidia-$links.so.$(new_version) $r_dir/libnvidia-$links.so.1
+				ln -sfr $r_dir/libnvidia-$links.so.$new_lib_version $r_dir/libnvidia-$links.so.1
 				fixed_lib_log+=("$links,")
 			fi
 		fi
@@ -1969,12 +1974,12 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	fi
 	## symlink libvdpau_nvidia to system
 	for lib_V in "${ELF_LIB_LIST[@]}"; do
-		link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$(new_version)")
+		link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$new_lib_version")
 		if [ $(chk_family) -lt 430 ]; then
 			if [ $link_v -eq 0 ]; then
 				[ -d /usr/$lib_V/vdpau ]|| mkdir -p /usr/$lib_V/vdpau
 				ln -sfr /usr/$lib_V/vdpau/libvdpau_nvidia.so /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
-				ln -sf $nv_root/nvidia.$(new_version)/$lib_V/vdpau/libvdpau_nvidia.so.$(new_version) \
+				ln -sf $nv_root/nvidia.$new_lib_version/$lib_V/vdpau/libvdpau_nvidia.so.$new_lib_version \
 				/usr/$lib_V/vdpau/libvdpau_nvidia.so.1
 			fi
 		else
@@ -1984,11 +1989,17 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	n=$[ $n+2 ]; echo "$n" # 10
 	## link now all new libraries and nvidia-application-profiles-key-documentation to system.
 	if [ -d /usr/share/nvidia ]; then
-		## ALERT TODO Clean old profile version if exist before new one.
-		## link new profile to sys. "$install_dir/share/nvidia"
-		cp -Rf /usr/share/nvidia $install_dir/share/nvidia
+		## ALERT Clean old profile version if exist before new one (done by last 535 serie version).
+# 		cp -Rf /usr/share/nvidia $install_dir/share/
+		cp -rn /usr/share/nvidia $install_dir/share/
 		rm -rf /usr/share/nvidia
 		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
+		## link new profile to sys. "$install_dir/share/nvidia"
+		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-$(new_version)-key-documentation \
+		$install_dir/share/nvidia/nvidia-application-profiles-key-documentation
+		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-$(new_version)-rc \
+		$install_dir/share/nvidia/nvidia-application-profiles-rc
+
 	fi
 	## NVIDIA_GLX-1.0 changelog file is replace even if the file is older than the installed one.
 	## To prevent overwwrite in case of downgrade, file copied in zenvidia doc dir, then update
@@ -2969,7 +2980,7 @@ install_log_messages(){ #
 		fi
 
 		warn_log=$"$( cat <<-ERROR
-			${r}MODULES ALREADY BUILD.${end}.
+			${r}<b>MODULES ALREADY BUILD</b>${end}.
 			$(new_version) is the same as in kernel path.
 
 			If you decide to continue anyway, consider the section
@@ -3101,9 +3112,9 @@ INSTALL_DRIVER(){ #
 			nv_cmd_install_driver
 			. $tmp_b
 			n=$[ $n+5 ]; echo "$n" # 3
-			# then install libs.
 			install_log_messages
 			echo "$n"
+			# then install libs.
 			nv_cmd_install_libs
 			inst_mod_version=$($d_modinfo -F version nvidia -k $KERNEL)
 			## in case serie not yet manage by control prrocess,
@@ -3368,6 +3379,7 @@ backup_old_version(){ #
 		count_msg(){ echo $"# ($m s) - Backup : $bak_version tar ball creation"; sleep 1; echo "$m"; }
 		progress_msg(){ echo $"# ($m s) - Backup : $bak_version $ZIP archive creation"; echo "$m"; }
 		tar_count "tar cf nvidia.$bak_version.tar /etc/OpenCL"
+		tar_count "tar cf nvidia.$bak_version.tar /etc/default/grub"
 		tar_count "tar uf nvidia.$bak_version.tar /etc/ld.so.conf.d/nvidia-*"
 		test -f /etc/udev/rules.d/01-nvidia-driver.rules && \
 		tar_count "tar uf nvidia.$bak_version.tar /etc/udev/rules.d/01-nvidia-driver.rules"
@@ -3451,7 +3463,8 @@ upgrade_new_kernel(){ #
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); NEW_KERNEL=$(win_yad_list "${kern_list[*]}")
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; base_menu; fi
+	#if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; base_menu; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && base_menu
 	IFS=$ifs
 	KERNEL=$NEW_KERNEL
 	kernel_path="/lib/modules/$KERNEL/$(module_dest_location)/"
@@ -3508,7 +3521,8 @@ net_version_selector(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	menu_select=$( win_yad_list "${list_array[*]}" )
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs ;base_menu; fi
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs ;base_menu; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && base_menu
 	IFS=$ifs
 	case $menu_select in
 		"1") check_for_newer ;;
@@ -3541,7 +3555,8 @@ check_for_older(){
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	older_pack=$( win_yad_list "${old_pack_list[*]}" )
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs ;base_menu; fi
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs ;base_menu; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && base_menu
 	IFS=$ifs
 	LAST_DRV=$older_pack
 	legacy_drv=1
@@ -3728,7 +3743,7 @@ check_update(){ #
 	sed -i "/^[[:space:]]*$/d;s/^\ //g" $nvcompat/compat.update
 	win_update
 }
-win_update(){ # TODO retrouver les label finaux dansles étapes suivante #
+win_update(){ #
 	unset DOWN_list main_msg more_msg COMP_L in_installed in_compat_list un_compat_list compat_msg
 	## define window messages and display compatibilities.
 	in_local_repos=0
@@ -3906,8 +3921,8 @@ win_update(){ # TODO retrouver les label finaux dansles étapes suivante #
 		case $ui_mod in
 			0) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
 			1) case $sel_cmd in
-					"1") ok_label=$"Install"; from_net ;; # TODO
-					"2") ok_label=$"Download"; download_only ;; # TODO
+					"1") ok_label=$"Install"; from_net ;;
+					"2") ok_label=$"Download"; download_only ;;
 				esac ;;
 			2) from_directory ;;
 			*) [ $task_opt -gt 0 ] && exit 0 || menu_install ;;
@@ -4016,7 +4031,8 @@ from_directory(){ #
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		from_cmd=$( win_yad_list "${list_array[*]}" )
 		_exit=$?
-		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
+# 		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
+		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
 		IFS=$ifs
 		case $from_cmd in
 			"1") nv_dir ;;
@@ -4074,7 +4090,7 @@ download_menu(){ #
 	fi
 	_exit=$?
 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
-		IFS=$ifs
+# 		IFS=$ifs
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	else
 		if [ "$dl_cmd" ]; then
@@ -4155,7 +4171,7 @@ last_pack(){ #
 		run_pack=$(win_yad_list "${drv_list[*]}")
 		_exit=$?
 		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
-			IFS=$ifs
+# 			IFS=$ifs
 			[ $task_opt -gt 0 ] && exit 0 || base_menu
 		fi
 		IFS=$ifs
@@ -4266,7 +4282,8 @@ win_yad_warns(){
 	$d_yad --width=420 --height=100 --title="Zenvidia" --window-icon=$img_zen_desktop --center \
 	--image=$warn_image --borders=20 --text="$warn_log" $cancel_btn $ok_btn $kill_parent
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && _exit=1 || _exit=$_exit
 	[ $kill_yad = 0 ] || if [ $YAD_PID -gt 0 ]; then kill $YAD_PID; fi
 	IFS=$ifs
 
@@ -4300,7 +4317,8 @@ win_yad_progress(){
 	$d_yad --width=500 --window-icon=$img_zen_desktop --title="Zenvidia" --center \
 	--progress $nobutton $do_pulse $hide_txt --borders=15 --text="${v}$y_text${end}" $do_log $w_colors
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && _exit=1 || _exit=$_exit
 }
 win_yad_list(){
 	# 	synbtax : IFS=$(echo -en "\n\b"); win_yad_list "${[list_array][*]}"; IFS=$ifs
@@ -4384,7 +4402,8 @@ win_yad_text(){
 	--text-info $w_formatted --margins=10 $w_wrap --hscroll-policy=never ${w_colors[*]} ${buttons[*]} \
 	<<< "$input_way"
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && _exit=1 || _exit=$_exit
 }
 win_open_switch(){ #
 	if [ $open_drv -gt 0 ]; then
@@ -4482,8 +4501,10 @@ manage_pcks(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_packs=$(win_yad_list "${list_array[*]}")
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; menu_modif; fi
 	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; menu_modif; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && menu_modif
+# 	IFS=$ifs
 	case $menu_packs in
 		"1") remove_pcks ;;
 		"2") backup_tools ;;
@@ -4510,8 +4531,10 @@ remove_pcks(){ #
 	list_type='checklist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	IFS=$(echo -en "\n\b"); rm_packs=$( win_yad_list "${packs_list[*]}" )
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
 	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && manage_pcks
+# 	IFS=$ifs
 	# check that list not empty before proceed.
 	if [ ${#rm_packs[*]} -gt 0 ]; then
 		w_text=$"$( cat <<-MSG
@@ -4610,8 +4633,10 @@ remove_baks(){ #
 	list_type='checklist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='0'
 	IFS=$(echo -en "\n\b"); rm_bak=$( win_yad_list "${bak_list[*]}" )
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
 	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && manage_pcks
+# 	IFS=$ifs
 	# check that list not empty before proceed.
 	if [ ${#rm_bak[*]} -gt 0 ]; then
 		w_text=$"$( cat <<-MSG
@@ -4769,8 +4794,10 @@ backup_tools(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_backup=$(win_yad_list "${list_array[*]}")
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
 	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && manage_pcks
+# 	IFS=$ifs
 	case $menu_backup in
 		"1") backup_pcks ;;
 		"2") remove_baks ;;
@@ -4811,7 +4838,7 @@ backup_pcks(){ #
 		manage_pcks
 	fi
 }
-restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER #
+restore_pcks(){ #
 	alert_message(){
 	# current version overwrite ALERT message
 		warn_log=$"$( cat <<-WRN
@@ -4858,7 +4885,9 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER #
 	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	IFS=$(echo -en "\n\b"); drive_packs=$(win_yad_list "${drive_list[*]}")
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
+	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; manage_pcks; fi
+	[[ $_exit -eq 1 || $_exit -eq 252 ]] && manage_pcks
 	# check that list not empty before proceed.
 	if [[ $drive_packs ]]; then
 		res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\(.*[0-9]*\).tar.*$/\1/p")
@@ -4926,6 +4955,9 @@ restore_pcks(){ # ALERT TMP_C # ALERT TODO REVISER #
 # 				progress_msg(){ echo "# ($m sec.) - Rebuilding INITRAMFS"; echo "$m"; }; m=1; do_slp=1
 # 				exec_initramfs
 			fi
+			## validate grub
+			echo $"# Create GRUB conf for nouveau driver blacklisting and other options."; sleep 2
+			$d_grub-mkconfig -o $grub_cfg 2>&1 | while read -r line; do echo "# * ${line}"; done
 			## remove /opt/nvidia.prev_version for compatibility restore purpose
 			## old_version var is use for compatibility with clean_old_version command.
 			if [ "$res_version" != "$(version)" ]; then
@@ -4983,8 +5015,9 @@ edit_script_conf(){
 
 	## output : use help tip;hlp_txt;0;cairo;1;28 etc
 	_exit=$?
+	IFS=$ifs
 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
-		IFS=$ifs
+# 		IFS=$ifs
 		[ $task_opt -gt 0 ] && exit 0 || menu_modif
 	fi
 	## split ouput in readable list
@@ -5624,13 +5657,14 @@ edit_xorg_conf(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='450'; w_height='0'
 	IFS=$(echo -en "\n\b"); menu_xorg=$(win_yad_list "${list_array[*]}")
  	_exit=$?
+ 	IFS=$ifs
 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
-		IFS=$ifs
+# 		IFS=$ifs
 		if [ $from_install = 0 ]; then
 			[ $task_opt -gt 0 ] && exit 0 || menu_modif
 		fi
 	fi
-	IFS=$ifs
+# 	IFS=$ifs
 	case $menu_xorg in
 		"1") x_yad_block ;;
 		"2") edit_xorg_full_text;;
@@ -5875,11 +5909,12 @@ read_zen_changelog(){ #
 		w_formatted=1; w_wrap=1; w_width='600'; w_height='300'; all_btn=1; colors=1; ok_lbl=$"Back to list"'!zen-undo'
 		win_yad_text "$log_brief"
 		_exit=$?
+		IFS=$ifs
 		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
-			IFS=$ifs
+# 			IFS=$ifs
 			[ $task_opt -gt 0 ] && exit 0 || menu_manage
 		else
-			IFS=$ifs
+# 			IFS=$ifs
 			read_zen_changelog
 		fi
 	}
@@ -6004,8 +6039,10 @@ zen_notif_setup(){ #
 
 	menu_notif=$( win_yad_list "${setup_list[*]}" )
 	_exit=$?
-	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
 	IFS=$ifs
+# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
+	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
+# 	IFS=$ifs
 	case $menu_notif in
 		"1") _set='-n'; _notif=$"driver check only" ;;
 		"2") _set='-z'; _notif=$"driver and zenvidia check" ;;
@@ -6048,9 +6085,10 @@ menu_install(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_inst=$( win_yad_list "${ins_list[*]}" )
 	_exit=$?
+	IFS=$ifs
 # 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; base_menu; fi
 	[[ $_exit -eq 1 || $_exit -eq 252 ]] && base_menu || {
-	IFS=$ifs
+# 	IFS=$ifs
 	ui_mod=1
 	tmp_dir
 	case $menu_inst in
@@ -6106,6 +6144,7 @@ menu_update(){ #
 	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
 	menu_upd=$( win_yad_list "${up_list[*]}" )
 	_exit=$?
+# 	IFS=$ifs
 # 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then IFS=$ifs; base_menu; fi
 	[[ $_exit -eq 1 || $_exit -eq 252 ]] && base_menu || {
 	IFS=$ifs
@@ -6317,7 +6356,7 @@ dm_serv_restore(){
 		echo -e "${nc}# ${red} WARNING${yel}: No modules found for $KERNEL, install $cmd_ver first with <rebuild> option.\nAbort.${nc}."
 	fi
 }
-restore_cmdline(){ # ALERT TMP_C
+restore_cmdline(){
 	echec=0
 	echo -e "# ${yel}Restoring $cmd_ver driver for $KERNEL${nc} :\n"
 	sleep 2
@@ -6344,7 +6383,7 @@ restore_cmdline(){ # ALERT TMP_C
 	ldconfig
 	echo -e "# ${blu}- Depmod $cmd_ver modules ..."
 	progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
-	m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" #; rm -f $tmp_c # ALERT
+	m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 	## check modules
 	echo -e "\n${nc}# ${blu}- Testing $cmd_ver modules availbility${nc} ..."
 	vermagic=$($d_modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
@@ -6381,7 +6420,7 @@ rebuild_cmdline(){
 		echo -e "\n# ${red}Failed${nc}."
 	fi
 }
-rescue_cmdline(){ # ALERT TMP_C
+rescue_cmdline(){
 	## modinfo will display error if modules is not found, just add comments.
 	clear
 	echo -e "# ${yel}Compling $module $cmd_ver sources${nc} :\n" ; sleep 2
@@ -6400,7 +6439,7 @@ rescue_cmdline(){ # ALERT TMP_C
 			[ $is_RT = 0 ]|| xz -T12 $libmod/*.ko
 			echo -e "# ${blu}- Depmod $cmd_ver modules ..."
 			progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
-			m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" #; rm -f $tmp_c # ALERT
+			m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 			## rebuild initramfs in case of trouble booting.
 			clear
 			dm_serv_restore
@@ -6627,6 +6666,14 @@ default_sets(){
 	first_open=${first_open:-0}
 	hlp_txt=${hlp_txt:-1}
 }
+default_zen_dir(){
+	test -d $(user_CF_DIR) || {
+		mkdir -p $(user_CF_DIR)
+# 		test -d $(user_CF_DIR)/compats/series || mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
+		mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
+		chown -R $(def_user):$(def_user) $(user_CF_DIR)
+	}
+}
 # ### SCRIPT INTRO ###
 # NOTE : distro function was used to get particular env vars attached to specific distro from a config file.
 # This is replace by auto checks inside the script. Distro config is kept to load specific config if any.
@@ -6648,8 +6695,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir
 PCI_ID
 # cmdline tool doesn't need to read config, so skip the step if in console only.
 if [[ $(def_user) != "root" ]]; then
-	test -d $(user_CF_DIR) || mkdir -p $(user_CF_DIR)
-	test -d $(user_CF_DIR)/compats/series || mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
+	default_zen_dir
 # check if default user has conf file to load, or create it from shipped.
 	for conf in {basic,color}; do
 		if [ "$nvdir/$conf.conf" -nt "$(user_CF_DIR)/$conf.conf" ]; then
@@ -6680,7 +6726,7 @@ fi
 ## set default or null value after conf files reading in case reading failure.
 # hlp_txt=1 # TEST TO REMOVE.
 default_sets
-# load markp span font colors.
+# load markup span font colors.
 zen_colors
 # pick all necessary env Definition
 display_and_compil_vars
