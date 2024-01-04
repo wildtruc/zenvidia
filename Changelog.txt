@@ -286,9 +286,12 @@
  - Add grub default config to driver backup to reflect 545 serie fbdev option in line.
  - Add grub re-build in driver backup restoration.
  - Bug : Fixed user config dir priviledges during first script launch on a tester feedback. Thanks to him.
-
-
-
+* 2024-01-04 - v2.3.31
+ - Add a warning message for xorg config overwrite (install and rewrite case) to preserve user config edits.
+ - Old nvidia profile files are now removed at install time.
+ - Add a nvidia-application-profiles-rc fixer and copy to user dir. Installed rc file are not readable by nvidia-settings and not usable if there's no ccpy in user nvidia dir or in /etc. Xml trouble reading is maybe my system case only, I can't tell if this is for all, then set is define by fix_profiles=0/1 in basic config.
+ - A few minor and text nutshells fixes.
+ - Basic conf need to be update (above statement).
 
 
 

@@ -28,13 +28,17 @@ nvtmp=$local_nvdir/notify
 deficon=zen-emblem
 ## check if zen_taskbar_menu exit
 zen_bar=$(command -v zen_task_menu)
+
+export PATH=$PATH:/usr/local/bin
+export TEXTDOMAIN=zenvidia
+export TEXTDOMAINDIR=$nvdir/locale
+
 [ $script_conf ] || exit 0
 . $script_conf
 . $basic_conf
 ## script could need to sleep during the desktop session boot time.
 ## to uncomment only in case of session autostart notif issue.
 # sleep 15
-
 
 [ -d $nvtmp ] || mkdir -p $nvtmp
 ARCH=$HOSTTYPE
@@ -47,7 +51,7 @@ local_src=$local_nvdir/src
 ## reset all notif display options
 driver_up=0
 zen_up=0
-msg_suffix='update'
+msg_suffix=$"update"
 ping -c2 www.nvidia.com &>/dev/null
 cnx=$?
 ifs=$IFS
@@ -119,7 +123,7 @@ driver_ctrl(){
 				fi
 			done
 			if [[ $greater -gt 0 || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
-				notif_msg+='Nvidia driver '
+				notif_msg+=$"Nvidia driver "
 				driver_up=1
 			fi
 		fi
@@ -218,7 +222,7 @@ notifying(){
 	test -f $local_nvdir/taskbar_message || touch $local_nvdir/taskbar_message
 	echo -e "notif=0" > $local_nvdir/taskbar_message
 	if [[ $cnx -gt 0 || $driver_up -gt 0 || $zen_up -gt 0 ]]; then
-		notify-send -t 5000 -u low -i "$deficon" "${notif_msg[*]}$msg_suffix" "$(echo "${_driver_notif[@]}")"
+		notify-send -t 5000 -u low -i "$deficon" $"${notif_msg[*]}$msg_suffix" "$(echo "${_driver_notif[@]}")"
 		echo -e "notif=1" > $local_nvdir/taskbar_message
 		echo -e "notif_text=\"${_driver_notif[@]}\"" >> $local_nvdir/taskbar_message
 	fi
@@ -228,7 +232,7 @@ notifying(){
 	fi
 }
 usage_help(){
-	printf "# Usage : zen_notify option,where option is:\n"
+	printf "# Usage : zen_notify [option], where option are:\n"
 	printf "\t -z : check nvidia & zenvidia.\n"
 	printf "\t -n : check nvidia only.\n"
 	printf "\t -h : this help.\n"

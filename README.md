@@ -24,6 +24,9 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.3.29 NOTES :
+ - **WARNING** : After a tester feedback, it appears that user priviledges for local zenvidia's conf dir wasn't properly set. In cause, a script function moved too soon (distro config file future removal goal). This is fixed. User need to remove $HOME/.zenvidia directory and relaunch the script to fix.
+
 v2.3.5 NOTES :
  - **Important fix** : Some function was unexpectdly remove and prevent to blacklist nouveau at driver fresh install. Dev's is still in cause :(.
  - This version wasn't expect so soon, but because of error, even if not fatal, upload it quickly was necessary.

@@ -23,6 +23,7 @@ d_zen=$(command -v zenvidia)
 local_conf_dir=/home/$USER/.zenvidia
 local_notif=$local_conf_dir/taskbar_message
 icon_stock=/usr/local/share/pixmaps
+nvdir=/usr/local/zenvidia
 img_zen=$icon_stock/zen-emblem.png
 img_zen_green=$icon_stock/zen-emblem-gr.png
 img_nv_settings=$icon_stock/zen-settings.png
@@ -30,21 +31,26 @@ img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
 
 test -s $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
+
+export PATH=$PATH:/usr/local/bin
+export TEXTDOMAIN=zenvidia
+export TEXTDOMAINDIR=$nvdir/locale
+
 [ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
 [ $(xrandr --listproviders|grep -wc "Provider" ) -gt 1 ] && \
 [ $(xrandr --listproviders|grep -c "NVIDIA" ) = 1 ] && opti_menu=$"PRIME Display configuration"'!zen_start -p!zen-prime,'
 
 if [ -f $local_conf_dir/version.txt ]; then
-	driver_changelog=$" Read ${version} change log!${d_zen} -d!zen-info,"
-	nvidia_help=$" Nvidia ${version} documentation!${d_zen} -h!zen-question,"
+	driver_changelog=$" Read ${version} change log"'!${d_zen} -d!zen-info,'
+	nvidia_help=$" Nvidia ${version} documentation"!'${d_zen} -h!zen-question,'
 	[ "$version" != '' ] && version_txt=$"<b>$version</b> in use. <small>($adds)</small>" || version_txt=$"no driver detected"
 fi
 
 if [ -f $local_notif ]; then
 	. $local_notif
 	if [ $notif = 1 ]; then
-		embed_text=$"$(cat <<-MSG
+		embed_text="$(cat <<-MSG
 			$version_txt
 
 			$notif_text
@@ -54,13 +60,13 @@ if [ -f $local_notif ]; then
 	fi
 fi
 menu_list=(
-	\ Start zenvidia!zen_start!$img_zen,
-	Nvidia Settings \(user\)!nvidia-settings!$img_nv_settings,
-	Config xorg!zen_start -x!zen-xorg,${opti_menu}
-	Edit Zenvidia configuration!$d_zen -z!zen-preference,
-	Check Nvidia driver Update!zen_start -u!zen-refresh,
+	\ $"Start zenvidia"!zen_start!$img_zen,
+	$"Nvidia Settings (user)"!nvidia-settings!$img_nv_settings,
+	$"Config xorg"!zen_start -x!zen-xorg,${opti_menu}
+	$"Edit Zenvidia configuration"!$d_zen -z!zen-preference,
+	$"Check Nvidia driver Update"!zen_start -u!zen-refresh,
 	${open_menu}${nvidia_help}${driver_changelog}${changelog_menu}
-	Close Zenvidia task menu!quit!zen-stop
+	$"Close Zenvidia task menu"!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \
 --icon-size=24 --menu="${menu_list[*]}" --separator=','
