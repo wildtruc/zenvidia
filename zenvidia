@@ -80,6 +80,7 @@ su_cmd(){
 	case $plug_version in
 # 		arch|sles|mageia|mandriva) su_cmd='su -l';;
 		rhel|fedora|ubuntu|mint|debian) echo "$(command -v sudo) -u" && return;;
+		*) cat $script_conf | sed -En "s/su_cmd=\"(.*)\"/\1/g;p" && return;;
 # 		*) echo "$(command -v su) -l" && return;;
 	esac
 }
@@ -162,14 +163,13 @@ kernel_src(){
 	# rpm base : kernel-devel kernel-headers /usr/src/linux-$(uname -r)
 	# rh : kernel-devel kernel-headers /usr/src/kernels/linux-$(uname -r)
 	case $(distro_version) in
- 		arch|manjaro) echo "/lib/modules/$(uname -r)" ;;
+ 		arch|manjaro) echo "/lib/modules/$(uname -r)/build" ;;
 		rhel|fedora|centos) echo "/usr/src/kernels/linux-$(uname -r)";;
 		mageia|mandriva) echo "/usr/src/linux-$(uname -r)";;
 		ubuntu|mint|debian) echo "/usr/src/kernel-headers-$(uname -r)";;
 		*) echo "/usr/src/linux-$(uname -r)";;
 	esac
 }
-
 user_DL_DIR(){
 	if [ $x_alive -eq 0 ]; then
 		if [[ $(whoami) == "root" ]]; then
@@ -246,22 +246,18 @@ distro_name(){
 	echo $NAME
 	return
 }
-set_su(){ # NOTE TO REVIEW #
+set_su(){ # NOTE set_su is used by below fucntion only #
 	w_text=$"$( cat <<-MSG
-		<b><big>Zenvida didn't find any Distro config file
+		<b><big>Zenvida didn't find any optional Distro config file
 		for $plug_version</big></b>
 
-		<b>Zenvida distro name and su command are not congigured</b>
+		<b>Su command are not congigured</b>
 
-		Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,
-		Zenvidia main functions are unusable.
+		Without a proper <b>su</b> command prompt, Zenvidia main functions
+		are unusable and script will abort.
 
-		Please, enter distribution <b>name</b> if not found or unknown
-		and <b>sudo</b> or <b>su</b> command line with options for default
+		Please, enter <b>sudo</b> or <b>su</b> command line with options for default
 		user admin priviledge.
-
-		Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,
-		Zenvidia main functions are unusable, and script will abort.
 
 		<i>If you don't know what is talking about here, just abort.
 		</i>
@@ -274,24 +270,28 @@ set_su(){ # NOTE TO REVIEW #
 	--field=$"<b>Distribution name</b>"!$"Enter the name of the distribution if not displayed.":LABEL 'distro' \
 	--field=$"<b>su comman line</b>"!$"Select a commande in the list or type one.":CBE "$su_opts"
 	)
+# 	set_args=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --image="zen-warning" \
+# 	--center --text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!zen-ok:0' --field="":LBL '' \
+# 	--separator=';' \
+# 	--field=$"<b>su command line</b>"!$"Select a commande in the list or type one.":CBE "$su_opts"
+# 	)
 	if [ $? = 0 ]; then
 		[ "$set_args" != '' ] || exit 0
 			plug_version=$(echo "$set_args"|cut -d';' -f2)
 			plug_conf=$plug_version.conf
 			su_cmd=$(echo "$set_args"|cut -d';' -f3)
+# 			su_cmd=$(echo "$set_args"|cut -d';' -f2)
 		if [ $(grep -c "su_cmd=" $script_conf ) -eq 0 ]; then echo -e 'su_cmd="'$su_cmd'"' >> $script_conf; fi
 	else
 		exit 0
 	fi
 }
-distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
+distro(){ # NOTE : kept for specific distro ENV vars, if any #
 	plug_version=$(distro_version)
 	plug_conf=$plug_version.conf
 	if [ "$(def_user)" != "root" ]; then
-		default_zen_dir
 		if [ ! -f $conf_dir/distro/$plug_conf ]; then
 			if [[ $(ls -1 $conf_dir/distro | grep -ic "$plug_conf" ) -gt 0 ]]; then
-# 			if [ $(ls -1 $conf_dir/distro | grep -ic "$plug_conf" ) -eq 0 ]; then # TEST
 			## conf file exist but in a different upper/lower case.
 				dest_conf=$(ls -1 $conf_dir/distro | grep -i "$plug_conf")
 			else
@@ -299,38 +299,20 @@ distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
 			## check first if name is unknown and ask default su commabnd for user admin priv.
  				if [ $(su_cmd) == '' ]; then set_su; fi
 				cat <<-CONF > $(user_CF_DIR)/$plug_conf
-					## examples between [...] have to be remove by real texts, vars, commands.
-					## You can reset detected or set name to friendly one to display in Zenvidia.
-					DISTRO="$plug_version"
-					kernel=\$( uname -r | cut -d '-' -f 1 )
-					## optional kernel devel package extension sometime needed (see ex. below in p_kernel)
-					d_version=[ex: \$( uname -r | cut -d '-' -f 1,2 )]
-					## default distro 32/64 libs directories.
-					if [[ \$ELF_TYPE == 64 ]]; then
-						ELF_32="[ex: /i386-linux-gnu or nothing]"
-						ELF_64="[ex: /x86_64-linux-gnu or 64]"
-						master=lib
-					else
-						## usualy 32 bit distro doesn't need any special libs definitions.
-						ELF_32=""
-						ELF_64=""
-						master=lib
+					## examples between [] have to be remove by real texts, vars, commands.
+					# DISTRO="$plug_version"
+					## resolve_dep varriable tell the script that dependencies are not installed.
+					if [ \$resolve_dep = 0 ]; then
+						## distro specific depencies
+						## You can had there any packages matching specific distro needs.
+						## ex: deplist+=("[package1]"); deplist+=("[package2]"); etc
+						# deplist+=("")
 					fi
 					## grub/grub2 directory if different than usual.
-					grub_dir=[def: /boot/grub2]
-					## define specific dir extension for kernel header and drivers source directory if any.
-					alt=[ex: /kernels for /usr/src/kernels/ instead of /usr/src/]
-					## default distro kernel sources.
-					kernel_src=[ex: /usr/src\$alt/\$(uname -r)]
-					## default initramfs updater commend (ex: dracut -f, update-initramfs, etc)
-					INITRAM='[ex: dracut -f]'
-					if [ \$resolve_dep = 0 ]; then
-					## distro specific depencies
-					## You can had there any packages matching specific distro needs.
-					## ex: deplist+=("package1"), deplist+=("package2"), etc
-						deplist+=("[ex: kernel-devel, kernel-headers-\$(uname -r), gksu]")
-						deplist+=("")
-					fi
+					grub_dir=/boot/grub2
+					## you can add below very specifics environment variable
+					## use only by your distribution.
+
 				CONF
 				## warn about no config file
 				warn_log=$"$(cat <<-WRN
@@ -338,7 +320,7 @@ distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
 
 				You need to create a <u>new configuration</u> based on your distro environment variables.
 
-				<i>Note : Even in case you are not sure of what you are doing, new configuratin file will be saved anyway.
+				<i>Note : Even in case you are not sure of what you are doing, new configuration file will be saved anyway.
 				You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>
 				WRN
 				)"
@@ -357,20 +339,17 @@ distro(){ # NOTE : TO REVIEW OR REMOVE # change abort message #
 				else
 					## display error message and close all processes.
 					warn_log=$"$(cat <<-WRN
-					<b>Zenvida can't work without Distro config file for $plug_version</b>
+					<b>Zenvida can work without Distro config file for $plug_version</b>
 
-					<u>Don't ask the dev, if didn't create one, it's probably he doesn't know how to.</u>
-
-					You can try having a look at your distro's community forum and ask for help
-					or see Zenvidia's git discussion feed (if exist).
+					If your distribution need very specifics values try having a look at
+					your distro's community forum and ask for help.
 					Then going back to the saved config file in $(user_CF_DIR)
 					WRN
 					)"
 					warn_image='zen-error'
-					qst=0; ok_lbl='' ; cancel_lbl=$"Snif"'!zen-close' ; kill_yad=0
+					qst=1; ok_lbl=$"Continue"'!zen-ok' ; cancel_lbl=$"Abort"'!zen-close' ; kill_yad=0
 					win_yad_warns
-
-					exit 0
+					if [ $_exit -eq 1 ]; then exit 0; fi
 				fi
 			fi
 		else
@@ -474,8 +453,6 @@ PCI_ID(){
 
 ## dependencies control
 dep_exec_check(){
-# 	logfile=$(mktemp --tmpdir brief.logfile.1.XXXX)
-#  	{
 	## clean depencies list if any.
 	unset deplist
 	#p_xterm=$(command -v xterm) || deplist+=("xterm")
@@ -500,16 +477,6 @@ dep_exec_check(){
 	d_probe=$(command -v modprobe)
 	# grub could be, grub-[command] or grub2-[command]. Let 'find' catch it for us.
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
-# 	p_git=$(command -v git) && deplist+=("git") ## TEST CASE DEVEL ONLY
-# 	p_wget=$(command -v wget) && deplist+=("wget")
-# 	p_gcc=$(command -v gcc) && deplist+=("gcc")
-# 	p_dkms=$(command -v dkms) && deplist+=("dkms")
-# 	d_yad=$(command -v yad) && deplist+=("yad")
-# 	d_zen=$(command -v zenity) && deplist+=("zenity")
-# 	d_xdpy=$(command -v xdpyinfo) && deplist+=("xdpyinfo")
-# 	d_ssl=$(command -v openssl) && deplist+=("openssl")
-# 	d_randr=$(command -v xrandr) && deplist+=("xrandr")
-# 	pk_exec=$(command -v pkexec) && deplist+=("polkit")
 	# debian : linux linux-headers /usr/src/kernel-headers-$(uname -r)
 	# arch : linux linux-headers /lib/modules/$(uname -r)build
    # mageia, mandriva : kernel-desktop-devel-latest /usr/src/linux-$(uname -r)
@@ -524,8 +491,6 @@ dep_exec_check(){
 # 			*) ;;
 		esac
 	fi
-
-# 	} >$logfile 2>&1
 }
 dep_control(){
 	unset dep_text
@@ -1546,6 +1511,7 @@ prime_setup(){ # DONE
 # 	fi
 }
 prime_setup_window(){ #
+	#xorg_version=$(cat /var/log/Xorg.0.log| sed -En "/Build ID:/{;s/^.*\ ([1\.]?[0-9]*[.].*)-.*$/\1/p}")
 	[ $(chk_family) -ge 390 ] && applicable_list+="PRIME!"
 	[ $(chk_family) -ge 435 ] && applicable_list+="PRIME render offload!"
 	[ $opti_preset = 0 ] && opti_set='FALSE' || opti_set='TRUE'
@@ -1615,8 +1581,8 @@ xorg_conf(){
 # Is opti_preset set ?
 # If opti_preset is set, ask if user wants to config prime and warn about modesetting TearFree option is not available
 # until version 21.2 of Xorg. 20.14 here.
-		x_tmp=$(mktemp --tmpdir zn_xorg.XXXX)
-		rem_tmp+=("rm -f $x_tmp")
+	[ -f $x_tmp ] || { x_tmp=$(mktemp --tmpdir zn_xorg.XXXX); rem_tmp+=("rm -f $x_tmp") ;}
+
 ## creation order :
 ## 	sec_files		x 1
 ## 	sec_layout		x X
@@ -1862,8 +1828,52 @@ xorg_conf(){
 		sec_option_df
 		sec_screen
 	done
-	install -bm644 $x_tmp $x_conf_dir/xorg.conf.nvidia
-	ln -sfr $x_conf_dir/xorg.conf.nvidia $x_conf_dir/xorg.conf
+# 	install -bm644 $x_tmp $x_conf_dir/xorg.conf.nvidia
+# 	ln -sfr $x_conf_dir/xorg.conf.nvidia $x_conf_dir/xorg.conf
+}
+fix_profiles_rc(){
+	## If nvidia profile doesn't exist in user nv dir, create.
+	## Then, create an empty user profile alongside the nvidia copy
+	## in nvidia-application-profiles-rc.d/user-application-profiles-rc
+	## If profile exist, convert to fixed in user nv dir
+	## NOTE : some lines can't be convert because they are not formated like others and have to be manualy add in user-rc,
+	## WARNING : some are really faulty, don't add them.
+	create_rules(){
+		echo -e "$headers" > $fixed_rc
+		echo -e "  \"rules\": [" >> $fixed_rc
+		## extract rules patterns "pattern" "profile"
+		cat $version_rc | sed -n "/^.*\"rules\" : \[.*$/,/^    \].*$/p"| \
+		sed -En "s/.*(\{) (\"pattern\"[ ]?: \".*\",).*(\"profile.*\") (\},).*/${tab}  \1\n${tab}   \2\n${tab}   \3\n${tab}  \4/p" >> $fixed_rc
+		## extract rules patterns "pattern" "feature" "matches" "profile"
+		cat $version_rc | sed -n "/^.*\"rules\" : \[.*$/,/^    \].*$/p"| \
+		sed -En "s/.*(\{) (\"pattern\"[ ]?: \{) (\"feature.*\",).*(\"matches.*\") (\},).*(\"profile.*\") (\}[,]?).*/\
+${tab}  \1\n${tab}   \2\n${tab}    \3\n${tab}    \4\n${tab}   \5\n${tab}   \6\n${tab}  \7/p" >> $fixed_rc
+		echo -e "  ]," >> $fixed_rc
+	}
+	create_profiles(){
+		## extract profiles patterns and add "key" "value" to each xml sections.
+		cat $version_rc | sed -n "/^.*\"profiles\" : \[.*$/,/^.*\],.*$/{;s/    /  /g;p}"| \
+		sed -En "s/.*(\"settings\"[ ]?: \[) (\".*\",) (.*) \].*/\
+${tab}  \1\n${tab}${tab}\{\n${tab}${tab} \"key\": \2\n${tab}${tab} \"value\": \3\n${tab}${tab}\}\n${tab}  \]/i;s/\],/\]/g;p" >> $fixed_rc
+		echo -e "}" >> $fixed_rc
+	}
+	nv_user_dir=/home/$(def_user)/.nv
+	version_rc=$install_dir/share/nvidia/nvidia-application-profiles-$(new_version)-rc
+	fixed_rc=$nv_user_dir/nvidia-application-profiles-rc
+	[ -d $nv_user_dir/nvidia-application-profiles-rc.d ] || {
+		mkdir -p $nv_user_dir/nvidia-application-profiles-rc.d
+		touch $nv_user_dir/nvidia-application-profiles-rc.d/user-application-profiles-rc
+	}
+	headers=$( cat <<-HEAD
+		# Application profiles originaly created by Zenvidia from
+		# Nvidia profiles rc version $(new_version) - $(date)
+		# Be aware that some rules are not filtered because their formats differ from default.
+		{
+	HEAD
+	)
+	local tab='    '
+	create_rules
+	create_profiles
 }
 ## ### AFTER INSTALL ###
 clean_old_version(){ # post install part. #
@@ -1904,21 +1914,22 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	echo $"# ${v}${j}($n%)${end} - Librairies sub routines${end}"; sleep 2
 	echo $"# ${j}($n%)${end}${ge}${sf} * Linking $nv_root libs to system${end}${end}"; sleep 2
 	n=$[ $n+2 ]; echo "$n" # 9
+	## set old_version and new_version function in the first place for loop,
+	## the modinfo calculation slow down the process to much.
+	local old_lib_version=$(old_version)
+	local new_lib_version=$(new_version)
 	# libnvidia-wfb.so is broken with old version, need to be replace with xorg server libwfb.so. If exist in nvidia's dirs.
 	if [ $(chk_family) -lt 418 ]; then
 		## 418 and above don't need nvidia libwfb.so to be replace anymore
-		if [ -e $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so ]; then
-			mv -f $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so.orig
-			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $nv_root/nvidia.$(new_version)/xorg/modules/libwfb.so
+		if [ -e $nv_root/nvidia.${new_lib_version}/xorg/modules/libwfb.so ]; then
+			mv -f $nv_root/nvidia.${new_lib_version}/xorg/modules/libwfb.so $nv_root/nvidia.${new_lib_version}/xorg/modules/libwfb.so.orig
+			ln -sf /usr/$master$ELF_64/xorg/modules/libwfb.so $nv_root/nvidia.${new_lib_version}/xorg/modules/libwfb.so
 			report_log+=($"\t\t\t${gB} libwfb\t\t${end}> ${y}link to system${end}.\n")
 		fi
 	fi
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/install-$new_version.log; fi
 	echo $"# ${j}($n%)${end}${ge}${sf} * Fixing broken libs and links if needed${end}${end}"; sleep 2
-	## set old_version and new_version function in the first place for loop,
-	## the modinfo calculation slow down the process to much.
-	local old_lib_version=$(old_version)
-	local new_lib_version=$(new_version)
+
 	## wayland-client and vulkan-producer are dedicate to wayland.
 	## NOTE need to understand how wayland is detected.
 	[ $wayland_link = 1 ] && wayland="wayland-client"
@@ -1931,8 +1942,8 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	unset lib_x fixed_lib_log
 	for lib_X in "${ELF_LIB_LIST[@]}"; do
 		for old_lib in ${link_list[@]}; do
-			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.$old_lib_version ]; then
-				rm_lib=libnvidia-$old_lib.so.$old_lib_version
+			if [ -s $install_dir/$lib_X/libnvidia-$old_lib.so.${old_lib_version} ]; then
+				rm_lib=libnvidia-$old_lib.so.${old_lib_version}
 				rm -f $install_dir/$lib_X/$rm_lib
 				if [ -h $install_dir/$lib_X/libnvidia-$old_lib.so ]||\
 				[ -h $install_dir/$lib_X/libnvidia-$old_lib.so.1 ]; then
@@ -1956,13 +1967,13 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	unset fixed_lib_log
 	r_dir=$install_dir/$master$ELF_64
 	for links in ${link_list[@]}; do
-		if [ ! -e $r_dir/libnvidia-$links.so.$new_lib_version ]; then
-			cp -f $nvtmp/$extracted_release/libnvidia-$links.so.$new_lib_version $r_dir/
+		if [ ! -e $r_dir/libnvidia-$links.so.${new_lib_version} ]; then
+			cp -f $nvtmp/$extracted_release/libnvidia-$links.so.${new_lib_version} $r_dir/
 		fi
 		if [ ! -h $r_dir/libnvidia-$links.so.1 ]; then
-			if [ -f $r_dir/libnvidia-$links.so.$new_lib_version ]; then
+			if [ -f $r_dir/libnvidia-$links.so.${new_lib_version} ]; then
 				ln -sfr $r_dir/libnvidia-$links.so.1 $r_dir/libnvidia-$links.so
-				ln -sfr $r_dir/libnvidia-$links.so.$new_lib_version $r_dir/libnvidia-$links.so.1
+				ln -sfr $r_dir/libnvidia-$links.so.${new_lib_version} $r_dir/libnvidia-$links.so.1
 				fixed_lib_log+=("$links,")
 			fi
 		fi
@@ -1974,12 +1985,12 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	fi
 	## symlink libvdpau_nvidia to system
 	for lib_V in "${ELF_LIB_LIST[@]}"; do
-		link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.$new_lib_version")
+		link_v=$(file -p /usr/$lib_V/vdpau/libvdpau_nvidia.so.1| grep -c "nvidia.${new_lib_version}")
 		if [ $(chk_family) -lt 430 ]; then
 			if [ $link_v -eq 0 ]; then
 				[ -d /usr/$lib_V/vdpau ]|| mkdir -p /usr/$lib_V/vdpau
 				ln -sfr /usr/$lib_V/vdpau/libvdpau_nvidia.so /usr/$lib_V/vdpau/libvdpau_nvidia.so.1
-				ln -sf $nv_root/nvidia.$new_lib_version/$lib_V/vdpau/libvdpau_nvidia.so.$new_lib_version \
+				ln -sf $nv_root/nvidia.${new_lib_version}/$lib_V/vdpau/libvdpau_nvidia.so.${new_lib_version} \
 				/usr/$lib_V/vdpau/libvdpau_nvidia.so.1
 			fi
 		else
@@ -1990,16 +2001,29 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	## link now all new libraries and nvidia-application-profiles-key-documentation to system.
 	if [ -d /usr/share/nvidia ]; then
 		## ALERT Clean old profile version if exist before new one (done by last 535 serie version).
+		test -f $install_dir/share/nvidia/nvidia-application-profiles-${old_lib_version}-rc && {
+			if [ $(nv_new) -ne $(nv_old) ]; then
+				rm -f $install_dir/share/nvidia/nvidia-application-profiles-${old_lib_version}-*
+			fi
+		}
 # 		cp -Rf /usr/share/nvidia $install_dir/share/
 		cp -rn /usr/share/nvidia $install_dir/share/
 		rm -rf /usr/share/nvidia
 		ln -sf -T $install_dir/share/nvidia /usr/share/nvidia
 		## link new profile to sys. "$install_dir/share/nvidia"
-		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-$(new_version)-key-documentation \
+		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-${new_lib_version}-key-documentation \
 		$install_dir/share/nvidia/nvidia-application-profiles-key-documentation
-		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-$(new_version)-rc \
+		ln -sfr $install_dir/share/nvidia/nvidia-application-profiles-${new_lib_version}-rc \
 		$install_dir/share/nvidia/nvidia-application-profiles-rc
-
+		## copy doc to user $HOME/.nv
+		cp -f $install_dir/share/nvidia/nvidia-application-profiles-${new_lib_version}-key-documentation \
+		/home/$(def_user)/.nv/nvidia-application-profiles-key-documentation
+		## if fix_profiles is set to 1, convert.
+		if [ $fix_profiles = 1 ]; then
+			echo $"# ${j}($n%)${end}${ge}${sf} * Fixing user's nvidia profiles rc file${end}${end}"; sleep 2
+			n=$[ $n+2 ]; echo "$n"
+			fix_profiles_rc
+		fi
 	fi
 	## NVIDIA_GLX-1.0 changelog file is replace even if the file is older than the installed one.
 	## To prevent overwwrite in case of downgrade, file copied in zenvidia doc dir, then update
@@ -2020,6 +2044,7 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 		## partly inspired by Alexandre Freire dos Santos work in Batocera.PLUS
 		## https://github.com/AlexxandreFS/Batocera.PLUS/blob/master/script/nvidia-driver-udev-rules.sh
 		## thanks to him.
+		echo $"# ${j}($n%)${end}${ge}${sf} * Creating udev rules for $(chk_family) serie${end}${end}"; sleep 2
 		for dev in ${dev_id[@]}; do
 			#SUPPORTED_GPUS_JSON=$nvi_docs'/supported-gpus/supported-gpus.json'
 			#UDEV_RULES='/etc/udev/rules.d/01-nvidia-driver.rules'
@@ -2029,6 +2054,7 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 			ACTION=="add", DEVPATH=="/bus/pci/drivers/nvidia", RUN+="$d_nv_probe -c 0 -m -u"
 			UDEV
 		done
+		n=$[ $n+2 ]; echo "$n"
 	else
 		test -f ${UDEV_RULES} && rm -f $UDEV_RULES
 	fi
@@ -2046,9 +2072,9 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 	## if driver version greater than 430.xx, backup xorg modules content to default libs dirs. Just in case.
 	if [ $(chk_family) -ge 430 ]; then
 		if [ -s $xorg_def/modules/extensions/libglxserver_nvidia.so ]; then
-			mkdir -p $nv_root/nvidia.$(new_version)/xorg/modules/{extensions,drivers}
-			cp -rf $xorg_def/modules/extensions/libglxserver_* $nv_root/nvidia.$(new_version)/xorg/modules/extensions/
-			cp -f $xorg_def/modules/drivers/nvidia_drv.so $nv_root/nvidia.$(new_version)/xorg/modules/drivers/
+			mkdir -p $nv_root/nvidia.${new_lib_version}/xorg/modules/{extensions,drivers}
+			cp -rf $xorg_def/modules/extensions/libglxserver_* $nv_root/nvidia.${new_lib_version}/xorg/modules/extensions/
+			cp -f $xorg_def/modules/drivers/nvidia_drv.so $nv_root/nvidia.${new_lib_version}/xorg/modules/drivers/
 		fi
 	fi
 	if [[ $pass -eq 0 ]]; then
@@ -2061,13 +2087,13 @@ POST_INSTALL(){ # PROGRESS : TODO optimus section.
 		n=$[ $n+2 ]; echo "$n" # 12
 		## clean old install dir
 		if [ $(nv_new) -ne $(nv_old) ]; then
-			if [ -d $nv_root/nvidia.$(new_version) ]; then
-				if [ -d $nv_root/nvidia.$(old_version) ]; then
-					echo $"# ${v}${j}($n%)${end} - Cleaning old $(old_version) source and DKMS tree if needed.${end}"; sleep 2
-					rm -rf $nv_root/nvidia.$(old_version)
-					report_log+=($"\t\t\t${gB} old version\t\t${end}> ${y}$(old_version) directory cleaned${end}.\n")
+			if [ -d $nv_root/nvidia.${new_lib_version} ]; then
+				if [ -d $nv_root/nvidia.${old_lib_version} ]; then
+					echo $"# ${v}${j}($n%)${end} - Cleaning old ${old_lib_version} source and DKMS tree if needed.${end}"; sleep 2
+					rm -rf $nv_root/nvidia.${old_lib_version}
+					report_log+=($"\t\t\t${gB} old version\t\t${end}> ${y}${old_lib_version} directory cleaned${end}.\n")
 					clean_old_version
-					report_log+=($"\t\t\t${gB} old source\t\t${end}> ${y}All $(old_version) version cleaned${end}.\n")
+					report_log+=($"\t\t\t${gB} old source\t\t${end}> ${y}All ${old_lib_version} version cleaned${end}.\n")
 					n=$[ $n+2 ]; echo "$n" # 14
 				fi
 			fi
@@ -3013,7 +3039,34 @@ install_report_log(){ #
 	$d_yad --title="Zenvidia" --window-icon=$img_zen_desktop --width=500 --borders=20 --center \
 	--text=$"${j}${bf}Install Report${end}${end}${v}:\n $(cat <<< ${report_log[*]})${end}\n$rep_msg" \
 	--button=$"edit later"'!zen-undo:1' --button=$"edit now"'!zen-warning:0'
-	if [ $? = 0 ]; then edit_xorg_conf; fi
+	log_exit=$?
+	xorg_check
+	if [ $log_exit = 0 ]; then
+		edit_xorg_conf
+	fi
+}
+xorg_check(){
+	## prevent user xorg config overwrite.
+	if [ -e /etc/X11/xorg.conf ]; then
+		[ -f /etc/X11/xorg.conf.nvidia ] && is_nv=$" for Nvidia drivers" || is_nv=""
+		warn_log=$"$(
+			cat <<-WARN
+				${y}<b>Xorg configuration file${is_nv} already exist</b>${end}
+
+				<b>WARNING</b> : Validating will overwrite existing by a fresh one.
+				<small><i>A backup of previous will be made in /etc/X11 (xorg.conf.[nvidia]~)</i></small>
+
+				Do you want to overwrite ?
+			WARN
+		)"
+		qst=1; ok_lbl='Overwrite!zen-ok' ; cancel_lbl='Keep!zen-close' ; kill_yad=0
+		win_yad_warns
+		# if yes overwrite, if no pass.
+		if [ $_exit -eq 0 ]; then
+			install -bm644 $x_tmp /etc/X11/xorg.conf.nvidia
+			ln -sfr /etc/X11/xorg.conf.nvidia /etc/X11/xorg.conf
+		fi
+	fi
 }
 ## ### INITIAL OR UPGRADE INSTALL PROCESS ### ###
 INSTALL_DRIVER(){ #
@@ -3185,6 +3238,9 @@ INSTALL_DRIVER(){ #
 			echo $"# ${v}${j}($n%)${end} - nv-update-$(new_version) already present in path, skip${end}"; sleep 2
 		fi
 		n=$[ $n+2 ]; echo "$n" # 7
+		# create xorg temp here to take care of further needs in process.
+		x_tmp=$(mktemp --tmpdir zn_xorg.XXXX)
+		rem_tmp+=("rm -f $x_tmp")
 		POST_INSTALL
 		echo "99"; sleep 2
 		echo "100"
@@ -3192,18 +3248,18 @@ INSTALL_DRIVER(){ #
 		if [[ $pass -eq 0 || $pass -eq 2 && $lib_pass -eq 0 ]]; then
 			if [ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -gt 40 ]|| \
 			[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -gt 40 ]; then
-			rep_msg=$"$( cat <<-RPT
-			${v}<b><big><i>Congratulations !</i></big></b>${end}
-			<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.
+				rep_msg=$"$( cat <<-RPT
+				${v}<b><big><i>Congratulations !</i></big></b>${end}
+				<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.
 
-			${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
-			your computer with the new installed drivers.
-			You may also do it later if you like, but it's not really recommanded.
+				${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
+				your computer with the new installed drivers.
+				You may also do it later if you like, but it's not really recommanded.
 
-			What do you want to do ?${end}
-			RPT
-			)"
-			install_report_log
+				What do you want to do ?${end}
+				RPT
+				)"
+				install_report_log
 			fi
 		else
 			warn_log=$"$(
@@ -4052,7 +4108,7 @@ from_net(){ #
 		run_pkg=$nvdl/nv-update-$LAST_PACK
 		if [ -f $buildtmp/$run_pack ]; then
 			warn_log=$"${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
-			warn_image='swiss_knife'
+			warn_image='zen-emblem'
 			qst=0; cancel_lbl=$"Close"'!gtk-close' ; kill_yad=0
 			win_yad_warns
 
@@ -5668,7 +5724,9 @@ edit_xorg_conf(){ #
 	case $menu_xorg in
 		"1") x_yad_block ;;
 		"2") edit_xorg_full_text;;
-		"3") xorg_conf; edit_xorg_conf ;;
+		"3") x_tmp=$(mktemp --tmpdir zn_xorg.XXXX); rem_tmp+=("rm -f $x_tmp"); xorg_conf;
+			  xorg_check; trap "${rem_tmp[*]}" EXIT; edit_xorg_conf
+			;;
 	esac
 }
 edit_distro_conf(){ #
@@ -6648,6 +6706,7 @@ default_sets(){
 	open_drv=${open_drv:-0}
 	use_open=${use_open:-0}
 	use_persistenced=${use_persistenced:-0}
+	fix_profiles=${fix_profiles:-0}
 	use_gzip=${use_gzip:-0}
 	exec_mod_tool=${exec_mod_tool:-0}
 	ARCH=${ARCH:-$HOSTTYPE}
@@ -6669,12 +6728,13 @@ default_sets(){
 default_zen_dir(){
 	test -d $(user_CF_DIR) || {
 		mkdir -p $(user_CF_DIR)
-# 		test -d $(user_CF_DIR)/compats/series || mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
 		mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
 		chown -R $(def_user):$(def_user) $(user_CF_DIR)
 	}
 }
 # ### SCRIPT INTRO ###
+## check user config dirs priviledges.
+if [ "$(def_user)" != "root" ]; then default_zen_dir; fi
 # NOTE : distro function was used to get particular env vars attached to specific distro from a config file.
 # This is replace by auto checks inside the script. Distro config is kept to load specific config if any.
 # It will be removed in a near future if it'll become useless.
@@ -6695,7 +6755,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir
 PCI_ID
 # cmdline tool doesn't need to read config, so skip the step if in console only.
 if [[ $(def_user) != "root" ]]; then
-	default_zen_dir
 # check if default user has conf file to load, or create it from shipped.
 	for conf in {basic,color}; do
 		if [ "$nvdir/$conf.conf" -nt "$(user_CF_DIR)/$conf.conf" ]; then
@@ -6757,7 +6816,7 @@ while [ $# -gt 0 ]
 		o) [ $UID = 0 ] && win_open_switch;;
 		a) read_about;;
 		u) if [ $UID = 0 ]; then legacy_drv=0; check_for_newer; check_update; fi ;;
-# 		t) distro;;
+# 		t) set_su ;;
 	esac
 exit 0
 done
