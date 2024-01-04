@@ -13,20 +13,16 @@ msgstr ""
 #: .. from initial pot line
 msgid ""
 "$(cat <<-MSG\n"
-"<b><big>Zenvida didn't find any Distro config file\n"
+"<b><big>Zenvida didn't find any optional Distro config file\n"
 "for $plug_version</big></b>\n"
 "\n"
-"<b>Zenvida distro name and su command are not congigured</b>\n"
+"<b>Su command are not congigured</b>\n"
 "\n"
-"Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,\n"
-"Zenvidia main functions are unusable.\n"
+"Without a proper <b>su</b> command prompt, Zenvidia main functions\n"
+"are unusable and script will abort.\n"
 "\n"
-"Please, enter distribution <b>name</b> if not found or unknown\n"
-"and <b>sudo</b> or <b>su</b> command line with options for default\n"
+"Please, enter <b>sudo</b> or <b>su</b> command line with options for default\n"
 "user admin priviledge.\n"
-"\n"
-"Without a proper <u>distro configuration</u> file or <b>su</b> command prompt,\n"
-"Zenvidia main functions are unusable, and script will abort.\n"
 "\n"
 "<i>If you don't know what is talking about here, just abort.\n"
 "</i>\n"
@@ -40,7 +36,7 @@ msgstr ""
 msgid "Enter the name of the distribution if not displayed."
 msgstr ""
 #: .. from initial pot line
-msgid "<b>su comman line</b>"
+msgid "<b>su command line</b>"
 msgstr ""
 #: .. from initial pot line
 msgid "Select a commande in the list or type one."
@@ -52,7 +48,7 @@ msgid ""
 "\n"
 "You need to create a <u>new configuration</u> based on your distro environment variables.\n"
 "\n"
-"<i>Note : Even in case you are not sure of what you are doing, new configuratin file will be saved anyway.\n"
+"<i>Note : Even in case you are not sure of what you are doing, new configuration file will be saved anyway.\n"
 "You will just have to go back to it in <u>$(user_CF_DIR)/$plug_conf</u> afterward.</i>\n"
 "WRN\n"
 ")"
@@ -63,12 +59,10 @@ msgstr ""
 #: .. from initial pot line
 msgid ""
 "$(cat <<-WRN\n"
-"<b>Zenvida can't work without Distro config file for $plug_version</b>\n"
+"<b>Zenvida can work without Distro config file for $plug_version</b>\n"
 "\n"
-"<u>Don't ask the dev, if didn't create one, it's probably he doesn't know how to.</u>\n"
-"\n"
-"You can try having a look at your distro's community forum and ask for help\n"
-"or see Zenvidia's git discussion feed (if exist).\n"
+"If your distribution need very specifics values try having a look at\n"
+"your distro's community forum and ask for help.\n"
 "Then going back to the saved config file in $(user_CF_DIR)\n"
 "WRN\n"
 ")"
@@ -540,7 +534,13 @@ msgstr ""
 msgid "\\t\\t\\t${gB} link fix\\t\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
 msgstr ""
 #: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Fixing user's nvidia profiles rc file${end}${end}"
+msgstr ""
+#: .. from initial pot line
 msgid "# ${j}($n%)${end}${ge}${sf} * Validating new librairies (ldconfig)${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${j}($n%)${end}${ge}${sf} * Creating udev rules for $(chk_family) serie${end}${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Blacklisting and other routines${end}"
@@ -2309,4 +2309,81 @@ msgid "${v}What do you want to do ?${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "What do you want to do ?"
+msgstr ""
+#: .. TASK BAR MENU
+#: .. from initial pot line
+msgid "Open Driver Switch"
+msgstr ""
+#: .. from initial pot line
+msgid "PRIME Display configuration"
+msgstr ""
+#: .. from initial pot line
+msgid " Read ${version} change log"
+msgstr ""
+#: .. from initial pot line
+msgid " Nvidia ${version} documentation"
+msgstr ""
+#: .. from initial pot line
+msgid "<b>$version</b> in use. <small>($adds)</small>"
+msgstr ""
+#: .. from initial pot line
+msgid "no driver detected"
+msgstr ""
+#: .. from initial pot line
+msgid " Read Zenvidia change log"
+msgstr ""
+#: .. from initial pot line
+msgid "Start zenvidia"
+msgstr ""
+#: .. from initial pot line
+msgid "Nvidia Settings (user)"
+msgstr ""
+#: .. from initial pot line
+msgid "Config xorg"
+msgstr ""
+#: .. from initial pot line
+msgid "Edit Zenvidia configuration"
+msgstr ""
+#: .. from initial pot line
+msgid "Check Nvidia driver Update"
+msgstr ""
+#: .. from initial pot line
+msgid "Close Zenvidia task menu"
+msgstr ""
+#: .. NOTIFICATIUON
+#: .. from initial pot line
+msgid "update"
+msgstr ""
+#: .. from initial pot line
+msgid "$LAST_DRV, official driver"
+msgstr ""
+#: .. from initial pot line
+msgid "$LAST_BETA, beta driver"
+msgstr ""
+#: .. from initial pot line
+msgid "$LAST_DRV, official drivers"
+msgstr ""
+#: .. from initial pot line
+msgid "$sol<b>$driver</b> $release update.$eol"
+msgstr ""
+#: .. from initial pot line
+msgid "$sol<b>$driver</b> $release update.\\n<i>(not dowloadable yet)</i>$eol"
+msgstr ""
+#: .. from initial pot line
+msgid "Nvidia driver "
+msgstr ""
+#: .. from initial pot line
+msgid "Nvidia driver notification"
+msgstr ""
+#: .. from initial pot line
+msgid "<b>WARNING</b> : No Signal"
+msgstr ""
+#: .. from initial pot line
+msgid "and Zenvidia"
+msgstr ""
+#: .. from initial pot line
+msgid "${line}zenvidia git repo update.\\n$git_rm_fetch_date $git_rm_version"
+msgstr ""
+#: .. from initial pot line
+msgid "${line}zenvidia git warning.\\n$git_rm_fetch_date $git_rm_warn_log"
 msgstr ""
