@@ -6733,6 +6733,8 @@ default_zen_dir(){
 	}
 }
 # ### SCRIPT INTRO ###
+plug_version=$(distro_version)
+
 ## check user config dirs priviledges.
 if [ "$(def_user)" != "root" ]; then default_zen_dir; fi
 # NOTE : distro function was used to get particular env vars attached to specific distro from a config file.
