@@ -292,6 +292,10 @@
  - Add a nvidia-application-profiles-rc fixer and copy to user dir. Installed rc file are not readable by nvidia-settings and not usable if there's no ccpy in user nvidia dir or in /etc. Xml trouble reading is maybe my system case only, I can't tell if this is for all, then set is define by fix_profiles=0/1 in basic config.
  - A few minor and text nutshells fixes.
  - Basic conf need to be update (above statement).
+* 2024-01-09 - v2.3.32
+ - URGENT FIX : big mistake in last fast fix. Lost the fact that distro need to be know before last fixed function. My very bad mistake.
+ - Last distro optionnals files uploaded was mistaken (yes...). It was not apprently fatal, just stupid.
+
 
 
 
