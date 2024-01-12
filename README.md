@@ -24,6 +24,10 @@ Language is English only.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.3.33 NOTES :
+ - distro configuration file are removed from three.
+ - If user needs to add some very specifics distro variables, system conf directory (ex. grub), he just have to edit distro.conf file as appropriate. All same for some specifics dependencies for his distro. Afterward relaunch Zenvidia to make the script install those dependencies (help comments inside config file).
+
 v2.3.29 NOTES :
  - **WARNING** : After a tester feedback, it appears that user priviledges for local zenvidia's conf dir wasn't properly set. In cause, a script function moved too soon (distro config file future removal goal). This is fixed. User need to remove $HOME/.zenvidia directory and relaunch the script to fix.
 

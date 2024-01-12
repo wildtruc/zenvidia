@@ -115,14 +115,14 @@ driver_ctrl(){
 				if [ $drv_diff -gt 0 ]; then
 					if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
 					if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
-						_driver_notif+=( $"$sol<b>$driver</b> $release update.$eol" )
+						_driver_notif+=( $"$sol<b>$driver</b> $release.$eol" )
 					else
 						_driver_notif+=( $"$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
 					fi
 					((cnt++))
 				fi
 			done
-			if [[ $greater -gt 0 || ! $(echo -e "${DRV_LIST[*]}") =~ $(modinfo -F version nvidia) ]]; then
+			if [[ $greater -gt 0 || ! "$(echo -e "${DRV_LIST[*]}")" =~ $(modinfo -F version nvidia) ]]; then
 				notif_msg+=$"Nvidia driver "
 				driver_up=1
 			fi
@@ -221,7 +221,7 @@ notifying(){
 	# only display notif if driver_ctrl or source_ctrl are true.
 	test -f $local_nvdir/taskbar_message || touch $local_nvdir/taskbar_message
 	echo -e "notif=0" > $local_nvdir/taskbar_message
-	if [[ $cnx -gt 0 || $driver_up -gt 0 || $zen_up -gt 0 ]]; then
+	if [[ $cnx -eq 0 ]]&&[[ $driver_up -gt 0 || $zen_up -gt 0 ]]; then
 		notify-send -t 5000 -u low -i "$deficon" $"${notif_msg[*]}$msg_suffix" "$(echo "${_driver_notif[@]}")"
 		echo -e "notif=1" > $local_nvdir/taskbar_message
 		echo -e "notif_text=\"${_driver_notif[@]}\"" >> $local_nvdir/taskbar_message

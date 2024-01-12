@@ -295,6 +295,16 @@
 * 2024-01-09 - v2.3.32
  - URGENT FIX : big mistake in last fast fix. Lost the fact that distro need to be know before last fixed function. My very bad mistake.
  - Last distro optionnals files uploaded was mistaken (yes...). It was not apprently fatal, just stupid.
+* 2024-01-12 - v2.3.33
+ - remove problematic 'ditro' config file function and replace all distro files by only one distro.conf file editable by user.
+ - if user needs to add some very specifics distro variables, system conf directory (ex. grub), he just have to edit distro.conf file as appropriate. All same for some specifics dependencies for his distro. Afterward relaunch Zenvidia to make the script install those dependencies (help comments inside config file).
+ - distro.conf file is very optional, main distros values are auto detected.
+ - fixed a wrong exit code value in zen_notif for internet connection detection that prevent notif and task bar message to be displayed.
+ - there were issue with default IFS values restoration for yad window lists, yad is very strict with this. Hopefully fixed.
+ - translation will come soon, but need a review before upload.
+ - ISSUE : zen_notif looks to meet some issue and need to be deeply reviewed.
+
+
 
 
 

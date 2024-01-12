@@ -267,7 +267,7 @@ msgstr ""
 msgid "# ($m sec.) - Restoring from nvidia.$res_version.tar.$zip_type"
 msgstr ""
 #: .. from initial pot line
-msgid "# ${j}<b>Restoring $(old_version) Librairies installation</b>${end}"
+msgid "# ${j}<b>Restoring $(old_version) libraries installation</b>${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
@@ -510,13 +510,13 @@ msgstr ""
 msgid "# ${v}${j}($n%)${end} - Create XORG config file for Nvidia device${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - Librairies sub routines${end}"
+msgid "# ${v}${j}($n%)${end} - libraries sub routines${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${j}($n%)${end}${ge}${sf} * Linking $nv_root libs to system${end}${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} libwfb\\t\\t${end}> ${y}link to system${end}.\\n"
+msgid "\\t\\t\\t\\t${gB} libwfb\\t${end}> ${y}link to system${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${j}($n%)${end}${ge}${sf} * Fixing broken libs and links if needed${end}${end}"
@@ -525,19 +525,19 @@ msgstr ""
 msgid " cleaned ($lib_x)\\n"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} lib fix\\t\\t\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
+msgid "\\t\\t\\t\\t${gB} lib fix\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid " links updated $elf_x"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} link fix\\t\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
+msgid "\\t\\t\\t${gB} link fix\\t${end}> ${y}old ${fixed_lib_log[@]}${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${j}($n%)${end}${ge}${sf} * Fixing user's nvidia profiles rc file${end}${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "# ${j}($n%)${end}${ge}${sf} * Validating new librairies (ldconfig)${end}${end}"
+msgid "# ${j}($n%)${end}${ge}${sf} * Validating new libraries (ldconfig)${end}${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${j}($n%)${end}${ge}${sf} * Creating udev rules for $(chk_family) serie${end}${end}"
@@ -552,10 +552,10 @@ msgstr ""
 msgid "# ${v}${j}($n%)${end} - Cleaning old $(old_version) source and DKMS tree if needed.${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} old version\\t\\t${end}> ${y}$(old_version) directory cleaned${end}.\\n"
+msgid "\\t\\t\\t\\t${gB} old version\\t${end}> ${y}$(old_version) directory cleaned${end}.\\n"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} old source\\t\\t${end}> ${y}All $(old_version) version cleaned${end}.\\n"
+msgid "\\t\\t\\t\\t${gB} old source\\t${end}> ${y}All $(old_version) version cleaned${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"
@@ -589,13 +589,7 @@ msgstr ""
 msgid "# ${ge}* Compressing $_dkms modules if needed."
 msgstr ""
 #: .. from initial pot line
-msgid "#${ge}${sf} ${line}${end}${end}"
-msgstr ""
-#: .. from initial pot line
 msgid " * Exec $KERNEL modules depmod ($m sec.)"
-msgstr ""
-#: .. from initial pot line
-msgid "# ${ge}${sf}${line}${end}${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${y}* All Clear modules loaded ($(new_version) modules moved from dkms dir)${end}."
@@ -610,7 +604,7 @@ msgstr ""
 msgid " - ${r}(ERROR $_dkms, safe modules not copied)${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "#${r} * --- ${r}ERROR${end} ---  Driver not found in path ---- ${end}"
+msgid "#${v} * --- ${r}ERROR${end} ---  Driver not found in path ---- ${end}"
 msgstr ""
 #: .. from initial pot line
 msgid " - ${r}(ERROR $_dkms, no safe modules found)${end}"
@@ -625,7 +619,7 @@ msgstr ""
 msgid "# ${j}* --- ${r}ERROR${end} --- No $_dkms modules found in DKMS build path${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "# ${r}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
+msgid "# ${v}* You can try ${y}Update Driver${end} menu > ${y}Update from source${end} as workaround install${end}"
 msgstr ""
 #: .. from initial pot line
 msgid " - ${r}(ERROR $_dkms, no modules found)${end}"
@@ -808,22 +802,22 @@ msgstr ""
 msgid "# ERROR ! $KERNEL modules do not match $(new_version). Abort."
 msgstr ""
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Install Nvidia default librairies${end}${end}"
+msgid "# ${v}${j}($n%)${end} - ${mf}Install Nvidia default libraries${end}${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "Installing ${j}$(new_version)${end} librairies to $nv_root/nvidia.$(new_version)"
+msgid "Installing ${j}$(new_version)${end} libraries to $nv_root/nvidia.$(new_version)"
 msgstr ""
 #: .. from initial pot line
-msgid "# ${j}<b>Librairies installation in background</b>${end}"
+msgid "# ${j}<b>libraries installation in background</b>${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${y}Please wait...${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Nvidia-installer:\\t${end}${jB} no effect\\t\\t${end}> ${y}WARNING on missing /usr/lib(32/64)/LibGL.so link,\\n\\t\\t\\t\\t\\t\\t    LibGL.so is already link in default nvidia's libraies directory${end}.\\n"
+msgid "${vB}Nvidia-installer:\\t\\t${end}${jB} no effect\\t${end}> ${y}WARNING on missing /usr/lib(32/64)/LibGL.so link,\\n\\t\\t\\t\\t\\t\\t    LibGL.so is already link in default nvidia's libraies directory${end}.\\n"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${jB} no effect\\t\\t${end}> ${y}WARNING missing libglvnd developpement files.${end}\\n"
+msgid "\\t\\t\\t\\t${jB} no effect\\t${end}> ${y}WARNING missing libglvnd developpement files.${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\\nCheck $lib_logfile for more details.${end}"
@@ -832,7 +826,7 @@ msgstr ""
 msgid "Abort install"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Libraries install:\\t${end}${gB} success\\t\\t${end}> ${y}normal install process${end}.\\n"
+msgid "${vB}Libraries install:\\t\\t${end}${gB} success\\t${end}> ${y}normal install process${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# Modules build done."
@@ -841,7 +835,7 @@ msgstr ""
 msgid "# ${v}${j}($n%)${end} - Modules build done.${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Driver build$show_dkms:\\t${end}${gB} success\\t\\t${end}> ${y}Installation complete with no error${end}\\n"
+msgid "${vB}Driver build$show_dkms:\\t\\t${end}${gB} success\\t${end}> ${y}Installation complete with no error${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# Modules build ERROR."
@@ -850,7 +844,7 @@ msgstr ""
 msgid "# ${r}${j}($n%)${end} - Modules build ERROR.${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Driver build:\\t\\t${end}${rB} failure\\t\\t${end}> ${y}ERROR, 'make' exit with 'failed' state${end}\\n"
+msgid "${vB}Driver build:\\t\\t\\t${end}${rB} failure\\t${end}> ${y}ERROR, 'make' exit with 'failed' state${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid ""
@@ -890,7 +884,7 @@ msgid ""
 ")"
 msgstr ""
 #: .. from initial pot line
-msgid "\\t\\t\\t${gB} kernel option\\t${end}>${y} Kernel $KERNEL is REALTIME${end}.\\n"
+msgid "\\t\\t\\t\\t${gB} kernel option ${end}>${y} Kernel $KERNEL is REALTIME${end}.\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "open driver loaded"
@@ -899,10 +893,10 @@ msgstr ""
 msgid "close source loaded"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Open Driver:\\t\\t${end}$gB compiled\\t\\t${end}>${y} $append${end}\\n"
+msgid "${vB}Open Driver:\\t\\t\\t${end}$gB compiled\\t${end}>${y} $append${end}\\n"
 msgstr ""
 #: .. from initial pot line
-msgid "${j}${bf}Install Report${end}${end}${v}:\\n $(cat <<< ${report_log[*]})${end}\\n$rep_msg"
+msgid "${j}${bf}Install Report${end}${end}${v}:\\n\\n $(cat <<< ${report_log[*]})${end}\\n$rep_msg"
 msgstr ""
 #: .. from initial pot line
 msgid "edit later"
@@ -934,16 +928,16 @@ msgstr ""
 msgid "# ${y}${j}($n%)${end} - Driver already backed up. Skipped.${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Previous version:\\t${end}${gB} passed\\t\\t${end}> ${y}previously backed up${end}\\n"
+msgid "${vB}Previous version:\\t\\t${end}${gB} passed\\t${end}> ${y}previously backed up${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "Backup : $bak_version backup archive creation"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Previous version:\\t${end}${gB} success\\t\\t${end}> ${y}$bak_version normal backup process${end}\\n"
+msgid "${vB}Previous version:\\t\\t${end}${gB} success\\t${end}> ${y}$bak_version normal backup process${end}\\n"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Previous version:\\t${end}${jB} warning\\t\\t${end}> ${y}no directory to archive.${end}\\n"
+msgid "${vB}Previous version:\\t\\t${end}${jB} warning\\t${end}> ${y}no directory to archive.${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"
@@ -993,6 +987,22 @@ msgid ""
 "\n"
 "What do you want to do ?${end}\n"
 "RPT\n"
+")"
+msgstr ""
+#: .. from initial pot line
+msgid " for Nvidia drivers"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$(cat <<-WARN\n"
+"${y}<b>Xorg configuration file${is_nv} has been change</b>${end}\n"
+"\n"
+"<b>WARNING</b> : <b>Xorg file already exist</b>.\n"
+"Validating will overwrite this file by a fresh one.\n"
+"<small><i>A backup of previous will be made in /etc/X11 (xorg.conf.[nvidia]~)</i></small>\n"
+"\n"
+"Do you want to overwrite ?\n"
+"WARN\n"
 ")"
 msgstr ""
 #: .. from initial pot line
@@ -1129,7 +1139,7 @@ msgstr ""
 #: .. from initial pot line
 msgid "NVIDIA Download center compatibility check (${j}$DRV${end})..."
 msgstr ""
-#: .. from initial pot line
+#: .. from initial pot line # ALERT TO TRANLASTOR : avoid to add ' here. There are not manage by IFS status here.
 msgid "install_msg='# ${v}${j}($n%)${end} - Compatiblity found in ${y}$(echo \"$DRV\" | cut -d. -f1)${end} serie, proceed to install${end}'"
 msgstr ""
 #: .. from initial pot line
@@ -1146,7 +1156,7 @@ msgstr ""
 msgid ""
 "$(cat <<-ERR\n"
 "${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}\n"
-"${v}The ${j}$pci_class${end} is not supported by ${j}NIVDIA${end} driver.\n"
+"${v}The ${j}$pci_class${end} is not supported by ${j}NIVDIA${end} driver\n"
 "and there's no solution here except reverse to ${j}Nouveau${end} driver.\n"
 "Abort.${end}\n"
 "ERR\n"
@@ -1396,7 +1406,7 @@ msgid ""
 "- <b>Remove downloaded packages</b>:\n"
 "Manage downloaded packages in Zenvidia directory.\n"
 "- <b>Backup tools</b>:\n"
-"Make a drivers and librairies backup of the current version.\n"
+"Make a drivers and libraries backup of the current version.\n"
 "- <b>Restore tool</b>:\n"
 "Make a restoration of previously backed up drivers installation.\n"
 "- <b>Remove Nvidia and restore to default</b>:\n"
@@ -1648,9 +1658,6 @@ msgid "# FAILURE : See 'Update drivers or modules' > 'Update driver only (dkms/f
 msgstr ""
 #: .. from initial pot line
 msgid "# FAILURE : No source directory found for $res_version"
-msgstr ""
-#: .. from initial pot line
-msgid "Rebuilding INITRAMFS (required)\\t\\t\\t"
 msgstr ""
 #: .. from initial pot line
 msgid "# ($m sec.) - Rebuilding INITRAMFS"
@@ -2263,6 +2270,9 @@ msgstr ""
 msgid "Overwrite"
 msgstr ""
 #: .. from initial pot line
+msgid "Keep"
+msgstr ""
+#: .. from initial pot line
 msgid "Proceed"
 msgstr ""
 #: .. from initial pot line
@@ -2364,7 +2374,7 @@ msgstr ""
 msgid "$LAST_DRV, official drivers"
 msgstr ""
 #: .. from initial pot line
-msgid "$sol<b>$driver</b> $release update.$eol"
+msgid "$sol<b>$driver</b> $release.$eol"
 msgstr ""
 #: .. from initial pot line
 msgid "$sol<b>$driver</b> $release update.\\n<i>(not dowloadable yet)</i>$eol"

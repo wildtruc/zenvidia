@@ -56,8 +56,10 @@ if [ -f $local_notif ]; then
 			$notif_text
 		MSG
 		)"
-		changelog_menu=$" Read Zenvidia change log!${d_zen} -r!zen-warning,"
+	else
+		embed_text="$version_txt"
 	fi
+	changelog_menu=$" Read Zenvidia change log!${d_zen} -r!zen-warning,"
 fi
 menu_list=(
 	\ $"Start zenvidia"!zen_start!$img_zen,
