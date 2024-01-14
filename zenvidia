@@ -17,10 +17,6 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
-# set -x
-# set -vxEmb
-# set -xmb
-
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
@@ -66,8 +62,6 @@ eval x_alive=$?
 ## ex: IFS=$' \t\n'
 ifs=$IFS
 trap "IFS=$ifs" EXIT
-## read script mandatory vars config first.
-# . $script_conf
 
 ## find first default values for distro and desktop user
 ## define who is facing the screen.
@@ -77,7 +71,8 @@ def_user(){
 	return
 }
 su_cmd(){
-	case $plug_version in
+# 	case $plug_version in
+	case $(distro_version) in
 # 		arch|sles|mageia|mandriva) su_cmd='su -l';;
 		rhel|fedora|ubuntu|mint|debian) echo "$(command -v sudo) -u" && return;;
 		*) cat $script_conf | sed -En "s/su_cmd=\"(.*)\"/\1/g;p" && return;;
@@ -86,7 +81,8 @@ su_cmd(){
 }
 pkg_installer(){
 	pkg_mng=1
-	case $plug_version in
+# 	case $plug_version in
+	case $(distro_version) in
  		arch|manjaro) echo "$(command -v pacman)" ;;
  		mageia|mandriva) echo "$(command -v urpmi)";;
 		rhel|fedora|centos) echo "$(command -v dnf)";;
@@ -98,7 +94,8 @@ pkg_installer(){
 }
 pkg_install_cmd(){
 	pkg_inst=1
-	case $plug_version in
+# 	case $plug_version in
+	case $(distro_version) in
 #  		arch) PKG_INSTALLER="pacman"; pkg_cmd='install'; pkg_opts='--noconfirm ';;
  		arch|manjaro) echo "$(pkg_installer) install --noconfirm ";;
  		mageia|mandriva) echo "$(pkg_installer) -y install ";;
@@ -222,7 +219,7 @@ distro_version(){
 		*) if [[ ${DISTRIB_ID} ]]; then
 				echo "${DISTRIB_ID}"
 			else
-				echo unknown
+				echo "unknown"
 			fi
 		;;
 	esac
@@ -253,7 +250,7 @@ set_su(){
 		are unusable and script will abort.
 
 		Please, enter <b>sudo</b> or <b>su</b> command line with options for default
-		user admin priviledge.
+		user admin privilege.
 
 		<i>If you don't know what is talking about here, just abort.
 		</i>
@@ -264,7 +261,7 @@ set_su(){
 	--center --text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!zen-ok:0' --field="":LBL '' \
 	--separator=';' \
 	--field=$"<b>Distribution name</b>"!$"Enter the name of the distribution if not displayed.":LABEL 'distro' \
-	--field=$"<b>su comman line</b>"!$"Select a commande in the list or type one.":CBE "$su_opts"
+	--field=$"<b>su command line</b>"!$"Select a commande in the list or type one.":CBE "$su_opts"
 	)
 # 	set_args=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --image="zen-warning" \
 # 	--center --text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!zen-ok:0' --field="":LBL '' \
@@ -273,8 +270,8 @@ set_su(){
 # 	)
 	if [ $? = 0 ]; then
 		[ "$set_args" != '' ] || exit 0
-			plug_version=$(echo "$set_args"|cut -d';' -f2)
-			plug_conf=$plug_version.conf
+# 			plug_version=$(echo "$set_args"|cut -d';' -f2)
+# 			plug_conf=$plug_version.conf
 			su_cmd=$(echo "$set_args"|cut -d';' -f3)
 # 			su_cmd=$(echo "$set_args"|cut -d';' -f2)
 		if [ $(grep -c "su_cmd=" $script_conf ) -eq 0 ]; then echo -e 'su_cmd="'$su_cmd'"' >> $script_conf; fi
@@ -360,7 +357,7 @@ PCI_ID(){
 	pci_dev_nb=${dev_n[*]}
 	if [ $i -gt 1 ]; then
 		if ! [[ "${vnd_id[*]}" =~ "10de" ]]; then
-			scan_alert="\n\nNvidia device was not scanned.\nRun again with root priviledge and rescan pci bus."
+			scan_alert="\n\nNvidia device was not scanned.\nRun again with root privilege and rescan pci bus."
 		fi
 	fi
 }
@@ -456,7 +453,7 @@ dep_control(){
 						$warn_text
 
 						<b>Your are not administrator</b>.
-						You need to restart with adminsitratior priviledges
+						You need to restart with adminsitratior privileges
 						or use your packages manager to install them.
 					DEP
 					)"
@@ -484,7 +481,7 @@ dep_control(){
 				else
 					EXEC=$"$(
 						cat <<-DEP
-							echo -e "Zenvidia is start without admin priviledges."
+							echo -e "Zenvidia is start without admin privileges."
 							echo -e "You need to restart with ${red}Zenvidia (admin)${nc} to install them."
 						DEP
 					)"
@@ -506,7 +503,8 @@ dep_control(){
 				$p_xterm $xt_options -e "$w_text"
 			fi
 			## check if datas comes from special distro config.
-			if [ $(grep -E -c "^[ ]?deplist" $(user_CF_DIR)/distro.conf) -gt 0 ]; then
+			grep -E "^[ ]?deplist" $(user_CF_DIR)/distro.conf &>/dev/null
+			if [ $? -eq 0 ]; then
 				sed -Ei "s/^[ ]?(deplist.*)$/# \1/" $(user_CF_DIR)/distro.conf
 			fi
 			dep_exec_check
@@ -578,8 +576,8 @@ display_and_compil_vars(){ #
 		x_esc_message=$"\n${nc}*****  Close window to escape *****"
 		x_sleep=''
 	else
-		x_esc_message=$"\n${nc}*****  Window will auto-close in $xt_delay seconds *****"
-		x_sleep="sleep $xt_delay"
+		x_esc_message=$"\n${nc}*****  Window will auto-close in ${xt_delay} seconds *****"
+		x_sleep="sleep ${xt_delay}"
 	fi
 	xt_options=$xt_colors''$xx_hold' -fn 8x13 -geometry 80x24+'$[ ( ($(printf "$x_pixel"| cut -d';' -f1)-660)/2) ]'+0'
 	grub_cfg=$(find /boot -wholename "*/grub.cfg")
@@ -707,8 +705,11 @@ version(){
 	if [ -f $(user_CF_DIR)/version.txt ]; then
 		cat $(user_CF_DIR)/version.txt
 	else
-		modinfo -F version nvidia &>/dev/null
-		[ $? -eq 0 ] && modinfo -F version nvidia || echo 0
+		stat /usr/lib/modules/$(uname -r)/$(module_dest_location)/nvidia.* &>/dev/null
+		[ $? = 0 ] && modinfo -F version nvidia || echo 0
+# 		if [ $(module_dest_location) nvidia  ]
+# 		modinfo -F version nvidia &>/dev/null
+# 		[ $? -eq 0 ] && modinfo -F version nvidia || echo 0
 	fi
 	return
 }
@@ -2066,7 +2067,11 @@ nv_cmd_dkms_conf(){ #
 		fi
 	}
 	# Create DKMS conf
-	echo $"# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"; sleep 1
+	if [ "$timeout" != '' ];then
+		echo $"# Create DKMS conf file..."; sleep 1
+	else
+		echo $"# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"; sleep 1
+	fi
 	## loop between open and private.
 	if [ $(chk_family) -le 355 ]; then
 		_src='nvidia'
@@ -2910,7 +2915,7 @@ install_log_messages(){ #
 		fi
 
 		warn_log=$"$( cat <<-ERROR
-			${r}<b>MODULES ALREADY BUILD</b>${end}.
+			${r}<b>MODULES ALREADY BUILD</b>${end}
 			$(new_version) is the same as in kernel path.
 
 			If you decide to continue anyway, consider the section
@@ -3899,8 +3904,8 @@ win_update(){ #
 		case $ui_mod in
 			0) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
 			1) case $sel_cmd in
-					"1") ok_label=$"Install"; from_net ;;
-					"2") ok_label=$"Download"; download_only ;;
+					"1") ok_label=$"install"; from_net ;;
+					"2") ok_label=$"download"; download_only ;;
 				esac ;;
 			2) from_directory ;;
 			*) [ $task_opt -gt 0 ] && exit 0 || menu_install ;;
@@ -3969,7 +3974,7 @@ from_directory(){ #
 		)"
 
 		IFS=$(echo -en "\n\b")
-		cancel_lbl=$"Back to main"'!zen-back'; ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0
+		cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		drv_pick=$( win_yad_list "${list_drv[*]}" )
 		if [ $? = 0 ]; then
@@ -4002,7 +4007,7 @@ from_directory(){ #
 		)"
 
 		IFS=$(echo -en "\n\b")
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Previous"'!zen-back'
+		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
 		ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
 		from_cmd=$( win_yad_list "${list_array[*]}" )
@@ -4191,7 +4196,7 @@ last_pack(){ #
 		return $err
    else
 		warn_log=$"$( cat <<-WRN
-			${r}<b>$fatal_dev Remote directory is empty.</b>${end}
+			${r}<b>Remote directory is empty.</b>${end}
 			Nvidia devs have probably forgoten to upload data.
 			Feel free to try at a later time.
 		WRN
@@ -4221,9 +4226,9 @@ win_log_options(){
 	if [ $xt_hold = 1 ]; then
 		esc_message=$"# ${nr}*****  Close window to escape *****${end}"
 		x_hold=''
-		if [ $xt_delay -gt 0 ]; then
-			esc_message=$"# ${nr}*****  Window will auto-close in $xt_delay seconds *****${end}"
-			x_sleep="sleep $xt_delay"
+		if [ ${xt_delay} -gt 0 ]; then
+			esc_message=$"# ${nr}*****  Window will auto-close in ${xt_delay} seconds *****${end}"
+			x_sleep="sleep ${xt_delay}"
 			x_hold='--auto-close'
 		fi
 	else
@@ -4292,7 +4297,7 @@ win_yad_progress(){
 	[ $pulse = 1 ] && do_pulse='--pulsate '$autoclose || do_pulse=$autoclose
 #  	[ $colors = 1 ] && w_colors='--fore='$fg_xterm' --background='$bg_xterm # ALERT on test
 	[ "$YAD_PID" ] || YAD_PID=0
-	$d_yad --width=500 --window-icon=$img_zen_desktop --title="Zenvidia" --center \
+	$d_yad --width=600 --window-icon=$img_zen_desktop --title="Zenvidia" --center \
 	--progress $nobutton $do_pulse $hide_txt --borders=15 --text="${v}$y_text${end}" $do_log $w_colors
 	_exit=$?
 # 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
@@ -4450,10 +4455,10 @@ manage_pcks(){ #
 
 
 		${v}<u>Note</u>${end} : <i>In case of issue after restoration (ex: driver not loading),
-		try command line tools in first place after reboot.
+		try command line tools in first place after reboot in case of failure.
 		Many distro auto reload desktop manager at boot. If you meet this issue,
-		you have to disable the desktop manager with systemcl before operating
-		with "zenvidia rebuild [version]" command line</i>.
+		you have to disable the desktop manager with systemcl before operating with
+		"zenvidia rebuild [version]" command line</i>.
 		MSG
 	)"
 	if [ $hlp_txt = 1 ]; then
@@ -5102,7 +5107,7 @@ edit_script_conf(){
 				${jB}Driver Switch${end}
 				${v}<b>Open driver settings have been change.</b>
 
-				${j}You don't have superuser priviledges${end}.
+				${j}You don't have superuser privileges${end}.
 				Please launch ${y}Open Driver switch${end} task bar menu entry to apply.${end}
 			WRN
 			)"
@@ -5657,7 +5662,7 @@ edit_xorg_conf(){ #
 edit_distro_conf(){ #
 	## warn about no config file
 	warn_log=$"$(cat <<-WRN
-	${j}<b>You are going to modify $plug_version configuration file</b>${end}
+	${j}<b>You are going to modify $(distro_version) configuration file</b>${end}
 
 	Variables and datas from this file are very sensitives and could potentialy
 	breaks Zenvidia.
@@ -5673,7 +5678,7 @@ edit_distro_conf(){ #
 	## edit config file.
 	log_brief="$(user_CF_DIR)/distro.conf"
 	IFS=$(echo -en "\n\b")
-	log_txt=$"${j}<b>$plug_version configuration file</b>${end}"
+	log_txt=$"${j}<b>$(distro_version) configuration file</b>${end}"
 	cancel_lbl=$"Abort (panic button)"'!zen-back'; ok_lbl=$"Write"'!zen-ok'
 	w_formatted=1; w_wrap=1; w_width='640'; w_height='400'; all_btn=1; colors=0
 	edit_plug_conf=$(win_yad_text "$log_brief" "--editable")
@@ -5893,7 +5898,6 @@ read_zen_changelog(){ #
 		log_txt=$"${v}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}"
 		w_formatted=1; w_wrap=1; w_width='600'; w_height='300'; all_btn=1; colors=1; ok_lbl=$"Back to list"'!zen-undo'
 		win_yad_text "$log_brief"
-		_exit=$?
 		IFS=$ifs
 		if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
 # 			IFS=$ifs
@@ -6439,7 +6443,7 @@ rescue_cmdline(){
 is_SU(){
 	warn_log=$"$(cat <<-WRN
 	${y}${bf}Your are not superuser${end}${end}
-	This command can't be executed without ${j}<b>administrator</b>${end} priviledge.
+	This command can't be executed without ${j}<b>administrator</b>${end} privilege.
 	See ${j}<b>Zenvidia task bar</b>${end} to run as admin or
 	${j}<i>Zenvidia (administrator)</i> desktop entry${end} instead.
 	WRN
@@ -6473,7 +6477,7 @@ base_menu(){ #
 		if [ $UID = 0 ]; then
 			echo "superadmin"
 		else
-			echo $"$USER\n(system write priviledge not allowed)$scan_alert"
+			echo $"$USER\n(system write privilege not allowed)$scan_alert"
 		fi
 	}
 	# remove deplist list in case of relaunching first because an update asking to
@@ -6657,14 +6661,16 @@ default_sets(){
 	hlp_txt=${hlp_txt:-1}
 }
 default_zen_dir(){
+	## Outside the "make install" process, for various reasons (restoration, fresh OS install, etc..)
+	## user's directory existence and privileges may change. So, we chech and fix it if necessary.
 	test -d $(user_CF_DIR) || {
 		mkdir -p $(user_CF_DIR)
 		mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
-		chown -R $(def_user):$(def_user) $(user_CF_DIR)
 	}
+	[ "$(stat -c %U $(user_CF_DIR))" = "$(def_user)" ] || chown -R $(def_user):$(def_user) $(user_CF_DIR)
 }
 # ### SCRIPT INTRO ###
-## main configuration file check
+## main configuration file check and read mandatory vars config first.
 if [ ! -s $script_conf ]; then #
 	if [ $d_yad ]; then
 		warn_log=$"<b>Script's config file missing.\n</b>"
@@ -6683,12 +6689,12 @@ fi
 libclass
 ## LD_LIBRARY_PATH definition (useless in Fedora).
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir/$master$ELF_64
-plug_version=$(distro_version)
+# plug_version=$(distro_version)
 ## system bins path control and depencies list building if any.
 dep_exec_check
-## check users dirs priviledges and load extra special distro config if any.
+## check users dirs privileges and load extra special distro config if any.
 if [ "$(def_user)" != "root" ]; then
-	## check user config dirs priviledges.
+	## check user config dirs presence and privileges.
 	default_zen_dir
 	## load extra special distro config
 	if test -f $(user_CF_DIR)/distro.conf; then
@@ -6708,8 +6714,33 @@ PCI_ID
 if [[ $(def_user) != "root" ]]; then
 # check if default user has conf file to load, or create it from shipped.
 	for conf in {basic,color,distro}; do
-		if [ "$nvdir/$conf.conf" -nt "$(user_CF_DIR)/$conf.conf" ]; then
-			install -bCm644 -o $(def_user) -g $(def_user) -t $(user_CF_DIR) $nvdir/$conf.conf
+		if [ ! -e $(user_CF_DIR)/$conf.conf ]; then
+			install -Cm644 -o $(def_user) -g $(def_user) -t $(user_CF_DIR) $nvdir/$conf.conf
+		elif [ "$nvdir/$conf.conf" -nt "$(user_CF_DIR)/$conf.conf" ]; then
+			cp -f $(user_CF_DIR)/$conf.conf $(user_CF_DIR)/$conf.conf~
+			diff_list=( $(sed -En "s/^([a-z].*)=.*$/\1/p" $nvdir/$conf.conf) )
+			if [ ${#diff_list[*]} -gt 0 ]; then
+				# user_CF_DIR wont pass the IFS move, put it in a temp var.
+				user_DIR=$(user_CF_DIR)
+				IFS=$(echo -en "\n\b")
+				for var in ${diff_list[@]}; do
+					if [ $(grep -c "$var" $user_DIR/$conf.conf) -eq 0 ]; then
+						case $conf in
+							basic) new_line+=( $(grep -B1 "^$var" $nvdir/$conf.conf | sed -n '1p') )
+									 new_line+=( $(grep "^$var" $nvdir/$conf.conf) )
+									 sed -Ei "s|^(${prev_line}.*)$|\1\n${new_line[0]}\n${new_line[1]}|" $user_DIR/$conf.conf
+									 ;;
+							color) new_line=$(grep "^$var" $nvdir/$conf.conf)
+									 sed -Ei "s|^(${prev_line}.*)$|\1\n${new_line}|" $user_DIR/$conf.conf
+									 ;;
+						esac
+						unset new_line
+					fi
+					prev_line=$var
+				done
+				unset diff_list
+				IFS=$ifs
+			fi
 		fi
 		eval ${conf}_conf=$(user_CF_DIR)/$conf.conf
 	done
