@@ -58,3 +58,13 @@ Send a "New pull request" with you file attach (you need a github account).
 You can also send it through the Issue or the Discussion tabs.
 
 Done
+
+ D . Annexe - report log helper
+
+"translation_report_helper.sh" is a bash script to help translators to manage tabs in end of install Reports Log windows.
+It need to be launch inside the "locale" git local repos or from a copy the "locale" folder.
+
+* Edit your LANG_ID setting in the top of the file.
+
+* Launch the script to see the result of your reeport log translation until everyting is fine.
+   bash ./translation_report_helper.sh

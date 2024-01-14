@@ -303,20 +303,9 @@
  - there were issue with default IFS values restoration for yad window lists, yad is very strict with this. Hopefully fixed.
  - translation will come soon, but need a review before upload.
  - ISSUE : zen_notif looks to meet some issue and need to be deeply reviewed.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+* 2024-01-14 - v2.3.34
+ - Add a basic conf file diff for updates. Script will add new vars automaticaly. It doesn't prevent user to inspect the file :).
+ - Makefile has been change to manage default user priviledges for local Zenvidia directory and prepared for locales translation files. Last user dirs access fast fix is still in use and will be remove in near future.
+ - In first launch process, modinfo is telling if a module is already present before telling is none. There was to much test whitch slowing the process. It has been shortened for faster execution.
+ - In case of distro.conf inspection at launch, test of dep_list presence was not test before read into the file and was returning a warning. Fixed.
+ - Fixed a missing a wrong exit codee in Zenvidia change log window.

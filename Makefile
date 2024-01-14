@@ -1,5 +1,6 @@
 # DEFINE FIRST THE CURRENT USER NAME
 #C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
+# C_USER = $(shell stat -c %U ../dev_zenvidia) # in box test
 C_USER = $(shell stat -c %U ../zenvidia)
 # CHECK IF USER IS IN SU MODE
 S_USER = $(shell whoami)
@@ -20,11 +21,13 @@ endif
 all: install
 
 install: check_su
-	mkdir -p $(INSTALL_DIR) $(CONF_DIR)
+	## pre install
+	mkdir -p $(INSTALL_DIR) $(CONF_DIR)/{compats/series,updates,release}
 	mkdir -p $(PREFIX)/share/{applications,pixmaps,doc/zenvidia}
+	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats,locale}
+	## install
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -Dm644 -t $(INSTALL_DIR)/ *.conf
-	install -Dm644 -t $(INSTALL_DIR)/distro/ distro/*
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(INSTALL_DIR)/ OLD-README.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
@@ -34,8 +37,10 @@ install: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats}
+	#cp -rf -t $(INSTALL_DIR)/locale locale/*
+	## post install
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	chown -R $(C_USER):$(C_USER) $(CONF_DIR)
 
 uninstall: check_su
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)
@@ -67,4 +72,6 @@ update: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
+	#cp -ruf -t $(INSTALL_DIR)/locale locale/*
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	chown -R $(C_USER):$(C_USER) $(CONF_DIR)/zen_version
