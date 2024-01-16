@@ -37,7 +37,7 @@ install: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	#cp -rf -t $(INSTALL_DIR)/locale locale/*
+	cp -rf -t $(INSTALL_DIR)/locale locale/*
 	## post install
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)
@@ -72,6 +72,6 @@ update: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
-	#cp -ruf -t $(INSTALL_DIR)/locale locale/*
+	cp -ruf -t $(INSTALL_DIR)/locale locale/*
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)/zen_version

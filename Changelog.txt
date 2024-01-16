@@ -309,3 +309,9 @@
  - In first launch process, modinfo is telling if a module is already present before telling is none. There was to much test whitch slowing the process. It has been shortened for faster execution.
  - In case of distro.conf inspection at launch, test of dep_list presence was not test before read into the file and was returning a warning. Fixed.
  - Fixed a missing a wrong exit codee in Zenvidia change log window.
+* 2024-01-16 - v2.3.35
+ - Typo error in zen_task_menu at last upload preventing execution of changelogs and nvidia docs reader.
+ - The local directory selector window for installation wasn't return the good number of packeges found in local user download directory. Fixed.
+ - fr_Fr translation added.
+ - Translation note : la traduction en français n'est peut être pas parfaite, des coquilles et erreurs de grammaire sont probablement encore présentes. Soyez aimable de les signaler.
+

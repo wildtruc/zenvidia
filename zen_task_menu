@@ -42,8 +42,8 @@ export TEXTDOMAINDIR=$nvdir/locale
 [ $(xrandr --listproviders|grep -c "NVIDIA" ) = 1 ] && opti_menu=$"PRIME Display configuration"'!zen_start -p!zen-prime,'
 
 if [ -f $local_conf_dir/version.txt ]; then
-	driver_changelog=$" Read ${version} change log"'!${d_zen} -d!zen-info,'
-	nvidia_help=$" Nvidia ${version} documentation"'!${d_zen} -h!zen-question,'
+	driver_changelog=$" Read ${version} change log"'!'${d_zen}' -d!zen-info,'
+	nvidia_help=$" Nvidia ${version} documentation"'!'${d_zen}' -h!zen-question,'
 	[ "$version" != '' ] && version_txt=$"<b>$version</b> in use. <small>($adds)</small>" || version_txt=$"no driver detected"
 fi
 
@@ -59,7 +59,7 @@ if [ -f $local_notif ]; then
 	else
 		embed_text="$version_txt"
 	fi
-	changelog_menu=$" Read Zenvidia change log"'!${d_zen} -r!zen-warning,'
+	changelog_menu=$" Read Zenvidia change log"'!'${d_zen}' -r!zen-warning,'
 fi
 menu_list=(
 	\ $"Start zenvidia"!zen_start!$img_zen,
