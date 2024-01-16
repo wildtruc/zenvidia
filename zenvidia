@@ -1212,7 +1212,8 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 	## drm_modset 0. NOTE : 440 serie is set as default, but the real serie where
 	## this option is needed is not known > too old.
 	[ $(chk_family) -le 440 ] && drm_modset=0
-	[ $(chk_family) -ge 545 ] && drm_fbdev=' nvidia-drm.fbdev=1' || drm_fbdev=''
+	[ $(chk_family) -lt 545 ] && drm_fbdev=''
+	[ $(chk_family) -ge 545 ] && drm_fbdev=' nvidia-drm.fbdev=1' # || drm_fbdev=''
 	## take care of modeset 1 for 515 serie too.
 	if [ $opti_preset = 1 ]; then
 		## optimus section.
@@ -2068,9 +2069,9 @@ nv_cmd_dkms_conf(){ #
 	}
 	# Create DKMS conf
 	if [ "$timeout" != '' ];then
-		echo $"# Create DKMS conf file..."; sleep 1
+		echo $"# Create DKMS conf file..."; sleep 2
 	else
-		echo $"# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"; sleep 1
+		echo $"# ${v}${j}($n%)${end} - Create DKMS conf file...${end}"; sleep 2
 	fi
 	## loop between open and private.
 	if [ $(chk_family) -le 355 ]; then
@@ -3989,9 +3990,10 @@ from_directory(){ #
 			IFS=$ifs; [ $task_opt -gt 0 ] && exit 0 || from_directory # menu_install
 		fi
 	}
+	unset nvdl_list home_list
 	test $(version) && loaded=$"${v}<i>${y}$(version)${end} actually installed and loaded.</i>${end}"
 	nvdl_list=( $(ls -1 $nvdl| grep -v ".sum"| tac) )
-	home_list=( "$(find $(user_DL_DIR)/ -regextype sed -regex "^.*NVIDIA-Linux-.*\.run"| tac)" )
+	home_list=( $(find $(user_DL_DIR)/ -regextype sed -regex "^.*NVIDIA-Linux-.*\.run"| tac) )
 	if [ $ui_mod = 1 ]; then
 		unset list_array
 		list_array=( false 1 $"Use Zenvidia stock directory" false 2 $"Use a user local directory" )
@@ -4506,7 +4508,7 @@ remove_pcks(){ #
 	done
 	w_text=$"$( cat <<-MSG
 		${j}<b>Remove downloaded package</b>${end}
-		Select on or more packages to be removed.
+		Select one or more packages to be removed.
 	MSG
 	)"
 	# win_yad_list
@@ -4609,7 +4611,7 @@ remove_baks(){ #
 	done
 	w_text=$"$( cat <<-MSG
 		${j}<b>Remove backed up package</b>${end}
-		Select on or more archives to be removed.
+		Select one or more archives to be removed.
 	MSG
 	)"
 	# win_yad_list
@@ -4990,7 +4992,7 @@ edit_script_conf(){
 		cnf_list+=("$set_val")
 		orig_conf+=("$setted;$set_id;$set_val")
 	done
-	help_tip=$"${v}\nDefine options and functions you would like to use of change\n${end}"
+	help_tip=$"${v}\nDefine options and functions you would like to use or change\n${end}"
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-back'
 	ok_lbl=$"Apply"'!zen-ok'; list_type='checklist'; columns=4; col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' )
 	sel_col='0'; sep=';'; hid_col='3'; edit_col=4; col_tip=3; w_width='580'; w_height='500'; l_tail=0; w_head=1
@@ -5162,7 +5164,7 @@ edit_color_conf(){ #
 			${j}* NOTICE *${end}
 			${sf}Colors will apply immediatly after validation.
 			Do not forget Xterm only support a limited type of colors.
-			${y}Xterm colors are also applied to Yad's text logging windows.${end}${end}
+			${y}Xterm colors are also applied to Yad's text windows.${end}${end}
 		TIP
 		)"
 		style1=$(grep -E -io "[a-z]*$" <<< $font1)
@@ -5554,7 +5556,7 @@ x_yad_block(){ #
 		<i>From Xorg configuration file ($xorg_cfg)</i>
 		${sf}
 		<b>Full documentation can be found in</b> :
-		> ${j}Help and Documentation${end} > ${j}Documentation Manual${end} - Appendic B. <i>X Config Options</i>
+		> ${j}Help and Documentation${end} > ${j}Documentation Manual${end} - Appendice B. <i>X Config Options</i>
 		${end}
 		Device(s) detected :
 		${y}${dev_name[*]}${end}
@@ -5625,8 +5627,6 @@ edit_xorg_conf(){ #
 			Edit all non sensitives Xorg option and sets in tabed GUI.
 		- <b>Edit full Xorg (text)</b>
 			Edit Xorg configuration file in a text editor.
-		- <b>Manage NVIDIA Options only</b>
-			Edit NVIDIA device only options in a GUI.
 		- <b>Execute Xorg auto config</b>
 			Re-create Zenvidia Xorg configuration file creation automation.
 		${end}
@@ -6802,7 +6802,7 @@ while [ $# -gt 0 ]
 		o) [ $UID = 0 ] && win_open_switch;;
 		a) read_about;;
 		u) if [ $UID = 0 ]; then legacy_drv=0; check_for_newer; check_update; fi ;;
-# 		t) set_su ;;
+# 		t) blacklist_and_grub_set ;;
 	esac
 exit 0
 done
