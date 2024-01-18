@@ -894,7 +894,7 @@ nv_persistenced(){
 }
 back_old_driver(){
 	mkdir -p $nvtmp/old_kernel/
-	cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
+	[ $(ls -1  $kernel_path | grep -c "nvidia") -gt 0 ] && cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
 }
 restore_old_driver(){ #
 	if [ -f $nvtmp/old_kernel/nvidia.*[ko\|ko.xz] ]; then
@@ -905,7 +905,7 @@ restore_old_driver(){ #
 	fi
 }
 restore__driver(){ #
-	if [ -f $nvtmp/${1}/nvidia.*[ko\|ko.xz] ]; then
+	if [ -f $nvtmp/${1}/nvidia.ko* ]; then
 		echo -e $"#${j} ** Restoring drivers to $kernel_path ** ${end}"
 		cp -f $nvtmp/${1}/nvidia* $kernel_path/
 		progress_msg(){ echo -e $"# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
@@ -2220,23 +2220,15 @@ build_dkms(){ #
 	fi
 	show_dkms=' (dkms)'
 	[ -f $tmp_b ] && echo -e "show_dkms=' (dkms)'" >> $tmp_b
-		mod_move(){
-			## if modules detected in dkms version tree, move.
-			if [ -f nvidia.*[ko\|ko.xz] ]; then
-				echo -e $"#${j} ${r}ERROR${end} : No $_dkms ${j}$(new_version)${end} modules found in kernel path $kernel_path.${end}"
-				sleep 2
-				echo -e "# "
-				echo -e $"#${v} Workaround : Copying ${y}$_dkms${end} modules in $kernel_path from DKMS repository.${end}"
-				#echo -e "# moving"
-				echo -e $"# ${ge}* Compressing $_dkms modules if needed."
-# 				test $is_RT -eq 0 ||
-				{ ## get compression suffix and act as necessary
+		compress_modules(){
+			## get compression suffix and act as necessary
 				mod_suffix=".ko"
 				grep -q '\.gz:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".gz"
 				grep -q '\.xz:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".xz"
 				grep -q '\.zst:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".zst"
 				mod_suffix="$mod_suffix$compressed_type"
-				if [ "$compressed_type" = ".gz" ]; then
+				echo -e $"# ${ge}* Compressing $_dkms modules if needed."
+				{ if [ "$compressed_type" = ".gz" ]; then
 					gzip -9f *
 				elif [ "$compressed_type" = ".xz" ]; then
 					xz -f -T$proc *
@@ -2245,25 +2237,40 @@ build_dkms(){ #
 				fi
 				} | \
 				while read -r line; do echo $"#${ge}${sf} ${line}${end}${end}"; done
+		}
+		mod_move(){
+			## if modules detected in dkms version tree, move.
+# 			if [ -f nvidia.*[ko\|ko.*] ]; then
+			if [ -f nvidia.ko* ]; then
+				echo -e $"#${j} ${r}ERROR${end} : No $_dkms ${j}$(new_version)${end} modules found in kernel path $kernel_path.${end}"
+				sleep 2
+				echo -e "# "
+				echo -e $"#${v} Workaround : Copying ${y}$_dkms${end} modules in $kernel_path from DKMS repository.${end}"
+				## get compression suffix and act as necessary
+				mod_suffix=".ko"
+				grep -q '\.gz:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".gz"
+				grep -q '\.xz:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".xz"
+				grep -q '\.zst:' /lib/modules/$KERNEL/modules.dep 2>/dev/null && compressed_type=".zst"
+				mod_suffix="$mod_suffix$compressed_type"
+				[ -e nvidia$mod_suffix ] || compress_modules
 				cp -vf nvidia$mod_suffix $kernel_path/nvidia$mod_suffix
 				if [[ -s nvidia-uvm$mod_suffix ]]; then cp -vf nvidia-uvm$mod_suffix $kernel_path/nvidia-uvm$mod_suffix; fi
 				if [[ -s uvm/nvidia-uvm$mod_suffix ]]; then cp -vf uvm/nvidia-uvm$mod_suffix $kernel_path/nvidia-uvm$mod_suffix; fi
 				if [[ -s nvidia-modeset$mod_suffix ]]; then cp -vf nvidia-modeset$mod_suffix $kernel_path/nvidia-modeset$mod_suffix; fi
 				if [[ -s nvidia-drm$mod_suffix ]]; then cp -vf nvidia-drm$mod_suffix $kernel_path/nvidia-drm$mod_suffix; fi
 
-				if [[ -s $kernel_path/nvidia.*[ko\|ko.xz] ]]; then
-					echo -e "# ${ge}* Exec $KERNEL modules depmod"
+				if [[ -s $kernel_path/nvidia$mod_suffix ]]; then
+					echo -e "# ${ge}* Exec $KERNEL modules depmod${end}"
 					sleep 2
-					progress_msg(){ echo $" * Exec $KERNEL modules depmod ($m sec.)"; }; m=1; do_slp=1
-					progress /usr/sbin/depmod -an $KERNEL | \
-					while read line; do echo -e "# ${ge}${sf}${line}${end}${end}"; done
+					progress_msg(){ echo -e $"# ${ge}${sf}Depmod $KERNEL modules ($m sec.)${end}${end}"; }; m=1; do_slp=1
+					progress "( exec_depmod "$KERNEL" )"
 					modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
 					pass=$?
 				else
 					pass=1
 				fi
 				if [ $pass = 0 ]; then
-					vermagic=$(modinfo -F vermagic $kernel_path/nvidia.*[ko\|ko.xz]| awk '{print $1}')
+					vermagic=$(modinfo -F vermagic $kernel_path/nvidia.ko*| awk '{print $1}')
 					echo -e $"# ${y}* All Clear modules loaded ($(new_version) modules moved from dkms dir)${end}."
 					echo -e "pass=$pass" >> $tmp_b
 				else
@@ -2392,7 +2399,7 @@ build_dkms(){ #
 					echo -e "# "
 					echo -e $"# ${y}* All Clear for $(new_version) $_dkms is build.${end}"
 				fi
-				echo -e "# ${y} ---  $_dkms script ended  --- ${end}"
+				echo -e $"# ${y} ---  $_dkms script ended  --- ${end}"
 				echo $(($n+$o)); o=$(($n+$o)) #6
 				sleep 2
 			}
@@ -2419,7 +2426,7 @@ build_dkms(){ #
 				if [ $pass = 1 ]; then
 					mod_check
 				else
-					vermagic=$(modinfo -F vermagic $kernel_path/nvidia.*[ko\|ko.xz]| awk '{print $1}')
+					vermagic=$(modinfo -F vermagic $kernel_path/nvidia.ko*| awk '{print $1}')
 					echo -e $"# ${y}* All Clear for $(new_version) $_dkms in $KERNEL kernel.${end}"
 					echo $(($n+$o)); o=$(($n+$o)) #7
 					sleep 2
@@ -2445,7 +2452,7 @@ build_dkms(){ #
 			fi
 		}
 		post_treatment(){
-			echo -e "#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} build log presence${end}"
+			echo -e $"#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} build log presence${end}"
 			echo $(($n+$o)); o=$(($n+$o))
 			if [ -s /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log ]; then
 				test -d $nvlog/dkms/$_dkms/ || mkdir -p $nvlog/dkms/$_dkms/
@@ -2485,9 +2492,9 @@ build_dkms(){ #
 		done
 		echo -e $"#${v} Done$with_error${end}"
 		echo -e "# "
-		echo -e $esc_message
+		echo -e "${esc_message}"
 		$x_sleep
-		echo 100
+# 		echo 100
 }
 nv_build_dkms(){
  	if [ $log = 1 ];then
@@ -2495,9 +2502,10 @@ nv_build_dkms(){
 	else
 		echo -e $"# Build and install DKMS modules."; sleep 1
 	fi
- 	pulse=0; log=1; hold=1 ; hide_txt=1 ;[ $hold = 1 ] && win_log_options #; colors=1
+ 	pulse=0; log=1; hold=1 ; hide_txt=1 ; [ $hold = 1 ] && win_log_options
  	y_text=$"Installing ${j}$(new_version)${end} driver over ${y}$KERNEL${end} kernel with DKMS"
  	{ build_dkms; } | win_yad_progress
+#  	{ build_dkms; echo -e "# "; echo -e "$esc_message"; $x_sleep ; } | win_yad_progress
 }
 build_source(){ #
 	# NOTE : Since 545 serie nvidia-installer can install over a loaded driver, but ... it doesn't reallyt works.
@@ -2688,7 +2696,7 @@ build_source(){ #
 	echo -e "# "
 	echo -e $esc_message
 	$x_sleep
-	echo 100
+# 	echo 100
 	. $tmp_b
 }
 nv_cmd_make_src(){
@@ -2855,6 +2863,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE #
 	while read -r line; do echo -e "# ${y}${sf}${line}${end}${end}"; done
 	echo -e "# "
 	echo -e $esc_message
+	$x_sleep
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	popd
 	## report nvidia installer log message
@@ -2914,7 +2923,6 @@ install_log_messages(){ #
 		else
 			echo $"# ${y}${j}($n%)${end} - Modules already build and present in $kernel_path.${end}"; sleep 2
 		fi
-
 		warn_log=$"$( cat <<-ERROR
 			${r}<b>MODULES ALREADY BUILD</b>${end}
 			$(new_version) is the same as in kernel path.
@@ -2941,7 +2949,7 @@ install_log_messages(){ #
 	## open driver install report messages.
 	if [ $open_drv -eq 1 ]; then
 		if [ $use_open -eq 1 ]; then append=$"open driver loaded"; else append=$"close source loaded"; fi
-		report_log+=($"${vB}Open Driver:\t\t\t${end}$gB compiled\t${end}>${y} $append${end}\n")
+		report_log+=($"${vB}Open Driver:\t\t\t${end}${gB} compiled\t${end}>${y} $append${end}\n")
 	fi
 }
 install_report_log(){ #
@@ -5389,10 +5397,7 @@ x_yad_tab(){ #
 			track=$(cut -d';' -f3 <<<$para)
 			if [ $(grep -c "$section" $xorg_cfg) -gt 0 ]; then
 			# create and trap tmp files.
-# 			tmp=$(mktemp --tmpdir $xorg_tmp_dir/$device.$section.$n.XXXX)
 			tmp=$(mktemp $xorg_tmp_dir/$device.$section.$n.XXXX)
-# 			rem_tmp+=("rm -f $tmp")
-# 			trap "rm -f $tmp" EXIT
 				# catch Xorg Section containing 'word' or without.
 				if [ $track -gt 0 ]; then
 					section_block=$(sed -n -e '/Section "'$section'"/,/EndSection/{H;$!d;}' \
@@ -5404,10 +5409,8 @@ x_yad_tab(){ #
 				## catch array vnd_id variable
 				vendor_id=${5}
 				for section_line in ${section_list[@]}; do
-# 					if [ $(grep -c "$section_line" <<< $section_block) -gt 0 ]; then
 					if [ $(grep -wc "$section_line" <<< $section_block) -gt 0 ]; then
 						unset option_line # options_list
-# 						option_line=( $(grep "$section_line" <<< $section_block) )
 						option_line=( $(grep -w "$section_line" <<< $section_block) )
 						for line in ${option_line[@]}; do
 							if [[ $line =~ \#{1}.*$ ]]; then setted='FALSE'; else setted='TRUE'; fi
@@ -5433,30 +5436,6 @@ x_yad_tab(){ #
 									value=$(echo "$line"| awk '{print $2}'|sed -n "s/\"//g;p")
 								fi
 							fi
-# 							if [[ $line =~ \#{1}.*$ ]]; then setted='FALSE'; else setted='TRUE'; fi
-# 							option_type=$section_line
-# 							[[ "$setted" =~ 'FALSE' ]] && word_count=$(printf "$line"|wc -w ) || word_count=$(printf "$line"|wc -w)
-# 							option_reg="^.*$section_line.*(\".*\") (\".*\")$"
-# 							screen_reg="^.*$section_line [0-9].*(\".*\") (.*)$"
-# 							option_bis_reg="^.*$section_line.*(\".*\")$"
-#
-# 							if [[ "$line" =~ $option_reg ]]; then
-# 								option=$(echo "$line"| sed -En "s/$option_reg/\1/p"|sed -n "s/\"//g;p")
-# 								value=$(echo "$line"| sed -En "s/$option_reg/\2/p"|sed -n "s/\"//g;p")
-# 							else
-# 								if [[ "$line" =~ $screen_reg ]]; then
-# 									option_type=$(echo "$line"| sed -En "s/^.*(Screen [0-9]).*$/\1/p")
-# 									option=$(echo "$line"| sed -En "s/$screen_reg/\1/p"|sed -n "s/\"//g;p")
-# 									value=$(echo "$line"| sed -En "s/$screen_reg/\2/p"|sed -n "s/\"//g;p")
-# 								elif [[ "$line" =~ $option_bis_reg ]]; then
-# 									option=$(echo "$line"| sed -En "s/$option_bis_reg/\1/p"|sed -n "s/\"//g;p")
-# 									value=''
-# 								else
-# 									option_type=''
-# 									option=$section_line
-# 									value=$(echo "$line"| awk '{print $2}'|sed -n "s/\"//g;p")
-# 								fi
-# 							fi
 							options_list+=("$setted")
 							options_list+=("$option_type")
 							options_list+=("$option")
@@ -5593,7 +5572,7 @@ x_yad_block(){ #
 	done
 	cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
-	yad --key=$KEY --notebook --tab-pos=top --width=500 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop \
+	yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop \
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]}
 	if [ $? = 0 ]; then
 		x_yad_extract
@@ -5619,7 +5598,21 @@ edit_xorg_full_text(){
 	[ $task_opt -gt 0 ] && exit 0 || edit_xorg_conf
 }
 edit_xorg_conf(){ #
-	xorg_cfg=/etc/X11/xorg.conf.nvidia
+	## check and alerte of xorg.conf presence.
+	if [ ! -e /etc/X11/xorg.conf ]; then
+		warn_log=$"$(cat <<-WARN
+			${j}<b>Xorg config file missing</b>${end}
+
+			No xorg configuration file found.
+			There is nothing to edit.
+			WARN
+		)"
+		warn_image='zen-error'
+		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-close'
+		qst=0; ok_lbl='' ; kill_yad=0
+		win_yad_warns
+		[ $task_opt -gt 0 ] && exit 0 || menu_modif
+	fi
 	if [ $hlp_txt = 1 ]; then
 		hlp_tip=$"$( cat <<-HLP
 		${sf}
@@ -5634,6 +5627,7 @@ edit_xorg_conf(){ #
 		HLP
 		)"
 	fi
+	xorg_cfg=/etc/X11/xorg.conf.nvidia
 	unset list_array
 	list_array=( TRUE 1 $"Edit full Xorg (GUI)" FALSE 2 $"Edit full Xorg (text)" FALSE 3 $"Execute Xorg auto config" )
 	l_text=$"${j}${bf}Edit Xorg Config File${end}${end}\n${v}Edit or manage Xorg config and options.${end}\n$hlp_tip"
@@ -6662,7 +6656,7 @@ default_sets(){
 }
 default_zen_dir(){
 	## Outside the "make install" process, for various reasons (restoration, fresh OS install, etc..)
-	## user's directory existence and privileges may change. So, we chech and fix it if necessary.
+	## user's directory existence and privileges may change. So, we check and fix it if necessary.
 	test -d $(user_CF_DIR) || {
 		mkdir -p $(user_CF_DIR)
 		mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
