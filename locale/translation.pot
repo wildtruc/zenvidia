@@ -563,6 +563,9 @@ msgstr ""
 msgid " * Exec $KERNEL modules depmod ($m sec.)"
 msgstr ""
 #: .. from initial pot line
+msgid "# ${ge}${sf}Depmod $KERNEL modules ($m sec.)${end}${end}"
+msgstr ""
+#: .. from initial pot line
 msgid "# ${y}* All Clear modules loaded ($(new_version) modules moved from dkms dir)${end}."
 msgstr ""
 #: .. from initial pot line
@@ -621,6 +624,9 @@ msgid "# ${y}* All Clear for $(new_version) $_dkms already build.${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${y}* All Clear for $(new_version) $_dkms is build.${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} build log presence${end}"
 msgstr ""
 #: .. from initial pot line
 msgid "#${v} Build and Install ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL ${end}"
@@ -864,7 +870,7 @@ msgstr ""
 msgid "close source loaded"
 msgstr ""
 #: .. from initial pot line
-msgid "${vB}Open Driver:\\t\\t\\t${end}$gB compiled\\t${end}>${y} $append${end}\\n"
+msgid "${vB}Open Driver:\\t\\t\\t${end}${gB} compiled\\t${end}>${y} $append${end}\\n"
 msgstr ""
 #: .. from initial pot line
 msgid "${j}${bf}Install Report${end}${end}${v}\\n\\n $(cat <<< ${report_log[*]})${end}\\n$rep_msg"
@@ -1060,7 +1066,7 @@ msgid ""
 "$(cat <<-MSG\n"
 "$menu_msg\n"
 "Driver install ${j}$up_version${end} for hardware ${j}${dev_name}${end}.\n"
-"Pick the up to date kernel\n"
+"Select the kernel to update.\n"
 "MSG\n"
 ")"
 msgstr ""
@@ -1798,6 +1804,16 @@ msgid ""
 msgstr ""
 #: .. from initial pot line
 msgid "Xorg Server"
+msgstr ""
+#: ../zenvidia-test17:5600
+msgid ""
+"$(cat <<-WARN\n"
+"${j}<b>Xorg config file missing</b>${end}\n"
+"\n"
+"No xorg configuration file found.\n"
+"There is nothing to edit.\n"
+"WARN\n"
+")"
 msgstr ""
 #: .. from initial pot line
 msgid ""
