@@ -316,10 +316,16 @@
  - Translation note : la traduction en français n'est peut être pas parfaite, des coquilles et erreurs de grammaire sont probablement encore présentes. Soyez aimable de les signaler.
 * 2024-01-18 - v2.3.36
  - Add a warning (with exit) in xorg config tools if xorg configuration file is not found.
- - nutqhell and markup errors in zenvidia.mo FR translation file. Fixed.
- - workaround dkms function was returning wrongly an error message, fixed.
- - Compialtion window exited even if hold option was set. Fixed.
+ - nutshells and markup errors in zenvidia.mo FR translation file. Fixed.
+ - workarround dkms function was returning wrongly an error message, fixed.
+ - Compilation window exited even if hold option was set. Fixed.
  - missing translation line added.
+* 2024-01-24 - v2.3.37
+ - The was no test to launch zen_task_menu in case of first use. Until then, the user had restart the session. Added.
+ - ABOUT text file missing, don't ask why it was.
+ - ABOUT entry added to zen_task_menu.
+ - Add missing tip for Prime Display in 'Configuration and tools'.
+
 
 
 

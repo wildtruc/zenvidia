@@ -1,0 +1,49 @@
+#export TEXTDOMAIN=ABOUT
+#export TEXTDOMAINDIR=$nvdir/locale
+
+echo -e $"<b>ZENVIDIA</b> is a bash/zenity script for managing NVIDIA© propriatary drivers.
+
+<b>A brief History</b>
+I started <b>Zenvidia</b> several years ago in a background of non existent <i>Nvidia</i> drivers managed by distros.
+I builded it with a light knowledge of bash code I was learning on the scratch and with the only goal of my own use.
+I finally brought it to the community, with all my knowledge gaps, and maintained it for a couples of years until my health prevent me to go on and I throw the sponge, hoping someone somewhere one day will continue or make a new one.
+
+Despite my personal condition I went by time back in the code to add, change some little things because I was still using it, and despite the fact that my distro was delivering Nvidia drivers, <b>Zenvidia</b> was still more flexible.
+
+Then, the <b>515 drivers</b> series went out with the open source drivers !
+Woaw ! So cool ! ... but not really.
+
+Yeah, it was a big step for Nvidia to bring their drivers to a mix of Open Source and GPL. Alas, as always Nvidia's old school linux drivers developpers put brut terminal only tools, event not a possibility to test and switch back.
+I don't blame them, rewrite all Nvidia-installer for a fantasque user ideal is simply not possible, too much code in it.
+I wasn't at the top on my shape, but as always, I decided to put that in <b>Zenvidia</b>.
+
+<b>A Brief of Consequencies</b>
+Going back to Zenvidia bash code after a so long suspend was not a piece of cake and take me at several months to understand the clean way to make a fast switch and even wash the code of all the useless things.
+
+Now it's done and because sometimes my brain could went out with its pols without notice, <i>I'm still doing very strange things sometimes</i> and that's why I couldn't consider the code as really maintained. I can't warant the quality of the service even if I'm bringing more and more features. I'm probably nut.
+I just hope that you, guys, will enjoy using my toy, because, as I know, there is still no equals in the whole linux community.
+
+<b>A brief about Features</b>
+ * <b>Driver install</b>
+	- from local stocks or from remote Nvidia server's package.
+	- from a downloaded package (anywhere in system).
+	- New and legacy drivers managed.
+ * <b>Updates</b>
+	- driver updates and compatibility check.
+	- Newly installed kernel update (dkms, could force from source).
+ * <b>Configuration and Tools</b>
+	- Edit xorg.conf file.
+	- Edit Zenvidia config file.
+	- Start Nvidia-Settings.
+	- Installed driver archives management (remove, backups).
+	- Open driver switch tool.
+	- Prime Display tool.
+	- ( and more ...)
+ * <b>Help and Documentation</b>
+	- Nvidia driver manuel : Installed version driver manual with graphic chaptered index.
+	- Nvidia driver Changelog : Installed version and general driver changelog with graphic chaptered index.
+	- Zenvidia help text : Simple Zenvidia help text file display.
+	- Zenvidia About text (yes, this is me!) : About Zenvidia text file display.
+ * <b>More</b>
+   - Command line rescue tools to restore, driver compil, etc. <i>(displayed with X server off only)</i>
+"

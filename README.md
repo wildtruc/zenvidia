@@ -5,22 +5,19 @@ Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
 ## WARNINGS
-No Bumblebee/Prime support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
+No Bumblebee support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
 
-**The Distro Configuration file has been testeed under Fedora only. Users working with other distros have to check distro conf manually.**
-
-**This version brought many changes. Saved your confs, if any, and make a fresh install**.
-Default install directory has been changed to /usr/local/zenvidia.
+**The Script has been testeed under Fedora only. Almost all usual system sets are managed but some specifics per distro are not, users working on other distros may check distro conf manually until all this will automated.**
 
 ## Notice
-Project not maintained. No waranty support. Just as it is.
+Project not maintained as a project is usually maintain. No waranty support. Just as it is.
 Update will be made only on my own bugs discovery or from fatal error send by users in **Discussion** threads.
 
 Exchange are still open in this same Zenvidia's git **Discussion** section.
 
 Wiki is out of date.
 
-Language is English only.
+Base language is english.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
@@ -131,29 +128,39 @@ Other method is to restart the PC and use in console TTY mode the rescue command
 See Changelog.txt for other changes and discovered issues.
 
 ---------------------------------------------------------------------------------------------------
-## Features
+## Main Features
+ - Driver Install.
+ - Driver or Modules update.
+ - Configuration and Tools.
+ - Help and Documentation.
+
+## Sub Features by menu
 ### Driver install
  - from local package.
  - from a dowloaded package.
  - from NVIDIA server.
 
 ### Updates
- - driver updates check.
- - New kernel update (with dkms).
+ - driver updates check and install.
+ - Modules update.
+ - New kernel update.
 
 ### Configuration & Tools
  - Open driver switch tool (available when open_drv set to 1)
- - Edit xorg.conf file.
- - Edit Zenvidia config file.
+ - Prime display tool (available when detected)
+ - Edit xorg configuration file.
+ - Edit Zenvidia configuration file.
  - Edit font color config file.
  - Start Nvidia-Settings for default user.
- - Installed driver mangagement (remove, backups).
+ - Edit specifics distribution options and environment
+ - Installed driver mangagement (remove, backups, restore).
  - Zenvidia notification config.
 
 ### Help & Documentation
 No administrator priviledge required.
  - Nvidia driver manuel : Installed version driver manual with graphic chaptered index.
  - Nvidia driver Changelog : Installed version and general driver changelog with graphic chaptered index.
+ - Zenvidia Changlog.
  - Zenvidia help text : Simple Zenvidia help text file display.
  - Zenvidia About text : About Zenvidia text file display.
 
@@ -161,7 +168,7 @@ No administrator priviledge required.
 ## Configuration
 Most part of Zenvidia is configurable.
 
-Script automaticaly update many of them during execution and game of Q&A.
+Script automaticaly update many of them during execution or in game of Q&A.
 Options could be manage through **Zenvidia** > **Configuration and Tools** menu.
 
 ---------------------------------------------------------------------------------------------------
@@ -185,10 +192,10 @@ As superuser :
   make uninstall
   # to remove safely (doesn't remove downloaded driver packages)
   make safeuninstall
-  # to update :
+  # to update (this including git update command) :
   make update
 ```
-And :
+Then :
 Through terminal command line for GUI.
 ```sh
 	zen_start # (with administrator priviledge)
@@ -214,25 +221,22 @@ Default desktop entry file is set to ```-n```, you can manage options through **
 
 ---------------------------------------------------------------------------------------------------
 ## Usage
+Most of the main functions are available from the desktop task bar menu entries. There not needs to use commande line or desktop manu entries.
+
 ### GUI
-In terminal :
- - ```zen_start``` (with administrator priviledge)
- - ```zenvidia``` (with no priviledge)
-
-From desktop :
-
-With **end user interface menu > settings > others menu**.
+With **end user interface menu > system settings > others menu** (it could differ by distribution).
 
 ### Command line
-Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
-
-Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen and prevent switching to TTY console with Ctrl+Alt+F(x). If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.
+Command line tool is only for rescue services, and need to be launch with Desktop manager disable. Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
 
 ```zenvidia [command] [version]```
 
 command are : _restore, rebuild, rescue, reinit_.
 
 version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
+
+Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen and some older distribution or Nvidia versions prevent switching to TTY console with Ctrl+Alt+F(x).
+If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.
 
 ---------------------------------------------------------------------------------------------------
 ## History
@@ -244,12 +248,12 @@ Despite my personal condition I went by time back in the code to add, change som
 
 Then, the 515 drivers series went out with the open source drivers. Yeah, it was cool, but as always Nvidia's old school linux drivers developpers put brut terminal only tools (I still love you guys! :yum: ), event not a possibility to test and switch back.
 And as always, I decided to put that in Zenvidia.
-Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me at least 2 month to understand the clean way to make a fast switch and even wash the code of all the useless things.
+Going back to Zenvidia bash code after a so long suspend was not a peace of cake and take me several months to understand the clean way to make a fast switch and even wash the code of all the useless things.
 
-Now it's done and tested in almost all weirdest way ( I do very strange things some time) and there is still some [issues](#Known Issues).
-The code wont be maintain, just because of me, I just hope people will enjoy using it, because I don't think there's any equals in the whole linux community.
+This finally done. Even if tested in almost all weirdest way ( I do very strange things some time) and there is still some [issues](#Known Issues) and I still doing stupid mistakes.
+The code is not maintain in the classic way, just because of me, I just hope people will enjoy using it, because I don't think there's any equals in the whole linux community.
 
-Note that the script even if it does less than before is doing more.
+The script is think as Swiss knife.
 
 ---------------------------------------------------------------------------------------------------
 ## Licence
