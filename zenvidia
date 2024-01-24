@@ -17,6 +17,10 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
+# set -x
+#  set -vxEmb
+# set -xmb
+
 ### ZENVIDIA VARS
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
@@ -43,8 +47,9 @@ xt_hold=0
 xt_delay=4
 
 export PATH=$PATH:$install_dir/bin
-export TEXTDOMAIN=zenvidia
-export TEXTDOMAINDIR=$nvdir/locale
+TEXTDOMAIN=zenvidia
+TEXTDOMAINDIR=$nvdir/locale
+export TEXTDOMAIN TEXTDOMAINDIR
 ## terminal fonts colors.
 red='\e[1;31m'
 yel='\e[0;33m'
@@ -2912,7 +2917,8 @@ install_log_messages(){ #
 			cancel_lbl=$"Exit"'!gtk-close'; ok_lbl=$"Back to main"'!zen-back'
 			w_formatted=1; w_wrap=1; w_width='720'; w_height='400'; all_btn=1; colors=1
 			win_yad_text "$log_brief"
-			[ $_exit = 1 ] && IFS=$ifs
+			IFS=$ifs
+			[ $_exit = 0 ] && base_menu
 		fi
 		[ $new_process = 0 ] && restore_broken_install
 		kill $YAD_PID
@@ -4379,7 +4385,11 @@ win_yad_text(){
 
 	unset w_dim buttons
 	if [ -f "$1" ]; then
+		if [ $(grep -c ".txt" <<< "$1") -gt 0 ]; then
+		input_way=$(. ${1})
+		else
 		input_way=$(< "${1}")
+		fi
 	else
 		input_way=$(cat <<< "${1}")
 	fi
@@ -5707,6 +5717,7 @@ read_about(){ #
 	)"
 	IFS=$(echo -en "\n\b")
 	log_brief="$zen_docs/ABOUT.txt"
+# 	log_brief=$(. $zen_docs/ABOUT.txt)
 	log_txt="$log_txt"
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=''
 	w_formatted=1; w_wrap=1; w_width='700'; w_height='400'; all_btn=0; colors=1
@@ -6179,6 +6190,9 @@ menu_modif(){ # BUG IFS
 		- <b>Open driver switch tool</b> (optional):
 			When available, this tool allow to switch between
 			open and proprietary source drivers.
+		- <b>Prime Display Tool</b> (optional)
+			When available, manage Prime Display behaviour.
+			PRIME and PRIME render offload managed only.
 		${end}
 		HLP
 		)"
@@ -6751,6 +6765,10 @@ if [[ $(def_user) != "root" ]]; then
 	## zen notify desktop entry option (define zenvidia changelog reading behaviour)
 	notif_desk_file=/home/$(def_user)/.config/autostart/zen_notify.desktop
 	notif_desk_opt=$(cat $notif_desk_file| sed -En "s/^Exec=.*-(.*)/\1/p")
+	## in case of first use, take care to launch zen_notify which is launching zen_task_menu
+	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
+		$(su_cmd) "$(def_user)" $(command -v zen_notify) -n &>/dev/null
+	fi
 	## then read script conf.
 	. $basic_conf
 	. $color_conf
