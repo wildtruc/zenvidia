@@ -1799,6 +1799,94 @@ ${tab}  \1\n${tab}${tab}\{\n${tab}${tab} \"key\": \2\n${tab}${tab} \"value\": \3
 	create_rules
 	create_profiles
 }
+make_tip_docs(){
+	x_tip_tmp=$(mktemp --tmpdir tip_xorg.XXXX); rem_tmp+=("rm -f $x_tip_tmp") #; trap "rm -f $x_tip_tmp" EXIT
+	src_doc=$nvi_docs/html/xconfigoptions.html
+	x_doc=$zen_docs/x-tips
+	nv_doc=$zen_docs/nv-tips
+	## start nvidia X doc reformatting
+	index_list=$(sed -n "/<a name=\".*\".*$/{;s/.*name=\"\([A-Z]\w*\)\" .*$/\1/p}" $src_doc)
+	local index
+	for index in ${index_list[@]}; do
+		echo -e "<$index>" >> $x_tip_tmp
+		## IncludeImplicitMetaModes need one more substitution.
+		if [ "$index" = "IncludeImplicitMetaModes" ]; then
+			regex="s/ Option/\n Option/g;"
+		else
+			regex=''
+		fi
+		sed -n "/\"$index\"/,/<\/dd>/{;/^<dd>/,/^<\/dd>/{;/<p>/,/<\/p>/{;s/&.*\;/ /g;p}}}" $src_doc | \
+		tr "\n" " " | \
+		sed -En "s/(<a href=.*title=( )?\".*\">)//g;s/<[^>]*>//g;s/\. /.\n/g; \
+		s/: {6}/:\n  /g;s/ {5}/ /g;s/ {3}/ /g;${regex}p" >> $x_tip_tmp
+		echo -e "\n</$index>" >> $x_tip_tmp
+	done
+	sed -n "/^[[:blank:]]*$/d;s/^\ //i;p" $x_tip_tmp > $nv_doc
+	## start xorg and devices man reformatting
+	IFS=$(echo -en "\n\b")
+	section_key_kist=(
+		"xorg.conf|SERVERFLAGS SECTION,section are:|132,122" #160,150
+		"xorg.conf|INPUTDEVICE SECTION,for a description of the device-specific options.|121,86" #140,105
+		"xorg.conf|FILES SECTION,The entries that can appear in this section are:|69,64" #80,75
+		"xorg.conf|SCREEN SECTION,The Identifier entry is mandatory. All others are optional|88,70" #105,87
+		"modesetting|The following driver Options are supported|30" #?
+		"intel|The following driver Options are supported|215" # 230
+		"amdgpu|The following driver Options are supported:|61" #80
+	)
+	## clean previous created file.
+	echo "" > $x_doc
+	local manual
+	for manual in ${section_key_kist[*]}; do
+		manpage=$(printf "$manual"| cut -d"|" -f1)
+		section_key=$(printf "$manual"| cut -d"|" -f2)
+		section_line=$(printf "$manual"| cut -d"|" -f3)
+		## make difference between man exploration with 2 section lines and only 1.
+		if [[ "$section_key" =~ , ]]; then
+			key+=( "$(cut -d, -f1 <<< $section_key)" )
+			key+=( "$(cut -d, -f2 <<< $section_key)" )
+			line+=( "$(cut -d, -f1 <<< $section_line)" )
+			line+=( "$(cut -d, -f2 <<< $section_line)" )
+			base_query=$(man --nh --nj -P cat $manpage | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p"| \
+			grep -A${line[0]} "${key[0]}"|grep -A${line[1]} "${key[1]}")"\n"
+		else
+			base_query=$(man --nh --nj -P cat $manpage | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p"| \
+			grep -A${section_line} "${section_key}")
+		fi
+		## make option's name list.
+		## Files section a different query for list and eextraction.
+		if [[ "${key[0]}" =~ "FILES SECTION" ]]; then
+			list_opts+=( $(echo -e "$base_query" | \
+			sed -En "s/^ ([A-Z]\w*) (\")?(\w*)(\")$/\1/p") )
+		else
+			list_opts+=( $(echo -e "$base_query" |  grep "^ Option " | \
+			sed -En "s/^ ([A-Z]\w*) (\")?(\w*)(\")?( \"\w*\")?$/\3/p") )
+			list_opts+=( $(echo -e "$base_query" |  grep -v "^ Option " | \
+			sed -En "s/^ ([A-Z]\w*) (\w*)?$/\1/p") )
+		fi
+		## make man page extraction.
+		if [[ "${key[0]}" =~ "FILES SECTION" ]]; then
+			echo -e "$base_query" | sed -En "/^ ([A-Z]\w*) \"(\w*)\"$/,/^$/p" | \
+			sed -En "s/^ ([A-Z]\w*) \"(\w*)\"$/<\1>/i;p" > $x_tip_tmp
+		else
+			echo -e "$base_query" | sed -En "/^ ([A-Z]\w*) \"(\w*)\"( \"\w*\")?$/,/^$/p" | \
+			sed -En "s/^ ([A-Z]\w*) (\")?(\w*)(\")?( \"\w*\")?$/<\3>/i;p" > $x_tip_tmp
+			echo -e "$base_query" | sed -En "/^ ([A-Z]\w*) (\w*)$/,/^$/p" | \
+			sed -En "s/^ ([A-Z]\w*) (\w*)$/<\1>/i;p" >> $x_tip_tmp
+		fi
+		## now, create final tip.
+		echo -e "<DEV:$manpage>" >> $x_doc
+		for index in ${list_opts[@]}; do
+			cat <<-PARA >> $x_doc
+				<$index>
+				$(sed -n "/<$index>/,/^$/p" $x_tip_tmp | grep -v "<$index>" | tr -d "\n" | sed -n "s/\. /.\n/g;s/^ //g;p")
+				</$index>
+			PARA
+		done
+		echo -e "</DEV:$manpage>" >> $x_doc
+		## cleean lists.
+		unset list_opts key line
+	done
+}
 ## ### AFTER INSTALL ###
 clean_old_version(){ # post install part. #
 	y_text=$"Cleaning old ${j}$(old_version)${end} source and DKMS tree"
@@ -1904,7 +1992,7 @@ POST_INSTALL(){ #
 	done
 	if [ ${#fixed_lib_log[*]} -gt 0 ]; then
 		if [[ $ELF_64 =~ "64" ]]; then elf_x='(x86_64)'; else elf_x='(i386)'; fi
-		fixed_lib_log+=($", links updated $elf_x")
+		fixed_lib_log+=($" links updated $elf_x")
 		report_log+=($"\t\t\t\t${gB} link fix\t${end}> ${y}${fixed_lib_log[@]}${end}.\n")
 	fi
 	## symlink libvdpau_nvidia to system
@@ -1948,6 +2036,8 @@ POST_INSTALL(){ #
 			n=$[ $n+2 ]; echo "$n"
 			fix_profiles_rc
 		fi
+		## create new x-docs and nv-docs for xorg configuration GUI tips. TASK
+		make_tip_docs
 	fi
 	## NVIDIA_GLX-1.0 changelog file is replace even if the file is older than the installed one.
 	## To prevent overwwrite in case of downgrade, file copied in zenvidia doc dir, then update
@@ -5272,43 +5362,26 @@ edit_color_conf(){ #
 ## This section is dedicated to Xorg config edition.
 # Here the full xorg editor GUI with specific functions.
 x_check_nv_doc(){
-	doc_brief=$( cat <<-TIP
-		<b>NVIDIA $section TIP</b> :
-		${y}$(sed -n "s/<dt>/\n*start*/;s/<\/dd>/*end*\n/g;/*start*/,/*end*/{;s/<[a>]*>//;/<a.*[title]?/,/[title=]?\".*\">/d;\
-		/<div.*/,/<\/div>/d;s/<[^>]*\(>\|$\)//g;/Option.*\"${1}\"/,/*end*/{s/^.*>\|&[a-z]*;/ /g;p}}" $docs \
-		| sed '1,2d;/\".*\"/d;/*end*/,/$/d')${end}
-	TIP
-	)
-	if [ $(echo $doc_brief | wc -w) -gt 6 ]; then
-		echo "$doc_brief"
+	brief=$(cat $nv_doc | sed -n "/<${1}>/,/<\/${1}>/{;s/<[^>]*>//g;p}"| sed -r '/^\s*$/d')
+	if [ $(echo -e "${brief}"| wc -w) -gt 4 ]; then
+		cat <<-TIP
+		<b>NVIDIA TIP</b> :
+		${y}<small>${brief}</small>${end}
+		TIP
 	fi
-# 	echo "*1* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt
 }
 x_check_man(){ #
-	# -D efface les variables d'environement de bases.
-	if [[ "$option_type" =~ 'Option' ]]; then
-		doc_brief=$(cat <<-TIP
-			<b>$DEV TIP</b> :
-
-			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
-			sed -n "/^ Option ${5}${2}${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"|sed '1d;$d' | tr -d '\n')${end}
-			TIP
-		)
+	brief=$(cat $x_doc | sed -n "/<DEV:${1}>/,/<\/DEV:${1}>/{;/<${2}>/,/<\/${2}>/{;s/<[^>]*>//g;p}}"| sed -r '/^\s*$/d')
+	if [ $(echo -e "${brief}"| wc -w) -gt 4 ]; then
+		cat <<-TIP
+		<b>$DEV TIP</b> :
+		${y}<small>${brief}</small>${end}
+		TIP
 	else
-		doc_brief=$(cat <<-TIP
-			<b>$DEV TIP</b> :
-
-			${y}$(man --nh --nj -P cat ${1} | col -b | sed -En "s/(\t)/ /g;s/([\ ]{2,10})/ /g;p" | grep -A${3} "${4}" | \
-			sed -En "/^ ${2} ${5}.*${5}.*$/,/^ [A-Z]\w* ${5}.*${5}.*$/p"| sed '1d;$d' | tr -d '\n')${end}
-			TIP
-		)
+		cat <<-TIP
+			${r}<small>$DEV TIP not found, undocumented or obsolete option.</small>${end}
+		TIP
 	fi
-	if [ $(echo $doc_brief | wc -w) -le 6 ]; then
-		echo -e $"${r}$DEV TIP not found, undocumented or obsolete option.${end}"
-	else
-		echo "$doc_brief"
-	fi
-# 	echo -e "*2* ${vendor_id} $DEV TIP -- $(echo $doc_brief | wc -w)" >> /home/mike/wc.txt # TEST
 }
 x_yad_extract(){
 	xorg_cfg_mod=$xorg_cfg
@@ -5438,8 +5511,12 @@ x_yad_tab(){ #
 									option=$(echo "$line"| sed -En "s/$screen_reg/\1/p"|sed -n "s/\"//g;p")
 									value=$(echo "$line"| sed -En "s/$screen_reg/\2/p"|sed -n "s/\"//g;p")
 								elif [[ "$line" =~ $option_bis_reg ]]; then
+									option=$(echo "$line"| sed -En "s/$option_bis_reg/\2/p"|sed -n "s/\"//g;p")
+									value=''
+									if [[ ! "$option" =~ ^[A-Z]\w* ]]; then
 									option=$(echo "$line"| sed -En "s/$option_bis_reg/\1/p"|sed -n "s/\"//g;p")
 									value=''
+									fi
 								else
 									option_type=''
 									option=$section_line
@@ -5450,63 +5527,47 @@ x_yad_tab(){ #
 							options_list+=("$option_type")
 							options_list+=("$option")
 							options_list+=("$value")
-
-							## look for tip in Nvidia html file (vnd_id set)
-							if [[ "8086" =~ ${vendor_id} ]]; then
-								key="The following driver Options are supported"; lines='230'
-							elif [[ "1002|1022" =~ ${vendor_id} ]]; then
-								key="The following driver Options are supported"; lines='80'
-							elif [[ "layout" =~ ${vendor_id} ]]; then
-								if [[ "$section" =~ "ServerLayout" ]]; then
-									key="SERVERFLAGS SECTION"; lines='160'
-								elif [[ "$section" =~ "InputDevice" ]]; then
-									key="INPUTDEVICE SECTION"; lines='140'
-								elif [[ "$section" =~ "Files" ]]; then
-									key="FILES SECTION"; lines='80'
-								fi
-							fi
-							if [[ "$section" =~ "Screen" ]]; then
-								key="SCREEN SECTION"; lines='105'
-							fi
-							if [[ "10de|layout" =~ "${vendor_id}" ]]; then
+							## define tips per object.
+							if [[ "10de|layout" =~ "${5}" ]]; then
 								#multi_sec=${5}
-								DEV='NVIDIA '$section
+								DEV='NVIDA '$section
 								o_tip=$(x_check_nv_doc "$option")
-								if [ $(echo $o_tip | wc -w) -le 6 ]; then
-									o_tip=$"$(
+								if [ $(echo $o_tip | wc -w) -le 4 ]; then
+									o_tip=$(
 										cat <<-TIP
-											${r}$DEV TIP not found, undocumented or obsolete option.${end}
+											${r}$<small>DEV TIP not found, undocumented or obsolete option.</small>${end}
 										TIP
-									)"
+									)
+									cat <<< "$(wc -l <<< $o_tip) lines" # TEST
 									if [[ "${5}" =~ "layout" ]]; then
 										DEV='XORG '$section
-										o_tip=$(x_check_man "xorg.conf" "$option" "$lines" "$key" '"')
+										o_tip=$(x_check_man "xorg.conf" "$option")
 									fi
 									if [[ "$section" =~ "Screen" ]]; then
 										DEV='NVIDIA '$section
-										o_tip=$(x_check_man "xorg.conf" "$option" "$lines" "$key" '')
+										o_tip=$(x_check_man "xorg.conf" "$option")
 									fi
 								fi
 							fi
-							if [[ "8086|1002|1022" =~ "${vendor_id}" ]]; then
+							if [[ "8086|1002|1022" =~ "${5}" ]]; then
 								if [ $opti_preset = 1 ]; then
-									if [[ "8086|1002|1022" =~ "${vendor_id}" ]]; then
+									if [[ "8086|1002|1022" =~ "${5}" ]]; then
 										DEV='OPTIMUS '$section
-										o_tip=$(x_check_man "modesetting" "$option" "$lines" "$key" '"')
+										o_tip=$(x_check_man "modesetting" "$option")
 									fi
 								else
 									if [[ "${5}" =~ "8086" ]]; then
 										DEV='INTEL '$section
-										o_tip=$(x_check_man "intel" "$option" "$lines" "$key" '"')
-									elif [[ "1002|1022" =~ "${vendor_id}" ]]; then
+										o_tip=$(x_check_man "intel" "$option")
+									elif [[ "1002|1022" =~ "${5}" ]]; then
 										DEV='AMD '$section
-										o_tip=$(x_check_man "amdgpu" "$option" "$lines" "$key" '"')
+										o_tip=$(x_check_man "amdgpu" "$option")
 									fi
 								fi
 								if [ $(wc -l <<< $o_tip) -le 1 ]; then
 									if [[ "$section" =~ "Screen" ]]; then
-										DEV='iGPU '$section
-										o_tip=$(x_check_man "xorg.conf" "$option" "$lines" "$key" '')
+										DEV='NVIDIA '$section
+										o_tip=$(x_check_man "xorg.conf" "$option")
 									fi
 								fi
 							fi
@@ -5531,7 +5592,8 @@ x_yad_tab(){ #
 # 		trap "${rem_tmp[*]}" EXIT
 }
 x_yad_block(){ #
-	docs=$nvi_docs/html/xconfigoptions.html
+	nv_doc=$zen_docs/nv-tips
+	x_doc=$zen_docs/x-tips
 	xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	unset device_options tab_names rem_tmp device_section_list
 	## create a temp dir to remove at the end of the porcess.
@@ -6814,7 +6876,7 @@ while [ $# -gt 0 ]
 		o) [ $UID = 0 ] && win_open_switch;;
 		a) read_about;;
 		u) if [ $UID = 0 ]; then legacy_drv=0; check_for_newer; check_update; fi ;;
-# 		t) blacklist_and_grub_set ;;
+# 		t) make_tip_docs ;;
 	esac
 exit 0
 done
