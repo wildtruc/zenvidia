@@ -118,15 +118,6 @@ drm_modset=0
 ## Known issues
 Driver version 525.78.01 give error at nvidia-drm driver load with nvidia.drm-modeset=1 (fix in v2.0.5).
 
-Script doesn't provide Nvidia driver uninstall process. May be later, after a long long rest.
-
-I once meet a dkms issue on dkms install that didn't install ... nothing. State "unknown". It was hopfully fixed in v2.0.5.
-If you meet this, quick solution is to use **Update driver only (dkms)** in **Update drivers and modules**.
-
-Other method is to restart the PC and use in console TTY mode the rescue command line `zenvida rebuild [driver version]` after disabled in grub starting menu the value `nvidia-drm.modeset=1` to `0`.
-
-See Changelog.txt for other changes and discovered issues.
-
 ---------------------------------------------------------------------------------------------------
 ## Main Features
  - Driver Install.

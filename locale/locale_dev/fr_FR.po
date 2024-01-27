@@ -742,15 +742,15 @@ msgid "Set Optimus Render config auto"
 msgstr "Définir automatiquement la configuration du rendu Optimus"
 
 #: .. from initial pot line
-msgid "Cleaning old ${j}$(old_version)${end} source and DKMS tree"
+msgid "Cleaning old ${j}$(old_lib_version)${end} source and DKMS tree"
 msgstr "Nettoyyage de l'ancienne arborescence source et DKMS de ${j}$(old_version)${end}"
 
 #: .. from initial pot line
-msgid "# Cleaning $rep_clean $(old_version) DKMS tree"
+msgid "# Cleaning $rep_clean $(old_lib_version) DKMS tree"
 msgstr "# Nettoyage de $rep_clean $(old_version) DKMS"
 
 #: .. from initial pot line
-msgid "# Cleaning $rep_clean $(old_version) source tree"
+msgid "# Cleaning $rep_clean $(old_lib_version) source tree"
 msgstr "# Nettoyage de $rep_clean $(old_version) SOURCE"
 
 #: .. from initial pot line
@@ -786,8 +786,8 @@ msgid "\\t\\t\\t\\t${gB} lib fix\\t${end}> ${y}${fixed_lib_log[@]}${end}.\\n"
 msgstr "\\t\\t\\t\\t${gB} réparées\\t${end}> ${y}${fixed_lib_log[@]}${end}.\\n"
 
 #: .. from initial pot line
-msgid ", links updated $elf_x"
-msgstr ", liens mis à jour $elf_x"
+msgid " links updated $elf_x"
+msgstr " liens mis à jour $elf_x"
 
 #: .. from initial pot line **
 msgid "\\t\\t\\t\\t${gB} link fix\\t${end}> ${y}${fixed_lib_log[@]}${end}.\\n"

@@ -325,6 +325,9 @@
  - ABOUT text file missing, don't ask why it was.
  - ABOUT entry added to zen_task_menu.
  - Add missing tip for Prime Display in 'Configuration and tools'.
+* 2024-01-27 - v2.3.38
+ - xorg config GUI tips were to long to extract and could be problematic for old computers or weak CPU. As a workaround, an x-tips and nv-tips file has been added and stored in the zenvidia doc directory created during driver installation. This considerably reduces execution time.
+ - Corrected nutshells in fr_FR translation.
 
 
 
