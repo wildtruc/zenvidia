@@ -30,8 +30,8 @@ install: check_su
 	install -Dm644 -t $(INSTALL_DIR)/ *.conf
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(INSTALL_DIR)/ OLD-README.md
-	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
-	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
+	install -Dm644 -o $(C_USER) -g $(C_USER) -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
+	install -Dm644 -o $(C_USER) -g $(C_USER) -t $(USER_DIR)/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
 	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t $(PREFIX)/share/pixmaps/ pixmaps/*.png
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
@@ -41,6 +41,8 @@ install: check_su
 	## post install
 	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)
+	## restart polkit service
+	systemctl restart polkit.service
 
 uninstall: check_su
 	rm -Rf $(INSTALL_DIR) $(CONF_DIR)

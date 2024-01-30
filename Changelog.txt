@@ -328,7 +328,9 @@
 * 2024-01-27 - v2.3.38
  - xorg config GUI tips were to long to extract and could be problematic for old computers or weak CPU. As a workaround, an x-tips and nv-tips file has been added and stored in the zenvidia doc directory created during driver installation. This considerably reduces execution time.
  - Corrected nutshells in fr_FR translation.
-
-
-
+* 2024-01-30 - v2.3.39
+ - In v2.3.27, exit code 252 (action on window close button) was set as same as code exit 1, it was a fast change whitch finaly doesn't match to a good behaviour. Now action on window kill all zenvidia and exit.
+ - Makefile wasn't set user rights on autostart desktop files. Done.
+ - Add nvidia version detection at first use in case of driver already installed by other mean, then writen in version.txt.
+ - Corrected nutshells in translation.pot and fr_FR translation.
 
