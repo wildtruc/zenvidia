@@ -19,37 +19,31 @@
 
 # set -x
 # set -vxEmb
+# set -evxEmb
 # set -xmb
 
-### ZENVIDIA VARS
+## Fixed Variables (could not be change)
+## ### ZENVIDIA VARS ###
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/zenvidia					# default Zenvidia directory
-conf_dir=$nvdir
-script_conf=$nvdir/script.conf				# Zenvidia conf file
-nv_root=/opt										# Nvidia main driver directory
-nvtmp="$nvdir/temp"								# extract temp directory
-buildtmp="$nvdir/build"							# build temp directory
-nvlog="$nvdir/log"								# logs directory
-nvdl="$nvdir/release"							# downlaod driver backups directory
-nvbackup="$nvdir/backups"
-nvcompat="$nvdir/compats"
-### NVIDIA-INSTALLER VARS ###					# nvidia-installer option: install temp dir
-nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
-zen_docs="$install_dir/share/doc/zenvidia"
-docs="--documentation-prefix=$install_dir"
-profile_path="$install_dir/share/nvidia"
-profile="--application-profile-path=$profile_path"
+conf_dir=$nvdir									# default config files directory
+script_conf=$nvdir/script.conf				# default Zenvidia main config files directory
+## pictures
 icon_stock=$install_dir/share/pixmaps
 img_zen_desktop=$icon_stock/zen-emblem.png
 img_zen_bar=zen-emblem
-# need by xterm to install it self for first and fresh launch.
-xt_hold=0
-xt_delay=4
+## ### NVIDIA-INSTALLER VARS ###					# nvidia-installer option: install temp dir
+profile_path="$install_dir/share/nvidia"
+profile="--application-profile-path=$profile_path"
+nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
+zen_docs="$install_dir/share/doc/zenvidia"
+docs="--documentation-prefix=$install_dir"
 
 export PATH=$PATH:$install_dir/bin
 TEXTDOMAIN=zenvidia
 TEXTDOMAINDIR=$nvdir/locale
 export TEXTDOMAIN TEXTDOMAINDIR
+
 ## terminal fonts colors.
 red='\e[1;31m'
 yel='\e[0;33m'
@@ -1894,6 +1888,7 @@ make_tip_docs(){
 		## cleean lists.
 		unset list_opts key line
 	done
+	IFS=$ifs
 }
 ## ### AFTER INSTALL ###
 clean_old_version(){ # post install part. #
@@ -5693,11 +5688,14 @@ edit_xorg_full_text(){
 	cancel_lbl="Exit!zen-back"; ok_lbl="Save!zen-ok"
 	w_formatted=1; w_wrap=1; w_width='620'; w_height='400'; all_btn=1; colors=1
 	edit_xorg=$(win_yad_text "$log_brief" "--editable")
+	_exit=$?
+	[ $_exit -eq 252 ] && exit 0
 	IFS=$ifs
 	if [ $( wc -l <<< $edit_xorg) -gt 1 ]; then
 		echo -e "$edit_xorg\n" > $xorg_cfg
 	fi
-	[ $task_opt -gt 0 ] && exit 0 || edit_xorg_conf
+# 	[ $task_opt -gt 0 ] && exit 0 || edit_xorg_conf
+	edit_xorg_conf
 }
 edit_xorg_conf(){ #
 	## check and alerte of xorg.conf presence.
@@ -5741,7 +5739,6 @@ edit_xorg_conf(){ #
  	_exit=$?
  	[ $_exit -eq 252 ] && exit 0
  	IFS=$ifs
-# 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then
 	if [ $_exit -eq 1 ]; then
 # 		IFS=$ifs
 		if [ $from_install = 0 ]; then
@@ -6750,6 +6747,15 @@ start_cmd(){
 
 ## BASICS CHECK FUNCTIONS ###
 default_sets(){
+	## unfixed variables (could be change by user choice) ## ATTENTION not implemented yed.
+	nv_root=${nv_root:-/opt}						# Nvidia main driver directory
+	nvlog=${nvlog:-${nvdir}/log}					# default logs directory
+	nvdl=${nvdl:-${nvdir}/release}				# default download driver backups directory
+	nvbackup=${nvbackup:-${nvdir}/backups}		# default backups archive directory
+	nvcompat=${nvcompat:-${nvdir}/compats}		# default compat data files directory
+	## building temporary files (could be change by user choice)
+	nvtmp=${nvtmp:-${nvdir}/temp}					# default extract temp directory
+	buildtmp=${buildtmp:-${nvdir}/build}		# default build temp directory
 	## default main set value.
 	distro_warn=${distro_warn:-0}
 	use_drm=${use_drm:-1}
@@ -6793,7 +6799,7 @@ default_zen_dir(){
 	fi
 	[ "$(stat -c %U $(user_CF_DIR))" = "$(def_user)" ] || chown -R $(def_user):$(def_user) $(user_CF_DIR)
 }
-# ### SCRIPT INTRO ###
+## ### SCRIPT INTRO ###
 ## main configuration file check and read mandatory vars config first.
 if [ ! -s $script_conf ]; then #
 	if [ $d_yad ]; then
