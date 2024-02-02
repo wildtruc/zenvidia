@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=zen_notify -n
+Exec=zen_notify -z
 X-GNOME-Autostart-enabled=true
 NoDisplay=false
 Hidden=false
@@ -8,5 +8,5 @@ Name[fr_FR]=Zenvidia notify
 Name=Zenvidia notify
 Comment[fr_FR]=Outil de Notification Zenvidia pour les mises à jour.
 Comment=Zenvidia notification tool for updates.
-X-GNOME-Autostart-Delay=30
-X-MATE-Autostart-Delay=30
+X-GNOME-Autostart-Delay=15
+X-MATE-Autostart-Delay=15
