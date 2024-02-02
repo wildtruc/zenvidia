@@ -336,5 +336,8 @@
 * 2024-01-31 - v2.3.40
  - Missing IFS system variable restoration at the end of make_tip_docs whitch making end installation display tabs incorrect and corrupt driver installation (libs install replay only) and force to rebuild drivers. Fixed.
  - Reordering of start-up variables with in mind to optionally adjusting driver installation parameters (not implemented).
+* 2024-02-02 - v2.3.41
+ - After research about Kdm for driver reload at session restart it appears (I didn't know) that KDM is simply SDDM. So, session restart is technicly usable. Session restart messages is changed accordingly.
+ - Fixed a few nutshells.
 
 

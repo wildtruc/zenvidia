@@ -21,6 +21,9 @@ Base language is english.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
+v2.3.41 NOTES :
+ - KDM add to drivers reload at session restart. It appears it is simply ... SDDM (yes, I didn't know).
+
 v2.3.33 NOTES :
  - distro configuration file are removed from three.
  - If user needs to add some very specifics distro variables, system conf directory (ex. grub), he just have to edit distro.conf file as appropriate. All same for some specifics dependencies for his distro. Afterward relaunch Zenvidia to make the script install those dependencies (help comments inside config file).
