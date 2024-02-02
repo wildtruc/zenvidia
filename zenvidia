@@ -18,7 +18,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
-# set -vxEmb
+ set -vxEmb
 # set -evxEmb
 # set -xmb
 
@@ -38,6 +38,8 @@ profile="--application-profile-path=$profile_path"
 nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
 zen_docs="$install_dir/share/doc/zenvidia"
 docs="--documentation-prefix=$install_dir"
+## systemctl data directory
+systemd_dir=/usr/lib/systemd/system
 
 export PATH=$PATH:$install_dir/bin
 TEXTDOMAIN=zenvidia
@@ -957,8 +959,8 @@ restore_broken_install(){
 	fi
 }
 ## configuration ###
-dm_service_patch(){ # # ALERT fix to remove nvidia-modules-reload
-	systemd_dir=/usr/lib/systemd/system
+dm_service_patch(){ #
+# 	systemd_dir=/usr/lib/systemd/system
 	ExecStartPre=$(command -v zenvidia-modules-reload)
 	ExecStart=$(command -v $(dm_serv))
 # 	#### ALERT previous fix to remove in next release.
@@ -968,19 +970,20 @@ dm_service_patch(){ # # ALERT fix to remove nvidia-modules-reload
 # 	test -f /usr/local/bin/nvidia-modules-reload && rm -f /usr/local/bin/nvidia-modules-reload
 # 	####
 	## make dm.service backup
-	[ -e $systemd_dir/$(dm_serv).service.bak ] || cp -f $systemd_dir/$(dm_serv).service $systemd_dir/$(dm_serv).service.bak
-	if [ $(grep -c "$ExecStartPre" $systemd_dir/$(dm_serv).service) -eq 0 ]; then
-		if [ $from_install = 1 ]; then
-			echo $"# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
-			sleep 2
-			n=$[ $n+2 ]; echo "$n"
-		else
-			echo $"# Patching $(dm_serv).service for driver load at session restart (experimental)."
+	if [ -e $systemd_dir/$(dm_serv).service ]; then
+		[ -e $systemd_dir/$(dm_serv).service.bak ] || cp -f $systemd_dir/$(dm_serv).service $systemd_dir/$(dm_serv).service.bak
+		if [ $(grep -c "$ExecStartPre" $systemd_dir/$(dm_serv).service) -eq 0 ]; then
+			if [ $from_install = 1 ]; then
+				echo $"# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
+				sleep 2
+				n=$[ $n+2 ]; echo "$n"
+			else
+				echo $"# Patching $(dm_serv).service for driver load at session restart (experimental)."
+			fi
+			sed -Ei 's|^(ExecStart='${ExecStart}')$|ExecStartPre='${ExecStartPre}'\n\1|' $systemd_dir/$(dm_serv).service
 		fi
-		sed -Ei 's|^(ExecStart='${ExecStart}')$|ExecStartPre='${ExecStartPre}'\n\1|' $systemd_dir/$(dm_serv).service
-# 		$d_sys daemon-reload
+		$d_sys daemon-reload
 	fi
-	$d_sys daemon-reload
 }
 restart_dm_warn(){ #
 	# can be potentially add : gdm, sddm, lightdm, lxdm (gdm,kdm,xdm,lightdm,lxdm,slim,sddm)
@@ -991,8 +994,7 @@ restart_dm_warn(){ #
 		This is a experimental feature allowing drivers to be relaod
 		at simple display manager restart.
 
-		Potentialy usable : gdm, sddm, lightdm, lxdm.
-		Unsable : kdm
+		Potentialy usable : gdm, sddm, lightdm, lxdm and kdm (sddm).
 		(lighdm only tested at this point).
 
 		Be aware that system driver management will be complete only
@@ -1132,7 +1134,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				sed -Ei "s/^(use_open)=.*$/\1=$use_open/" $basic_conf
 			} & eval lpid=$!; y_pulse; } | win_yad_progress
 			warn_log_title=$"${j}${bf}$drv_on switch${end}${end}"
-			restart_dm_warn
+			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
 		fi
 		trap "${rem_tmp[*]}" EXIT
 	else
@@ -1198,7 +1200,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				$x_sleep
 			} & eval lpid=$! ; y_pulse; } | win_yad_progress
 			warn_log_title=$"${j}${bf}Nvidia Driver refresh.${end}${end}"
-			restart_dm_warn
+			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
 		fi
 	fi
 }
@@ -3312,7 +3314,7 @@ INSTALL_DRIVER(){ #
 		. $tmp_b
 		trap "${rem_tmp[*]}" EXIT
 		if [ $pass -eq 0 ]; then
-			if [ $(lsmod | grep -c "nouveau") = 0 ]; then
+			if [ $(lsmod | grep -c "nouveau") = 0 ]&&[ -e $systemd_dir/$(dm_serv).service ]; then
 				warn_log_title=$"${j}<big>$(new_version) installed ended</big>${end}"
 				restart_dm_warn
 			else
@@ -6265,7 +6267,7 @@ menu_update(){ #
 	fi
 	}
 }
-menu_modif(){ # BUG IFS
+menu_modif(){ #
 	check_version
 	if [ $hlp_txt = 1 ]; then
 		hlp_tip=$"$(cat <<-HLP
