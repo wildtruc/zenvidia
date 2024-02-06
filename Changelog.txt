@@ -329,7 +329,7 @@
  - xorg config GUI tips were to long to extract and could be problematic for old computers or weak CPU. As a workaround, an x-tips and nv-tips file has been added and stored in the zenvidia doc directory created during driver installation. This considerably reduces execution time.
  - Corrected nutshells in fr_FR translation.
 * 2024-01-30 - v2.3.39
- - In 2.3.27, exit code 252 (action on window close button) was set as same as code exit 1, it was a fast change whitch finaly doesn't match to a good behaviour. Now action on window kill all zenvidia and exit.
+ - In version 2.3.27, exit code 252 (action on window close button) was set as same as code exit 1, it was a fast change whitch finaly doesn't match to a good behaviour. Now action on window kill all zenvidia and exit.
  - Makefile wasn't set user rights on autostart desktop files. Done.
  - Add nvidia version detection at first use in case of driver already installed by other mean, then writen in version.txt.
  - Corrected nutshells in translation.pot and fr_FR translation.
@@ -339,5 +339,7 @@
 * 2024-02-02 - v2.3.41
  - After research about Kdm for driver reload at session restart it appears (I didn't know) that KDM is simply SDDM. So, session restart is technicly usable. Session restart messages is changed accordingly.
  - Fixed a few nutshells.
+* 2024-02-06 - v2.3.42
+ - In some rare and unknown reason, it look like nvidia-installer or dkms remove installed nvidia kernel modules. Circonstances are really not clear and it cannot be told if it came from nvidia-installer or dkms. So, to prevent the issue, script will restore newly compiled modules previously backed up if they are missing after libraries installation. Issue is under watch and marked unknown.
 
 
