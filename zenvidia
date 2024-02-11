@@ -18,7 +18,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
-# set -vxEmb
+ set -vxEmb
 # set -evxEmb
 # set -xmb
 
@@ -773,7 +773,7 @@ nv_new(){
 	fi
 	return
 }
-mod_installed(){ # used by nv_build_dkms only
+mod_installed(){ # used by nv_build_dkms only # BUG reviser
  	test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\|ko.xz]" -print0 | xargs -0 modinfo -F version
  	return
 }
@@ -903,18 +903,15 @@ back_old_driver(){
 	mkdir -p $nvtmp/old_kernel/
 	[ $(ls -1  $kernel_path | grep -c "nvidia") -gt 0 ] && cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
 }
-restore_old_driver(){ #
-	if [ -f $nvtmp/old_kernel/nvidia.ko* ]; then
-		echo -e $"#${j} ** Restoring previous drivers to $kernel_path ** ${end}"
-		cp -f $nvtmp/old_kernel/nvidia* $kernel_path/
-		progress_msg(){ echo -e $"# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
-		m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
-	fi
-}
 restore__driver(){ #
 	if [ -f $nvtmp/${1}/nvidia.ko* ]; then
-		echo -e $"#${j} ** Restoring drivers to $kernel_path ** ${end}"
-		cp -f $nvtmp/${1}/nvidia* $kernel_path/
+		echo -e $"#${j} ** Restoring drivers to $kernel_path ** ${end}"; sleep 1
+		cp -f $nvtmp/${1}/nvidia* $kernel_path
+		if [ -d $nvtmp/${1}/dkms/$compiled_driver/ ]; then
+			echo -e $"#${j} ** Restoring drivers dkms folders to dkms path ** ${end}"; sleep 1
+			mkdir -p /var/lib/dkms/$compiled_driver
+			cp -rf $nvtmp/${1}/dkms/$compiled_driver/* /var/lib/dkms/$compiled_driver/
+		fi
 		progress_msg(){ echo -e $"# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
 		m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 	fi
@@ -945,16 +942,29 @@ restore_pcks_cmd(){ #
 	progress "tar --$zip_opt $verbose -xf $nvbackup/nvidia.$res_version.tar.$zip_type -C /"
 	ldconfig
 }
-restore_broken_install(){
-	# restore previous libs from backuyp if exist, then restore saved drivers.
+restore_broken_install(){ #
+	# restore previous libs from backup if exist, then restore saved drivers.
 	if [ $nv_old -gt 0 ]; then
-		echo -e $"# ${j}<b>Restoring $(old_version) libraries installation</b>${end}"
-		res_version=$(old_version)
-		res_suffix=$(ls -1 $nvbackup/$res_version.tar.* | sed -n 's/.*\.//;1p')
-		restore_pcks_cmd
-		modinfo -F version nvidia -k $KERNEL | grep "$(old_version)" &>/dev/null
-		if [ $? -eq 1 ]||[ "$(modinfo -F version nvidia -k $KERNEL)" != "$(old_version)" ]; then
-			restore__driver "old_kernel"
+		if [ -f $nvbackup/$res_version.tar.* ]; then
+			echo -e $"# ${j}<b>Restoring $(old_version) libraries installation</b>${end}"
+			res_version=$(old_version)
+			res_suffix=$(ls -1 $nvbackup/$res_version.tar.* | sed -n 's/.*\.//;1p')
+			restore_pcks_cmd
+			modinfo -F version nvidia -k $KERNEL | grep "$(old_version)" &>/dev/null
+			if [ $? -eq 1 ]||[ "$(modinfo -F version nvidia -k $KERNEL)" != "$(old_version)" ]; then
+				restore__driver "old_kernel"
+			fi
+		else
+			warn_log=$"$( cat <<-WRN
+				${j}NO BACKUP ARCHIVE FOUND${end}
+				There is no backup to restore.
+				${y}You need to reinstall completly the driver package.${end}
+			WRN
+			)"
+			qst=1; ok_lbl=$"Got it"'!zen-ok' ; cancel_lbl=$"Abort"'!zen-close' ; kill_yad=0
+			win_yad_warns
+			[ $_exit = 1 ] && base_menu
+			[ $_exit = 252 ] && exit 0
 		fi
 	fi
 }
@@ -2518,6 +2528,7 @@ build_dkms(){ #
 				modinfo -F version nvidia -k $KERNEL | grep "$(new_version)" &>/dev/null
 				pass=$?
 				echo -e "pass=$pass" >> $tmp_b
+				echo -e "compiled_driver=$_dkms" >> $tmp_b
 				echo -e $"#${v} Checking ${j}$(new_version)${end} ${y}$_dkms${end} modules in $kernel_path ${end}"
 				echo $(($n+$o)); o=$(($n+$o)) #6
 				if [ $pass = 0 ]; then
@@ -2832,7 +2843,11 @@ nv_cmd_install_driver(){ #
 						echo $"# ${r}${j}($n%)${end} DKMS compilation ERROR !!${end}"; sleep 2
 					else
 						## prevent from mysterious bugs by backup newly compiled modules.
+						## backup newly compiled drivers in case of libs install error.
+# 						mkdir -p $nvtmp/new_kernel
+						mkdir -p $nvtmp/new_kernel/dkms/$compiled_driver
 						cp -f $kernel_path/nvidia* $nvtmp/new_kernel/
+						cp -rf /var/lib/dkms/$compiled_driver/* $nvtmp/new_kernel/dkms/$compiled_driver/
 					fi
 				fi
 			fi
@@ -2851,8 +2866,8 @@ nv_cmd_install_driver(){ #
 				[ -f $probe_open ] && rm -f $probe_open
 			fi
 			## backup newly compiled drivers in case of libs install error.
-			mkdir -p $nvtmp/new_kernel/
-			cp -f $kernel_path/nvidia* $nvtmp/new_kernel/
+# 			mkdir -p $nvtmp/new_kernel/
+# 			cp -f $kernel_path/nvidia* $nvtmp/new_kernel/
 			## service file patch.
 			dm_service_patch
 		else
@@ -2874,7 +2889,7 @@ nv_cmd_update(){ # ALERT REVISER #
 	## check for open modules presence.
 	test $ask_open_build -eq 1 && nv_open_modules_set
 	if [ $use_dkms = 1 ]; then
-		[ $from_install = 1 ] && nv_cmd_dkms_conf
+	[ $from_install = 1 ] && nv_cmd_dkms_conf # BUG useless ?
 		nv_build_dkms
 		. $tmp_b
 		make_log=$make_log_file
@@ -2959,7 +2974,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE #
 	{ timeout=120 ;{
 	echo -e $"# ${j}<b>libraries installation in background</b>${end}"
 	echo -e $"# ${y}Please wait...${end}"
-	${install_bin} -s -z $no_net --no-x-check --no-distro-scripts $allow_install \
+	${install_bin} -s -z $no_net --no-x-check --no-distro-scripts \
 	$nocheck --no-kernel-module --skip-module-unload --no-recursion \
 	$gl_headers $add_glvnd $force_glvnd --install-compat32-libs \
 	--compat32-prefix=$nv_root/nvidia.$(new_version) $compat32 $compat64 \
@@ -2986,6 +3001,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE #
 ## ### MAIN SECTION ###
 ## LOGS ###
 install_log_messages(){ #
+	lib_overwrite=0
 	## install log messages
 	if [ $pass -eq 0 ]; then
 		if [ "$timeout" != '' ];then
@@ -3034,6 +3050,11 @@ install_log_messages(){ #
 			${r}<b>MODULES ALREADY BUILD</b>${end}
 			$(new_version) is the same as in kernel path.
 
+			<b>IMPORTANTE NOTE</b> : Nvidia-installer remove all DKMS tree dedicated
+			to the current used modules. this is an Nvidia issue.
+			Use libraries install replay with caution.
+			<small>dkms driver three will be saved ans restore if needed.</small>
+
 			If you decide to continue anyway, consider the section
 			${j}update driver${end} > ${j}update driver only${end} or
 			restoring $(new_version) backup, if you experience any issue.
@@ -3048,6 +3069,7 @@ install_log_messages(){ #
 			kill $YAD_PID
 			exit 1
 		fi
+		lib_overwrite=1
 	fi
 	## realtime report messages.
 	if [ $is_RT -eq 1 ]; then
@@ -3182,8 +3204,13 @@ INSTALL_DRIVER(){ #
 		echo $"# ${v}${j}($n%)${end} - Package compil and install${end}"; sleep 1
 
 		## backup previous drivers in case of compilation or libs install failure.
-		mkdir -p $nvtmp/old_kernel/
-		cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
+		if [ -f $kernel_path/nvidia.ko* ]; then
+			modinfo -F license nvidia -k $KERNEL| grep -i "nvidia" &>/dev/null
+			[ $? = 0 ] && compiled_driver=nvidia || compiled_driver=open-nvidia
+			mkdir -p $nvtmp/old_kernel/dkms/$compiled_driver
+			cp -f $kernel_path/nvidia* $nvtmp/old_kernel/
+			cp -rf /var/lib/dkms/$compiled_driver/* $nvtmp/old_kernel/dkms/$compiled_driver/
+		fi
 		## ALERT REVERSE PROCESS FOR 396 SERIE AND OLDER.
 		if [ $(chk_family) -gt 396 ]; then
 			process_type=1
@@ -3196,20 +3223,23 @@ INSTALL_DRIVER(){ #
 			# then install libs.
 			nv_cmd_install_libs
 			inst_mod_version=$(modinfo -F version nvidia -k $KERNEL)
-			## in case serie not yet manage by control prrocess,
-			## check inst_mod_version and act if necessary.
-			## NOTE : Will be removed with complete driver serie idenfication.
-			modinfo -F version nvidia -k $KERNEL| grep "$(new_version)" &>/dev/null
-			if [ $? -eq 1 ]; then
-				if [ -f $nvtmp/new_kernel/nvidia.ko* ]; then
-					echo $"# ${y}${j}($n%)${end} - Nvidia-installer/DKMS(?) has deleted the installed modules !? O_o${end}"
-					restore__driver "new_kernel"
-					exec_mod_tool=0
-				else
-					echo $"# ${y}${j}($n%)${end} - Old Nvidia serie BUG - driver install lost.${end}"
-					restore__driver "old_kernel"
+			if [ $lib_overwrite = 1 ]; then
+				## Nvidia-installer, no matter what, remove dkms used driver three in case
+				## of a libraries reinstall only. sometime in conjonction with installed kernel modules.
+				modinfo -F version nvidia -k $KERNEL| grep "$(new_version)" &>/dev/null
+				if [ $? -eq 1 ]||[ ! -d /var/lib/dkms/$compiled_driver ]; then
+				echo $"# ${y}${j}($n%)${end} - Nvidia-installer has deleted the installed modules !? O_o${end}"; sleep 1
+					if [ -f $nvtmp/new_kernel/nvidia.ko* ]; then
+						back_drive=$"new compiled and dkms folder"
+						func_option=new_kernel
+						exec_mod_tool=0
+					else
+						back_drive=$"previous drivers and dkms folder"
+						func_option=old_kernel
+					fi
+					echo $"# ${y}${j}($n%)${end} - Restoring ${back_drive} from backup.${end}"; sleep 1
+					restore__driver "${func_option}"
 				fi
-				echo $"# ${y}${j}($n%)${end} - Restoring from backup.${end}"; sleep 1
 			fi
 			## link to sys.
 # 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia ## DOUBLONS
@@ -3229,8 +3259,9 @@ INSTALL_DRIVER(){ #
 # 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia ## DOUBLONS
 		fi
 		## control if libraries are properly installed
-		ls $nv_root/nvidia.$(new_version)/$master$ELF_64/* &>/dev/null
-		if [ $? -ne 0 ]||[ $(ls $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
+# 		ls $nv_root/nvidia.$(new_version)/$master$ELF_64/* &>/dev/null
+# 		if [ $? -ne 0 ]||[ $(ls $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
+		if [ $(ls -Ub1 $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
 			warn_log=$"${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
 			qst=0; kill_yad=1; warn_image='zen-warning'; cancel_lbl=$"Abort install"'!zen-close'; ok_lbl=''
 			win_yad_warns
