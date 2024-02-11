@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zenvidia-trans\n"
 "POT-Creation-Date: 2023-12-02 12:25+0200\n"
-"PO-Revision-Date: 2024-02-02 16:56+0100\n"
+"PO-Revision-Date: 2024-02-11 16:05+0100\n"
 "Last-Translator: @PirateProd <wildtruc@noneltd.net>\n"
 "Language-Team: French Task force\n"
 "Language: fr_FR\n"
@@ -384,6 +384,26 @@ msgid "#${j} ** Restoring drivers to $kernel_path ** ${end}"
 msgstr "#${j} ** Restaure les pilotes vers $kernel_path ** ${end}"
 
 #: .. from initial pot line
+msgid "#${j} ** Restoring drivers dkms folders to dkms path ** ${end}"
+msgstr "#${j} ** Restauration du répertoire des pilotes dkms vers l'arbre dkms ** ${end}"
+
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Nvidia-installer has deleted the installed modules !? O_o${end}"
+msgstr "# ${y}${j}($n%)${end} - Nvidia-installer a supprimé les modules installés !? O_o${end}"
+
+#: .. from initial pot line
+msgid "new compiled and dkms folder"
+msgstr "des pilotes nouvellement compilés et du répertoire dkms"
+
+#: .. from initial pot line
+msgid "previous drivers and dkms folder"
+msgstr "du pilote précédent et du répertoire dkms"
+
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Restoring ${back_drive} from backup.${end}"
+msgstr "# ${y}${j}($n%)${end} - Restauration ${back_drive} depuis la sauvegarde.${end}"
+
+#: .. from initial pot line
 msgid "# ${yel}Uncompressing $cmd_ver archive for $KERNEL${nc} :\\n"
 msgstr "# ${yel}Décompression de l'archive $cmd_ver pour $KERNEL${nc} :\\n"
 
@@ -398,6 +418,22 @@ msgstr "# ($m sec.) - Restauration depuis nvidia.$res_version.tar.$zip_type"
 #: .. from initial pot line
 msgid "# ${j}<b>Restoring $(old_version) libraries installation</b>${end}"
 msgstr "# ${j}<b>Restauration des anciennes librairies $(old_version)</b>${end}"
+
+#: .. from initial pot line
+msgid ""
+"$( cat <<-WRN\n"
+"${j}NO BACKUP ARCHIVE FOUND${end}\n"
+"There is no backup to restore.\n"
+"${y}You need to reinstall completly the driver package.${end}\n"
+"WRN\n"
+")"
+msgstr ""
+"$( cat <<-WRN\n"
+"${j}PAS DE ARCHIVE DE SAUVEGARDE TROUVÉE${end}\n"
+"Il n'y a pas de sauvegarde à restaurer.\n"
+"${y}Il y est nécessaire de réinstaller complétement le paquet du pilote.${end}\n"
+"WRN\n"
+")"
 
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
@@ -1273,6 +1309,11 @@ msgid ""
 "${r}<b>MODULES ALREADY BUILD</b>${end}\n"
 "$(new_version) is the same as in kernel path.\n"
 "\n"
+"<b>IMPORTANTE NOTE</b> : Nvidia-installer remove all DKMS tree dedicated\n"
+"to the current used modules. this is an Nvidia issue.\n"
+"Use libraries install replay with caution.\n"
+"<small>dkms driver three will be saved ans restore if needed.</small>\n"
+"\n"
 "If you decide to continue anyway, consider the section\n"
 "${j}update driver${end} > ${j}update driver only${end} or\n"
 "restoring $(new_version) backup, if you experience any issue.\n"
@@ -1284,6 +1325,11 @@ msgstr ""
 "$(cat <<-ERROR\n"
 "${r}<b>MODULES DÉJÀ CONSTRUIT</b>${end}\n"
 "$(new_version) est la même que celle du noyau.\n"
+"\n"
+"<b>NOTE IMPORTANTE</b> : Nvidia-installer supprime intégralement l'arbre DKMS\n"
+"dédié aux pilotes installés en usage, c'est un bogue Nvidia.\n"
+"Utilisez la ré-installation des librairies avec prudence.\n"
+"<small>l'arbre du pilote dkms sera sauvegardé et restauré si besoin.</small>\n"
 "\n"
 "Si vous décidez de continuer malgré tout, considérez la section\n"
 "${j}Mettre à jour les pilotes${end} > ${j}Mettre à jour les pilotes uniquement${end} ou\n"

@@ -226,6 +226,21 @@ msgstr ""
 msgid "#${j} ** Restoring drivers to $kernel_path ** ${end}"
 msgstr ""
 #: .. from initial pot line
+msgid "#${j} ** Restoring drivers dkms folders to dkms path ** ${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Nvidia-installer has deleted the installed modules !? O_o${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "new compiled and dkms folder"
+msgstr ""
+#: .. from initial pot line
+msgid "previous drivers and dkms folder"
+msgstr ""
+#: .. from initial pot line
+msgid "# ${y}${j}($n%)${end} - Restoring ${back_drive} from backup.${end}"
+msgstr ""
+#: .. from initial pot line
 msgid "# ${yel}Uncompressing $cmd_ver archive for $KERNEL${nc} :\\n"
 msgstr ""
 #: .. from initial pot line
@@ -236,6 +251,15 @@ msgid "# ($m sec.) - Restoring from nvidia.$res_version.tar.$zip_type"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${j}<b>Restoring $(old_version) libraries installation</b>${end}"
+msgstr ""
+#: .. from initial pot line
+msgid ""
+"$( cat <<-WRN\n"
+"${j}NO BACKUP ARCHIVE FOUND${end}\n"
+"There is no backup to restore.\n"
+"${y}You need to reinstall completly the driver package.${end}\n"
+"WRN\n"
+")"
 msgstr ""
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Patching $(dm_serv).service for driver load at session restart (experimental)${end}"
@@ -850,6 +874,11 @@ msgid ""
 "$(cat <<-ERROR\n"
 "${r}<b>MODULES ALREADY BUILD</b>${end}\n"
 "$(new_version) is the same as in kernel path.\n"
+"\n"
+"<b>IMPORTANTE NOTE</b> : Nvidia-installer remove all DKMS tree dedicated\n"
+"to the current used modules. this is an Nvidia issue.\n"
+"Use libraries install replay with caution.\n"
+"<small>dkms driver three will be saved ans restore if needed.</small>\n"
 "\n"
 "If you decide to continue anyway, consider the section\n"
 "${j}update driver${end} > ${j}update driver only${end} or\n"
