@@ -18,7 +18,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # set -x
- set -vxEmb
+# set -vxEmb
 # set -evxEmb
 # set -xmb
 
@@ -773,8 +773,8 @@ nv_new(){
 	fi
 	return
 }
-mod_installed(){ # used by nv_build_dkms only # BUG reviser
- 	test -d $kernel_path && find $kernel_path -name "nvidia.*[ko\|ko.xz]" -print0 | xargs -0 modinfo -F version
+mod_installed(){ # used by nv_build_dkms only # BUG reviser [ko\|ko.xz]
+ 	test -d $kernel_path && find $kernel_path -name "nvidia.ko*" -print0 | xargs -0 modinfo -F version
  	return
 }
 old_inst(){ # used by nv_build_dkms only
@@ -1087,7 +1087,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				else
 					license="Dual MIT/GPL"
 				fi
-				if [[ "$(modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "$license" ]]; then
+				if [[ "$(modinfo -F license $kernel_path/nvidia.ko*)" == "$license" ]]; then
 					echo -e $"# ${v}License is $license${end}"
 				else
 					echo -e $"# ${r}ERROR!${end}${y}: License is steal $license, reversing all.${end}"
@@ -1176,7 +1176,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				progress_msg(){ echo -e $"# ${ge}${sf} * Depmod $KERNEL modules ($m sec.)${end}${end}"; }
 				m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 				sleep 2
-				if [[ "$(modinfo -F license $kernel_path/nvidia.*[ko\|ko.xz])" == "NVIDIA" ]]; then
+				if [[ "$(modinfo -F license $kernel_path/nvidia.ko*)" == "NVIDIA" ]]; then
 					echo -e $"# ${v}License is back to NVIDIA${end}"
 				else
 					echo -e $"# ${r}ERROR!${end}${y}: License is still Dual MIT/GPL, abort.${end}"
@@ -2503,7 +2503,7 @@ build_dkms(){ #
 				echo $(($n+$o)); o=$(($n+$o)) #5
 				sleep 2
 				#echo -e "# build $_dkms"
-				if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.*[ko\|ko.xz] ]; then
+				if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.ko* ]; then
 					echo -e $"# ${y}* All Clear for $(new_version) $_dkms already build.${end}"
 					echo -e "exec_mod_tool=1" >> $tmp_b
 				else
@@ -3037,6 +3037,7 @@ install_log_messages(){ #
 			IFS=$ifs
 			[ $_exit = 0 ] && base_menu
 		fi
+		[ -d /var/lib/dkms/${compiled_driver}/$(new_version)/build ] && rm -rf /var/lib/dkms/${compiled_driver}/$(new_version)/build
 		[ $process_type = 0 ] && restore_broken_install
 		kill $YAD_PID
 		exit 1
@@ -3618,7 +3619,7 @@ upgrade_kernel(){ #
 	echo -e $"# Kernel update $KERNEL ..."
 	cd $nvdl/
 	nv_cmd_update
-	if [ $pass -gt 0 ]||[ ! -e $kernel_path/nvidia.*[ko\|ko.xz] ]; then
+	if [ $pass -gt 0 ]||[ ! -e $kernel_path/nvidia.ko* ]; then
 		warn_log=$"${j}INSTALL ABORT ABNORMALY, check $(echo "$logfile" | sed -n 's/^.*=//p')${end}."
 		qst=0; ok_lbl='' ; cancel_lbl=$"Got it"'!zen-back' ; kill_yad=0
 		win_yad_warns
@@ -6575,7 +6576,7 @@ rescue_cmdline(){
 	kernel_module_src=/usr/src/$module-$cmd_ver
 	cd $kernel_module_src; make -j12
 	## check again
-	vermagic=$(modinfo -F vermagic $kernel_module_src/nvidia.*[ko\|ko.xz]| awk '{print $1}')
+	vermagic=$(modinfo -F vermagic $kernel_module_src/nvidia.ko*| awk '{print $1}')
 	license=$(modinfo -F license nvidia -k $KERNEL)
 	if [ $vermagic ]; then
 		if [[ $vermagic == $KERNEL ]]; then
@@ -6732,7 +6733,7 @@ start_cmd(){
 				echo -e "Driver version backups :"
 				ls -1 $nvbackup | sed -En "s/^nvidia.([0-9]*.*).tar$zip_ex/ - \1/p"
 			fi
-			file -E $libmod/nvidia.*[ko\|ko.xz] &>/dev/null
+			file -E $libmod/nvidia.ko* &>/dev/null
 			if [ $? -eq 0 ]; then
 				echo -e "Installed driver version : $dkms_ins"
 				no_mod=0
@@ -6761,7 +6762,7 @@ start_cmd(){
 		## check dkms mods list.
 		dkms_mod=$($p_dkms status -m $module | grep -v "added"| cut -d, -f1)
 		dkms_ver=$(echo -e "$dkms_mod"| cut -d"/" -f2)
-		dkms_ins=$(modinfo -F version $libmod/nvidia.*[ko\|ko.xz])
+		dkms_ins=$(modinfo -F version $libmod/nvidia.ko*)
 		echec=0
 		if [[ $cmd_ver != '' ]]; then
 			case $cmd_opt in
