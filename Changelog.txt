@@ -343,5 +343,9 @@
  - In some rare and unknown reason, it look like nvidia-installer or dkms remove installed nvidia kernel modules. Circonstances are really not clear and it cannot be told if it came from nvidia-installer or dkms. So, to prevent the issue, script will restore newly compiled modules previously backed up if they are missing after libraries installation. Issue is under watch and marked unknown.
 * 2024-02-11 - v2.3.43
  - Nvidia-installer, no matter what, remove dkms used driver three in case of a libraries reinstall only, sometime in conjonction with installed kernel modules. Because there is cases where libraies reinstall could be necessary (files corruption, accidental lost, etc). at this point, a temporary saved folder will be created to restore dkms three and kernel modules if lost. Note, this is a Nvidia issue, not a dkms one.
+* 2024-02-16 - v2.3.44
+ - Minor : Modules suffix detection in some function was faulty, replaced by a more simple on.
+ - Tracking errors is difficult without feeback. Please consider to send a few.
+
 
 

@@ -22,10 +22,10 @@ Base language is english.
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
 v2.3.43 NOTES :
- - Nvidia-installer, no matter what, remove dkms used driver three in case of a libraries reinstall only, sometime in conjonction with installed kernel modules. There is to way to prevent this :
+ - Nvidia-installer, no matter what, remove dkms used driver three in case of a libraries reinstall only, sometime in conjonction with installed kernel modules. There is too way to prevent this :
  1) Not allowed libraries reinstall.
  2) back up and restore dkms and modules.
- The first proposal is the simpliest, but there is cases where libraies reinstall could be necessary (files corruption, accidental lost, etc). at this point, it is chosen to priviledge the solution 2, event if this is a bit loud. Fix will be ask to Nvidia's developper and will be hopefully heard.
+ The first proposal is the simpliest, but there is cases where libraries reinstall could be necessary (files corruption, accidental lost, etc). at this point, it is chosen to privilege the solution 2, event if this is a bit loud. Fix will be ask to Nvidia's developper and will be hopefully heard.
 
 v2.3.41 NOTES :
  - KDM add to drivers reload at session restart. It appears it is simply ... SDDM (yes, I didn't know).
