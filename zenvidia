@@ -310,6 +310,7 @@ zen_colors(){
 	mf='<span font="'$(($size0+2))'">'
 	sf='<span font="'$(($size0-2))'">'
 	# Bold
+	B='<span weight="bold">'
 	vB='<span color="'$main'" weight="bold" font="'$size0'" font_family="'$font0'">'
 	yB='<span color="'$log_msg'" weight="bold" font_family="'$font0'">'
 	jB='<span color="'$log_warn'" weight="bold" font_family="'$font0'">'
@@ -1934,7 +1935,8 @@ clean_old_version(){ # post install part. #
 }
 POST_INSTALL(){ #
 	echo "# "
-	echo $"# ${v}${j}($n%)${end} - ${mf}Post install routines${end}${end}"; sleep 2
+# 	echo $"# ${v}${j}($n%)${end} - ${mf}Post install routines${end}${end}"; sleep 2
+	echo $"# ${v}${j}($n%)${end} - <u>Post install routines</u>${end}"; sleep 2
 	echo $"# ${v}${j}($n%)${end} - Create XORG config file for Nvidia device${end}"; sleep 2
 	xorg_conf # 8
 	n=$[ $n+2 ]; echo "$n" # 8
@@ -2051,6 +2053,7 @@ POST_INSTALL(){ #
 			n=$[ $n+2 ]; echo "$n"
 			fix_profiles_rc
 		fi
+
 		## create new x-docs and nv-docs for xorg configuration GUI tips. TASK
 		echo $"# ${j}($n%)${end}${ge}${sf} * Create Nvidia and Xorg helper tips for Xorg GUI${end}${end}"; sleep 2
 		n=$[ $n+2 ]; echo "$n"
@@ -2496,7 +2499,7 @@ build_dkms(){ #
 		}
 		build_seq(){
 			if [ "$(old_version)" ]; then
-				if [  $(nv_old) -gt $(nv_new) ]; then force='--force'; fi
+				if [ $(nv_old) -gt $(nv_new) ]; then force='--force'; fi
 			fi
 			build_seq_1(){
 				echo -e $"#${v} Building ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules for $KERNEL${end}"
@@ -2594,7 +2597,8 @@ build_dkms(){ #
 		test ${#drv_src[*]} -gt 1 && n=$[ $n / ${#drv_src[*]} ]
 		#set -x
 		for _dkms in ${drv_src[@]} ; do
-			echo -e $"#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
+# 			echo -e $"#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
+			echo -e $"#${v} <u>Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules </u>${end}"
 			echo $(($n+$o)); o=$(($n+$o)) #1
 			echo "# "
 			echo -e $"#${y} ---  $_dkms script start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) #2
@@ -2782,7 +2786,8 @@ build_source(){ #
 	for module in ${drv_src[@]} ; do
 		pushd /usr/src/$module-$(new_version)
 		sleep 1
-		echo -e $"# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"; echo $(($n+$o)); o=$(($n+$o))
+# 		echo -e $"# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"; echo $(($n+$o)); o=$(($n+$o))
+		echo -e $"# ${v} <u>Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:</u>${end}"; echo $(($n+$o)); o=$(($n+$o))
 		sleep 2
 		if [ -d /usr/src/$module-$(new_version) ]; then
 			echo -e $"#${y} ---  $module compilation start  --- ${end}"; echo $(($n+$o)); o=$(($n+$o)) # 2 20
@@ -2966,7 +2971,8 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE #
 	lib_logfile=$nvlog/libinstall-$(new_version).log
 	## install default libs with nvidia-installer
 	echo "# "
-	echo $"# ${v}${j}($n%)${end} - ${mf}Install Nvidia default libraries${end}${end}"; sleep 1
+# 	echo $"# ${v}${j}($n%)${end} - ${mf}Install Nvidia default libraries${end}${end}"; sleep 1
+	echo $"# ${v}${j}($n%)${end} - <u>Install Nvidia default libraries</u>${end}"; sleep 1
 
 	y_text=$"Installing ${j}$(new_version)${end} libraries to $nv_root/nvidia.$(new_version)"
 	pulse=1; log=1; hold=1 ; hide_txt=1 ; [ $hold = 1 ] && win_log_options
@@ -3152,7 +3158,8 @@ INSTALL_DRIVER(){ #
 		YAD_PID=$(pgrep -n yad)
 		n=1
 		## check compatiblity files before executng anything. (4)
-		echo $"# ${v}${j}($n%)${end} - ${mf}Compat check and package extraction${end}${end}"; sleep 2
+# 		echo $"# ${v}${j}($n%)${end} - ${mf}Compat check and package extraction${end}${end}"; sleep 2
+		echo $"# ${v}${j}($n%)${end} - <u>Compat check and package extraction</u>${end}"; sleep 2
 		n=$[ $n+1 ] ; echo "$n"
 		echo $"# ${v}${j}($n%)${end} - Checking compatibility data files${end}"; sleep 1
 		# DRV is used by hardware_compat function.
@@ -3197,7 +3204,8 @@ INSTALL_DRIVER(){ #
 		## temp value to n
 		p=$n
 		echo "# "
-		echo $"# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"; sleep 1
+# 		echo $"# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"; sleep 1
+		echo $"# ${v}${j}($n%)${end} - <u>Starting install</u>${end}"; sleep 1
 		#
 # 		pushd $nv_root
 		cd $nv_root
@@ -3275,11 +3283,12 @@ INSTALL_DRIVER(){ #
 		fi
 		n=$[ $n+5 ]; echo "$n" # 4
 		if [ $pass -eq 0 ]; then
-			echo $"# ${v}${j}($n%)${end} - ${mf}Linking ${y}$(new_version)${end} directory to the system.${end}${end}"; sleep 1
+# 			echo $"# ${v}${j}($n%)${end} - ${mf}Linking ${y}$(new_version)${end} directory to the system.${end}${end}"; sleep 1
+			echo $"# ${v}${j}($n%)${end} - <u>Linking ${y}$(new_version)${end} directory to the system.</u>${end}"; sleep 1
 			## link to sys.
 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia
 			n=$[ $n+1 ]; echo "$n"
-			echo $"# ${v}${j}($n%)${end} - ${mf}Re-create ${j}$KERNEL${end} initramfs.${end}${end}"; sleep 1
+			echo $"# ${v}${j}($n%)${end} - <u>Re-create ${j}$KERNEL${end} initramfs.</u>${end}"; sleep 1
 			## rebuild initramfs or modprobe reload.
 			if [ $exec_mod_tool = 1 ]; then
 				echo -e $"# Exec $KERNEL modules reload "; sleep 2
@@ -3325,10 +3334,15 @@ INSTALL_DRIVER(){ #
 			if [ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_64| grep -c ".*") -gt 40 ]|| \
 			[ $(ls -1 $nv_root/nvidia.$(new_version)/$master$ELF_32| grep -c ".*") -gt 40 ]; then
 				rep_msg=$"$( cat <<-RPT
-				${v}<b><big><i>Congratulations !</i></big></b>${end}
-				<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.
+				${v}<small>${j}<b>Nvidia-settings user profile warning</b>${end}
+				${y}Default nvidia profile rc file${end} is always overwritten during driver isntallation/update. Keep in mind that the ${y}user profile rc file${end} is the
+				only one you can edit as you wish for your applications. <u>Do not never ever edit ~/.nv/nvidia-application-profiles-rc !</u>
+				<i>(user profile rc location : ~/.nv/nvidia-application-profiles-rc.d/user-application-profiles-rc)</i></small>
 
-				${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
+				<b><big><i>Congratulations !</i></big></b>
+				<b>${j}$(new_version)${end} driver is now succefully installed</b>.
+
+				You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting
 				your computer with the new installed drivers.
 				You may also do it later if you like, but it's not really recommanded.
 
@@ -5769,6 +5783,8 @@ edit_xorg_conf(){ #
 
 		HLP
 		)"
+	else
+		hlp_tip=''
 	fi
 	xorg_cfg=/etc/X11/xorg.conf.nvidia
 	unset list_array
