@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zenvidia-trans\n"
 "POT-Creation-Date: 2023-12-02 12:25+0200\n"
-"PO-Revision-Date: 2024-02-11 16:05+0100\n"
+"PO-Revision-Date: 2024-02-22 16:01+0100\n"
 "Last-Translator: @PirateProd <wildtruc@noneltd.net>\n"
 "Language-Team: French Task force\n"
 "Language: fr_FR\n"
@@ -788,8 +788,8 @@ msgid "# Cleaning $rep_clean $(old_lib_version) source tree"
 msgstr "# Nettoyage de $rep_clean $(old_version) SOURCE"
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Post install routines${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Routines de Post installation${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Post install routines</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Routines de Post installation</u>${end}"
 
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Create XORG config file for Nvidia device${end}"
@@ -1044,8 +1044,8 @@ msgid "# ${ge}* $(new_version) ${r}FAILURE log found${end}.${end}"
 msgstr "# ${ge}* ${r}Journal d'ÉCHEC $(new_version) trouvé${end}.${end}"
 
 #: .. from initial pot line
-msgid "#${v}${mf} Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules ${end}${end}"
-msgstr "#${v}${mf} Compilation des modules DKMS ${j}$(new_version)${end} ${y}$_dkms${end}${end}${end}"
+msgid "#${v} <u>Compiling ${j}$(new_version)${end} ${y}$_dkms${end} DKMS modules </u>${end}"
+msgstr "#${v} <u>Compilation des modules DKMS ${j}$(new_version)${end} ${y}$_dkms${end}</u>${end}"
 
 #: .. from initial pot line
 msgid "#${y} ---  $_dkms script start  --- ${end}"
@@ -1140,8 +1140,8 @@ msgid " - ${r}with ERRORs${end}"
 msgstr " - ${r}avec ERREURs${end}"
 
 #: .. from initial pot line
-msgid "# ${v}${mf} Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:${end}${end}"
-msgstr "# ${v}${mf} Compile ${j}$(new_version)${end} depuis la source des modules ${y}$module${end}:${end}${end}"
+msgid "# ${v} <u>Compiling ${j}$(new_version)${end} from ${y}$module${end} modules source:</u>${end}"
+msgstr "# ${v} <u>Compile ${j}$(new_version)${end} depuis la source des modules ${y}$module${end}:</u>${end}"
 
 #: .. from initial pot line
 msgid "#${y} ---  $module compilation start  --- ${end}"
@@ -1204,8 +1204,8 @@ msgid "# ERROR ! $KERNEL modules do not match $(new_version). Abort."
 msgstr "# ERREUR ! Les modules $KERNEL ne correspondent pas à $(new_version). Abandon."
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Install Nvidia default libraries${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Installation des librairies Nvidia par default${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Install Nvidia default libraries</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Installation des librairies Nvidia par default</u>${end}"
 
 #: .. from initial pot line
 msgid "Installing ${j}$(new_version)${end} libraries to $nv_root/nvidia.$(new_version)"
@@ -1389,8 +1389,8 @@ msgid "Installing ${j}$(new_version)${end} driver version for ${y}$dev_name${end
 msgstr "Installation du pilote version ${j}$(new_version)${end} pour ${y}$dev_name${end}."
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Compat check and package extraction${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Vérification de la compatibilté et extraction des paquets${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Compat check and package extraction</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Vérification de la compatibilté et extraction des paquets</u>${end}"
 
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Checking compatibility data files${end}"
@@ -1421,8 +1421,8 @@ msgid "${vB}Previous version:\\t\\t${end}${jB} warning\\t${end}> ${y}no director
 msgstr "${vB}Version précédente:\\t\\t${end}${jB} alerte\\t${end}> ${y}pas de dossier à archiver.${end}\\n"
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Démarrage de l'installation${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Starting install</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Démarrage de l'installation</u>${end}"
 
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Package compil and install${end}"
@@ -1437,12 +1437,12 @@ msgid "# ${y}${j}($n%)${end} - Restoringg from backup.${end}"
 msgstr "# ${y}${j}($n%)${end} - Restauration depuis une sauvegarde.${end}"
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Linking ${y}$(new_version)${end} directory to the system.${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Liaison du dossier ${y}$(new_version)${end} au système.${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Linking ${y}$(new_version)${end} directory to the system.</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Liaison du dossier ${y}$(new_version)${end} au système.</u>${end}"
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - ${mf}Re-create ${j}$KERNEL${end} initramfs.${end}${end}"
-msgstr "# ${v}${j}($n%)${end} - ${mf}Recréation de l'initramfs de ${j}$KERNEL${end}.${end}${end}"
+msgid "# ${v}${j}($n%)${end} - <u>Re-create ${j}$KERNEL${end} initramfs.</u>${end}"
+msgstr "# ${v}${j}($n%)${end} - <u>Recréation de l'initramfs de ${j}$KERNEL${end}.</u>${end}"
 
 #: .. from initial pot line
 msgid "# ${ge}${sf} * ($m%) Exec $KERNEL modules init/reload${end}${end}"
@@ -1471,10 +1471,15 @@ msgstr "# ${v}${j}($n%)${end} - nv-update-$(new_version) déjà présent dans le
 #: .. from initial pot line
 msgid ""
 "$(cat <<-RPT\n"
-"${v}<b><big><i>Congratulations !</i></big></b>${end}\n"
-"<b>${j}$(new_version)${end} ${v}driver is now succefully installed${end}</b>.\n"
+"${v}<small>${j}<b>Nvidia-settings user profile warning</b>${end}\n"
+"${y}Default nvidia profile rc file${end} is always overwritten during driver isntallation/update. Keep in mind that the ${y}user profile rc file${end} is the\n"
+"only one you can edit as you wish for your applications. <u>Do not never ever edit ~/.nv/nvidia-application-profiles-rc !</u>\n"
+"<i>(user profile rc location : ~/.nv/nvidia-application-profiles-rc.d/user-application-profiles-rc)</i></small>\n"
 "\n"
-"${v}You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting\n"
+"<b><big><i>Congratulations !</i></big></b>\n"
+"<b>${j}$(new_version)${end} driver is now succefully installed</b>.\n"
+"\n"
+"You may now configure your ${j}xorg.conf${end} file to fit with your current default display before restarting\n"
 "your computer with the new installed drivers.\n"
 "You may also do it later if you like, but it's not really recommanded.\n"
 "\n"
@@ -1483,10 +1488,15 @@ msgid ""
 ")"
 msgstr ""
 "$(cat <<-RPT\n"
-"${v}<b><big><i>Féliciations !</i></big></b>${end}\n"
-"<b>${v}Le pilote ${j}$(new_version)${end} est maintenant installé avec succès${end}</b>.\n"
+"${v}<small>${j}<b>Alerte profile utilisateur Nvidia-settings</b>${end}\n"
+"Le ${y}fichier profile rc par défaut${end} est toujours écrasé durant l'installation/mise à jour. Gardez en tête que le ${y}fichier profile rc utilisateur${end} est le seul\n"
+"qui peut être édité selon vos souhaits pour les applications. <u>N'éditez jamais ~/.nv/nvidia-application-profiles-rc !</u>\n"
+"<i>(localisation du profile rc utilisateur : ~/.nv/nvidia-application-profiles-rc.d/user-application-profiles-rc)</i></small>\n"
 "\n"
-"${v}Vous devriez maintenant configurer votre fichier ${j}xorg.conf${end} pour correspondre avec votre affichage courant\n"
+"<b><big><i>Féliciations !</i></big></b>\n"
+"<b>Le pilote ${j}$(new_version)${end} est maintenant installé avec succès</b>.\n"
+"\n"
+"Vous devriez maintenant configurer votre fichier ${j}xorg.conf${end} pour correspondre avec votre affichage courant\n"
 "avant de redémarrer votre ordinateur avec les nouveaux pilotes installés.\n"
 "Vous pouvez aussi le faire plus tard, mais ce n'est pas réellement recommandé.\n"
 "\n"
@@ -2921,8 +2931,8 @@ msgid "Execute Xorg auto config"
 msgstr "Exécuter l'auto configuration Xorg"
 
 #: .. from initial pot line
-msgid "${j}${bf}Edit Xorg Config File${end}${end}\\nEdit or manage Xorg config and options.\\n$hlp_tip"
-msgstr "${j}${bf}Éditer la configuration Xorg${end}${end}\\nÉditer ou gérer les options Xorg.\\n$hlp_tip"
+msgid "${j}${bf}Edit Xorg Config File${end}${end}\\n${v}Edit or manage Xorg config and options.${end}\\n$hlp_tip"
+msgstr "${j}${bf}Éditer la configuration Xorg${end}${end}\\n${v}Éditer ou gérer les options Xorg.${end}\\n$hlp_tip"
 
 #: .. from initial pot line
 msgid ""

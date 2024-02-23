@@ -346,6 +346,8 @@
 * 2024-02-16 - v2.3.44
  - Minor : Modules suffix detection in some function was faulty, replaced by a more simple one.
  - Tracking errors is difficult without feeback. Please consider to send a few.
-
+* 2024-02-23 - v2.3.45
+ - Added a warning message for user Nvidia profiles rc. This is not tell in Nvidia docs that the user profile is the only one to edited, defaut is too often change by updates and user will loose his personnal change.
+ - Fixed messages nutshells and some other minor fixes.
 
 
