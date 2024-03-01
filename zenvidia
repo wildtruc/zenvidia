@@ -25,23 +25,25 @@
 ## Fixed Variables (could not be change)
 ## ### ZENVIDIA VARS ###
 install_dir=/usr/local							# default tools & system install directory
-nvdir=$install_dir/zenvidia					# default Zenvidia directory
+nvdir=$install_dir/share/zenvidia			# default Zenvidia directory
 conf_dir=$nvdir									# default config files directory
-script_conf=$nvdir/script.conf				# default Zenvidia main config files directory
-## pictures
-icon_stock=$install_dir/share/pixmaps
-img_zen_desktop=$icon_stock/zen-emblem.png
-img_zen_bar=zen-emblem
-## ### NVIDIA-INSTALLER VARS ###					# nvidia-installer option: install temp dir
+script_conf=$nvdir/script.conf				# default Zenvidia main config files
+
+## ### NVIDIA-INSTALLER VARS ###
 profile_path="$install_dir/share/nvidia"
 profile="--application-profile-path=$profile_path"
 nvi_docs="$install_dir/share/doc/NVIDIA_GLX-1.0"
 zen_docs="$install_dir/share/doc/zenvidia"
 docs="--documentation-prefix=$install_dir"
-## systemctl data directory
+## systemctl data path.
 systemd_dir=/usr/lib/systemd/system
+## defaut window manager image
+img_zen_desktop=$install_dir/share/pixmaps/zen-emblem.png
+zen_version=$(cat $nvdir/zen_version)
+WIN_TITLE="Zenvidia - ${zen_version}"
 
 export PATH=$PATH:$install_dir/bin
+## set translation path.
 TEXTDOMAIN=zenvidia
 TEXTDOMAINDIR=$nvdir/locale
 export TEXTDOMAIN TEXTDOMAINDIR
@@ -67,9 +69,10 @@ trap "IFS=$ifs" EXIT
 ## find first default values for distro and desktop user
 ## define who is facing the screen.
 def_user(){
-	user=$(who | grep "(:[0-9])" | awk '{print $1}')
-	test "$user" && echo $user || echo $USER
-	return
+	loginctl list-users --no-legend | grep "active"|awk '{print $2}'
+}
+def_user_id(){
+	loginctl list-users --no-legend | grep "active"|awk '{print $1}'
 }
 su_cmd(){
 # 	case $plug_version in
@@ -258,7 +261,7 @@ set_su(){
 	MSG
 	)"
 	su_opts="sudo -u!sudo -l -U!sudo -i!su -l"
-	set_args=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --image="zen-warning" \
+	set_args=$($d_yad --width=400 --borders=15 --title="$WIN_TITLE" --window-icon="$img_zen_desktop" --image="zen-warning" \
 	--center --text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!zen-ok:0' --field="":LBL '' \
 	--separator=';' \
 	--field=$"<b>Distribution name</b>"!$"Enter the name of the distribution if not displayed.":LABEL 'distro' \
@@ -345,14 +348,10 @@ PCI_ID(){
 			dev_id+=("$(printf "$dev_slot"| awk -F '["]?[.*| ]?"' '/1/ {print $4}' | sed -En "s/^.* \[(.*)\]$/\1/p")")
 			dev_name+=( "${dev[$i]}" ); install_dev="${dev[$i]}"
 		else
-			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic") # dev+=("Intel Graphic",i915)
-			[ "${vnd_id[$i]}" = "1002" ] && dev+=("AMD Radeon") # dev+=("AMD Graphic",flglx)
-			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Embed") # dev+=("AMD Graphic",radeon)
+			[ "${vnd_id[$i]}" = "8086" ] && dev+=("Intel Graphic") # d_name="${dev[$i]}" dev+=("Intel Graphic",i915)
+			[ "${vnd_id[$i]}" = "1002" ] && dev+=("AMD Radeon") # d_name="${dev[$i]}" dev+=("AMD Graphic",flglx)
+			[ "${vnd_id[$i]}" = "1022" ] && dev+=("AMD Embed") # d_name="${dev[$i]}" dev+=("AMD Graphic",radeon)
 			dev_name+=( "modesetting" )
-# 			[ "${vnd_id[$i]}" = "8086" ] && { dev+=("Intel Graphic"); d_name="${dev[$i]}";} # dev+=("Intel Graphic",modesettings)
-# 			[ "${vnd_id[$i]}" = "1002" ] && { dev+=("AMD Radeon"); d_name="${dev[$i]}" ;} # dev+=("AMD Graphic",flglx)
-# 			[ "${vnd_id[$i]}" = "1022" ] && { dev+=("AMD Embed"); d_name="${dev[$i]}" ;} # dev+=("AMD Graphic",radeon)
-# 			dev_name+=( "modesetting" )
 			((optimus++))
 		fi
 		slot+=("$(printf "$dev_slot"| awk '{print $1}')")
@@ -361,8 +360,6 @@ PCI_ID(){
 	done
 	[ $optimus -gt 0 ] && opti_preset=1
 	IFS=$ifs
-# 	dev_nb=${#dev_n[*]} # test control
-# 	pci_dev_nb=${dev_n[*]} # TASK to remove
 	if [ $i -gt 1 ]; then
 		if ! [[ "${vnd_id[*]}" =~ "10de" ]]; then
 			scan_alert="\n\nNvidia device was not scanned.\nRun again with root privilege and rescan pci bus."
@@ -374,7 +371,6 @@ PCI_ID(){
 dep_exec_check(){
 	## clean depencies list if any.
 	unset deplist
-	#p_xterm=$(command -v xterm) || deplist+=("xterm")
 	## multi distro system binaries compatibilities.
 	d_sys=$(command -v systemctl)
 	d_probe=$(command -v modprobe)
@@ -395,6 +391,22 @@ dep_exec_check(){
 	d_nv_settings=$(command -v nvidia-settings)
 	d_nv_persistenced=$(command -v nvidia-persistenced)
 	d_nv_probe=$(command -v nvidia-modprobe)
+# 	# debian : linux linux-headers /usr/src/kernel-headers-$(uname -r)
+# 	# arch : linux linux-headers /lib/modules/$(uname -r)build
+#    # mageia, mandriva : kernel-desktop-devel-latest /usr/src/linux-$(uname -r)
+# 	# rpm base : kernel-devel kernel-headers /usr/src/linux-$(uname -r)
+# 	# rh : kernel-devel kernel-headers /usr/src/kernels/linux-$(uname -r)
+# 	if [ $resolve_dep = 0 ]; then
+# 		case $(distro_version) in
+# 			arch|manjaro) deplist+=("kernel-headers") ;;
+# 			rhel|fedora|centos) deplist+=("kernel-headers"); deplist+=("kernel-devel");;
+# 			mageia|mandriva) deplist+=("kernel-desktop-devel-latest");; # deplist+=("kernel-desktop-devel");;
+# 			ubuntu|mint|debian) deplist+=("kernel-headers"); deplist+=("kernel-devel-$(uname -r)");;
+# # 			*) ;;
+# 		esac
+# 	fi
+}
+dep_lib_check(){
 	# debian : linux linux-headers /usr/src/kernel-headers-$(uname -r)
 	# arch : linux linux-headers /lib/modules/$(uname -r)build
    # mageia, mandriva : kernel-desktop-devel-latest /usr/src/linux-$(uname -r)
@@ -412,7 +424,6 @@ dep_exec_check(){
 }
 dep_control(){
 	unset dep_text
-# 	plug_version=$(distro_version)
 	if [ -x $(pkg_installer) ]; then
 		p_xterm=$(command -v xterm) || (
 		echo -e $"${red}XTERM missing, installing ...${nc}"; $(pkg_install_cmd) xterm;
@@ -1079,8 +1090,8 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				else
 					## NOTE : in case of a fresh kernel update, only the predifined type is compile and install by dkms
 					## and thus, var/lib/dkms module dir doesn't exist. It is there need to recompile the all stuff
-					tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-					rem_tmp+=("rm -f $tmp_b")
+					tmp_b=$(mktemp $zen_tmp_dir/zn_vars.XXX)
+# 					rem_tmp+=("rm -f $tmp_b")
 					nv_build_dkms
 				fi
 				if [[ $drv_on == "nvidia" ]]; then
@@ -1147,7 +1158,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 			warn_log_title=$"${j}${bf}$drv_on switch${end}${end}"
 			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
 		fi
-		trap "${rem_tmp[*]}" EXIT
+# 		trap "${rem_tmp[*]}" EXIT
 	else
 		if [ $open_drv -ne $old_open_drv ]; then
 			confirm_msg=$"$( cat <<-MSG
@@ -1492,7 +1503,7 @@ prime_setup_window(){ #
 		INFO
 	)"
 	#--image="dialog-warning" \
-	select_render_sets=$($d_yad --width=400 --borders=15 --title="Zenvidia" --window-icon="$img_zen_desktop" --wrap --center \
+	select_render_sets=$($d_yad --width=400 --borders=15 --title="$WIN_TITLE" --window-icon="$img_zen_desktop" --wrap --center \
 	--text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!gtk-ok:0' --separator=';' \
 	--field="":LBL '' \
 	--field=$"Select the default NVIDIA dGPU behaviour"!$"Select in the list.":CB "${applicable_list[*]}NONE" \
@@ -1520,7 +1531,7 @@ xorg_conf(){
 # Is opti_preset set ?
 # If opti_preset is set, ask if user wants to config prime and warn about modesetting TearFree option is not available
 # until version 21.2 of Xorg. 20.14 here.
-	[ -f $x_tmp ] || { x_tmp=$(mktemp --tmpdir zn_xorg.XXXX); rem_tmp+=("rm -f $x_tmp") ;}
+	[ -f $x_tmp ] || { x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX);} #rem_tmp+=("rm -f $x_tmp") ;}
 
 ## creation order :
 ## 	sec_files		x 1
@@ -1815,7 +1826,7 @@ ${tab}  \1\n${tab}${tab}\{\n${tab}${tab} \"key\": \2\n${tab}${tab} \"value\": \3
 	create_profiles
 }
 make_tip_docs(){
-	x_tip_tmp=$(mktemp --tmpdir tip_xorg.XXXX); rem_tmp+=("rm -f $x_tip_tmp") #; trap "rm -f $x_tip_tmp" EXIT
+	x_tip_tmp=$(mktemp $zen_tmp_dir/tip_xorg.XXXX) #; rem_tmp+=("rm -f $x_tip_tmp") #; trap "rm -f $x_tip_tmp" EXIT
 	src_doc=$nvi_docs/html/xconfigoptions.html
 	x_doc=$zen_docs/x-tips
 	nv_doc=$zen_docs/nv-tips
@@ -2881,8 +2892,8 @@ nv_cmd_install_driver(){ #
 }
 nv_cmd_update(){ # ALERT REVISER #
 	driver_logfile=$nvlog/$(new_version)-$KERNEL.log
-	tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-	rem_tmp+=("rm -f $tmp_b")
+	tmp_b=$(mktemp $zen_tmp_dir/zn_vars.XXX)
+# 	rem_tmp+=("rm -f $tmp_b")
 	## check for for patch in new version.
 	rt_options
 	nv_build_options
@@ -3091,7 +3102,7 @@ install_log_messages(){ #
 install_report_log(){ #
 	#echo -e "${j}${bf}Install Report${end}${end}${v}:\n $(cat <<< ${report_log[*]})${end}\n$rep_msg" >/home/mike/Devel/zen_log_splash.txt
 	## display final message depends of exit status.
-	$d_yad --title="Zenvidia" --window-icon=$img_zen_desktop --width=500 --borders=20 --center \
+	$d_yad --title="$WIN_TITLE" --window-icon=$img_zen_desktop --width=500 --borders=20 --center \
 	--text=$"${j}${bf}Install Report${end}${end}${v}\n\n $(cat <<< ${report_log[*]})${end}\n$rep_msg" \
 	--button=$"edit later"'!zen-undo:1' --button=$"edit now"'!zen-warning:0'
 	log_exit=$?
@@ -3143,11 +3154,9 @@ INSTALL_DRIVER(){ #
 	if [ $_exit = 1 ]; then base_menu; fi
 	# child process doesn't send back install check result, it need to be
 	# set in a temp file.
-	tmp_b=$(mktemp --tmpdir zn_vars.XXXX)
+	tmp_b=$(mktemp $zen_tmp_dir/zn_vars.XXXX)
 	# set a second temp file for old-version backup when new modules installed
-	tmp_old=$(mktemp --tmpdir zn_vars.XXXX)
-	rem_tmp+=("rm -f $tmp_b")
-	rem_tmp+=("rm -f $tmp_old")
+	tmp_old=$(mktemp $zen_tmp_dir/zn_vars.XXXX)
 	# then push version var in second temp to be used as old-version var during installation.
 	echo "$(modinfo -F version nvidia -k $KERNEL)" > $tmp_old
 	if [[ -s $run_pkg ]] ; then
@@ -3158,7 +3167,6 @@ INSTALL_DRIVER(){ #
 		YAD_PID=$(pgrep -n yad)
 		n=1
 		## check compatiblity files before executng anything. (4)
-# 		echo $"# ${v}${j}($n%)${end} - ${mf}Compat check and package extraction${end}${end}"; sleep 2
 		echo $"# ${v}${j}($n%)${end} - <u>Compat check and package extraction</u>${end}"; sleep 2
 		n=$[ $n+1 ] ; echo "$n"
 		echo $"# ${v}${j}($n%)${end} - Checking compatibility data files${end}"; sleep 1
@@ -3192,7 +3200,6 @@ INSTALL_DRIVER(){ #
 				pulse=1; log=0; hold=0 ; hide_txt=0
 				{ timeout=30; {
 				backup_old_version; } & eval lpid=$!; y_pulse; } | win_yad_progress
-# 				backup_old_version
 				report_log+=($"${vB}Previous version:\t\t${end}${gB} success\t${end}> ${y}$bak_version normal backup process${end}\n")
 				log=1
 			fi
@@ -3204,10 +3211,8 @@ INSTALL_DRIVER(){ #
 		## temp value to n
 		p=$n
 		echo "# "
-# 		echo $"# ${v}${j}($n%)${end} - ${mf}Starting install${end}${end}"; sleep 1
 		echo $"# ${v}${j}($n%)${end} - <u>Starting install</u>${end}"; sleep 1
-		#
-# 		pushd $nv_root
+
 		cd $nv_root
 		# nv_cmd processes (install without X crash )
 		echo $"# ${v}${j}($n%)${end} - Package compil and install${end}"; sleep 1
@@ -3250,8 +3255,6 @@ INSTALL_DRIVER(){ #
 					restore__driver "${func_option}"
 				fi
 			fi
-			## link to sys.
-# 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia ## DOUBLONS
 		else
 			process_type=0
 			# Older serie remove any driver installed no matter what.
@@ -3264,12 +3267,8 @@ INSTALL_DRIVER(){ #
 			install_log_messages
 			echo "$n"
 			inst_mod_version=$(modinfo -F version nvidia -k $KERNEL)
-			## link to sys.
-# 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia ## DOUBLONS
 		fi
 		## control if libraries are properly installed
-# 		ls $nv_root/nvidia.$(new_version)/$master$ELF_64/* &>/dev/null
-# 		if [ $? -ne 0 ]||[ $(ls $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
 		if [ $(ls -Ub1 $nv_root/nvidia.$(new_version)/$master$ELF_64 | wc -l) -lt 40 ]; then
 			warn_log=$"${v}${r}LIBS INSTALL CONTROL RETURN ERRORS.${end}.\nCheck $lib_logfile for more details.${end}"
 			qst=0; kill_yad=1; warn_image='zen-warning'; cancel_lbl=$"Abort install"'!zen-close'; ok_lbl=''
@@ -3283,7 +3282,6 @@ INSTALL_DRIVER(){ #
 		fi
 		n=$[ $n+5 ]; echo "$n" # 4
 		if [ $pass -eq 0 ]; then
-# 			echo $"# ${v}${j}($n%)${end} - ${mf}Linking ${y}$(new_version)${end} directory to the system.${end}${end}"; sleep 1
 			echo $"# ${v}${j}($n%)${end} - <u>Linking ${y}$(new_version)${end} directory to the system.</u>${end}"; sleep 1
 			## link to sys.
 			ln -sfr -T $nv_root/nvidia.$(new_version) $nv_root/nvidia
@@ -3324,8 +3322,7 @@ INSTALL_DRIVER(){ #
 		fi
 		n=$[ $n+2 ]; echo "$n" # 7
 		# create xorg temp here to take care of further needs in process.
-		x_tmp=$(mktemp --tmpdir zn_xorg.XXXX)
-		rem_tmp+=("rm -f $x_tmp")
+		x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX)
 		POST_INSTALL
 		echo "99"; sleep 2
 		echo "100"
@@ -3367,7 +3364,6 @@ INSTALL_DRIVER(){ #
 		fi
 		} | win_yad_progress
 		. $tmp_b
-		trap "${rem_tmp[*]}" EXIT
 		if [ $pass -eq 0 ]; then
 			if [ $(lsmod | grep -c "nouveau") = 0 ]&&[ -e $systemd_dir/$(dm_serv).service ]; then
 				warn_log_title=$"${j}<big>$(new_version) installed ended</big>${end}"
@@ -3387,6 +3383,7 @@ INSTALL_DRIVER(){ #
 				win_yad_warns
 			fi
 		fi
+		from_install=0
 		base_menu
 	else
 		error_log=$"$(
@@ -3416,9 +3413,9 @@ INSTALL_DRIVER(){ #
 				</html>
 			TXT
 			)"
-		( echo $HTML ) | $d_yad --html --width=420 --height=240 --title="Zenvidia" --window-icon=$img_zen_desktop \
+		( echo $HTML ) | $d_yad --html --width=420 --height=240 --title="$WIN_TITLE" --window-icon=$img_zen_desktop \
 		--image=zen-error --splash --borders=20 --text="${v}$error_log${end}" --button=$"Back to main"'!zen-close:0'
-		trap "${rem_tmp[*]}" EXIT
+		from_install=0
 		base_menu
 	fi
 }
@@ -3452,9 +3449,9 @@ extract_build(){ #
 ## temporary download/install directory
 tmp_dir(){
 	if [ $rem_extract = 1 ]; then
-		nvtmp=$(mktemp -d --tmpdir nv_extract.XXXX)
-		rem_tmp+=("rm -Rf $nvtmp")
-		[ $from_install = 1 ] || trap "${rem_tmp[*]}" EXIT
+		nvtmp=$(mktemp -d $zen_tmp_dir/nv_extract.XXXX)
+# 		rem_tmp+=("rm -Rf $nvtmp")
+# 		[ $from_install = 1 ] || trap "${rem_tmp[*]}" EXIT
 		mkdir -p $nvtmp/build
 		buildtmp=$nvtmp/build
 	else
@@ -3470,9 +3467,10 @@ tar_count(){
 	m=$(($m+1))
 }
 progress(){
-	test $tmp_c || {
-	tmp_c=$(mktemp --tmpdir zn_count.XXX)
-	rem_tmp+=("rm -f $tmp_c") ; }
+	test $tmp_c || tmp_c=$(mktemp $zen_tmp_dir/zn_count.XXX)
+# 	test $tmp_c || {
+# 	tmp_c=$(mktemp --tmpdir $zen_tmp_dir/zn_count.XXX)
+# 	rem_tmp+=("rm -f $tmp_c") ; }
 	local exitval=0
 	local pid progresspid
 	if [[ $1 ]]; then
@@ -3641,7 +3639,7 @@ upgrade_kernel(){ #
 	new_version=$(version)
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	if [ -e $nvlog/install.log ]; then cp -f $nvlog/install.log $nvlog/update-$KERNEL.log; fi
-	trap "${rem_tmp[*]}" EXIT
+# 	trap "${rem_tmp[*]}" EXIT
 	base_menu
 }
 
@@ -3844,8 +3842,8 @@ check_update(){ #
 	unset DIFF_list LOCAL_DRV
 	LAST_IN=$(version)
 	LAST_BETA=$(tac $(rem_drv_list) | sed -n 1p)
-	upt_comp_tmp=$(mktemp --tmpdir zn_vars.XXXX )
-	rem_tmp+=("rm -f $upt_comp_tmp")
+	upt_comp_tmp=$(mktemp $zen_tmp_dir/zn_vars.XXXX )
+# 	rem_tmp+=("rm -f $upt_comp_tmp")
 	## COMPATIBILTY SECTION
 	# first chack if alpha = beta or not.
 	if [[ $LAST_DRV == $LAST_BETA ]] ; then
@@ -4071,7 +4069,7 @@ win_update(){ #
 	MSG
 	)"
 	# Don't use yad window function for this.
-	sel_cmd=$($d_yad --width=300 $w_height --window-icon=$img_zen_desktop --title="Zenvidia" --center \
+	sel_cmd=$($d_yad --width=300 $w_height --window-icon=$img_zen_desktop --title="$WIN_TITLE" --center \
 	$zen_opts --text="$w_text" $table_opts $list_opts )
 	_exit=$?
 	[ $_exit -eq 252 ] && exit 0
@@ -4086,7 +4084,8 @@ win_update(){ #
 			*) [ $task_opt -gt 0 ] && exit 0 || menu_install ;;
 		esac
 	else
-		trap "${rem_tmp[*]}" EXIT; [ $task_opt -gt 0 ] && exit 0 || base_menu
+# 		trap "${rem_tmp[*]}" EXIT; [ $task_opt -gt 0 ] && exit 0 || base_menu
+		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	fi
 }
 from_directory(){ #
@@ -4284,14 +4283,16 @@ download_only(){ #
 		[ $rem_extract = 0 ] || test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
 		mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
 		chmod 755 $nvdl/nv-update-$LAST_PACK
-		trap "${rem_tmp[*]}" EXIT; [ $task_opt -gt 0 ] && exit 0 || base_menu
+# 		trap "${rem_tmp[*]}" EXIT;
+		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	else
 		warn_log=$"${v}Driver download ${j}$LAST_PACK${end} failure.\n The package ${j}$run_pack${end} doesn't exist.${end}"
 		warn_image='zen-emblem'
 		qst=0; cancel_lbl=$"Close"'!zen-close' ; kill_yad=0
 		win_yad_warns
 
-		trap "${rem_tmp[*]}" EXIT ;[ $task_opt -gt 0 ] && exit 0 || base_menu
+# 		trap "${rem_tmp[*]}" EXIT ;
+		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	fi
 }
 last_pack(){ #
@@ -4389,7 +4390,8 @@ last_pack(){ #
 		)"
 		qst=0; ok_lbl='' ; cancel_lbl=$"Got it"'!gtk-close' ; kill_yad=0; warn_image='zen-error'
 		win_yad_warns
-		if [ $_exit -eq 1 ]; then trap "${rem_tmp[*]}" EXIT; [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
+# 		if [ $_exit -eq 1 ]; then trap "${rem_tmp[*]}" EXIT; [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
+		if [ $_exit -eq 1 ]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
 	fi
 }
 
@@ -4448,7 +4450,7 @@ win_yad_warns(){
 		ok_btn=''
 		[ "$warn_image" != '' ] || warn_image=zen-warning
 	fi
-	$d_yad --width=420 --height=100 --title="Zenvidia" --window-icon=$img_zen_desktop --center \
+	$d_yad --width=420 --height=100 --title="$WIN_TITLE" --window-icon=$img_zen_desktop --center \
 	--image=$warn_image --borders=20 --text="$warn_log" $cancel_btn $ok_btn $kill_parent
 	_exit=$?
 # 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
@@ -4483,7 +4485,7 @@ win_yad_progress(){
 	[ $pulse = 1 ] && do_pulse='--pulsate '$autoclose || do_pulse=$autoclose
 #  	[ $colors = 1 ] && w_colors='--fore='$fg_xterm' --background='$bg_xterm # ALERT on test
 	[ "$YAD_PID" ] || YAD_PID=0
-	$d_yad --width=600 --window-icon=$img_zen_desktop --title="Zenvidia" --center \
+	$d_yad --width=600 --window-icon=$img_zen_desktop --title="$WIN_TITLE" --center \
 	--progress $nobutton $do_pulse $hide_txt --borders=15 --text="${v}$y_text${end}" $do_log $w_colors
 	_exit=$?
 # 	if [[ $_exit -eq 1 || $_exit -eq 252 ]]; then _exit=1; else _exit=$_exit; fi
@@ -4528,7 +4530,7 @@ win_yad_list(){
 	[[ "$list_type" =~ "checklist" ]] && list_type=( --checklist --multiple $editable ) || list_type='--radiolist'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
 	# an additional option could be pass in $2.
-	$d_yad ${w_dim[*]} --window-icon=$img_zen_desktop --title="Zenvidia" --borders=15 --center \
+	$d_yad ${w_dim[*]} --window-icon=${img_zen_desktop} --title="$WIN_TITLE" --borders=15 --center \
 	--list ${list_type[*]} $no_head --separator=$sep $tip_col $sel_col $edit_col $l_tail \
 	${col_list[*]} --text="$l_text" ${buttons[*]} ${1} ${2}
 }
@@ -4572,7 +4574,7 @@ win_yad_text(){
 	[ $w_height -gt 0 ] && w_dim+=( '--height='$w_height )
 	[ $all_btn = 1 ] && buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" ) || buttons="--button=$cancel_lbl:1"
 	[ $colors = 1 ] && w_colors=( "--fore=$fg_xterm" "--back=$bg_xterm" )
-	$d_yad ${w_dim[*]} --title="Zenvidia" --window-icon=$img_zen_desktop --text="$log_txt" --borders=15 --center "${2}" \
+	$d_yad ${w_dim[*]} --title="$WIN_TITLE" --window-icon=$img_zen_desktop --text="$log_txt" --borders=15 --center "${2}" \
 	--text-info $w_formatted --margins=10 $w_wrap --hscroll-policy=never ${w_colors[*]} ${buttons[*]} \
 	<<< "$input_way"
 	_exit=$?
@@ -5113,8 +5115,8 @@ restore_pcks(){ #
 				if [ -d /usr/src/nvidia-$res_version ]||[ -d /usr/src/open-nvidia-$res_version ]; then
 					restore_msg=$" (restored)"
 					driver_logfile=$nvlog/$(version)-$KERNEL.log
-					tmp_b=$(mktemp --tmpdir zn_vars.XXX)
-					rem_tmp+=("rm -f $tmp_b")
+					tmp_b=$(mktemp $zen_tmp_dir/zn_vars.XXX)
+# 					rem_tmp+=("rm -f $tmp_b")
 					nv_cmd_dkms_conf
 					# Compil and install DKMS modules
 					nv_build_dkms
@@ -5122,12 +5124,12 @@ restore_pcks(){ #
 					if [ $pass -eq 1 ]; then
 						echo -e $"# FAILURE : DKMS compilation ERROR !!"; sleep 2
 						echo -e $"# FAILURE : See 'Update drivers or modules' > 'Update driver only (dkms/force)' to force build."; sleep 2
-						trap "${rem_tmp[*]}" EXIT
+# 						trap "${rem_tmp[*]}" EXIT
 						manage_pcks
 					fi
 				else
 					echo -e $"# FAILURE : No source directory found for $res_version"; sleep 2
-					trap "${rem_tmp[*]}" EXIT
+# 					trap "${rem_tmp[*]}" EXIT
 					exit 1
 					manage_pcks
 				fi
@@ -5164,7 +5166,7 @@ restore_pcks(){ #
 	else
 		manage_pcks
 	fi
-	trap "${rem_tmp[*]}" EXIT
+# 	trap "${rem_tmp[*]}" EXIT
 	manage_pcks
 }
 
@@ -5326,16 +5328,16 @@ edit_script_conf(){
 edit_color_conf(){ #
 	## color tmep file test preview
 	if ! [ "$color_TMP" ]; then
-	color_TMP=$(mktemp --tmpdir nv_color.XXXX)
+	color_TMP=$(mktemp $zen_tmp_dir/nv_color.XXXX)
 	cat $color_conf > $color_TMP
-	rem_tmp+=("rm -f $color_TMP")
+# 	rem_tmp+=("rm -f $color_TMP")
 	fi
 	edit_color_gui(){
 		test_text=$"$(
 		cat <<-SPL
 			DISPLAY PREVIEW :
 			${rBB}TITLE${end}
-			${j}${bf}Sub TTILE${end}${end}
+			${j}${bf}Sub TITLE${end}${end}
 			TEXT, comment and sub comment :
 			Main is desktop default text color
 			${v}Once upon a time in south west ? I don't care !${end}.
@@ -5355,7 +5357,7 @@ edit_color_conf(){ #
 		)"
 		sample=$"$(
 		cat <<-SPL
-			${rBB}TITLE${end}\t${j}${bf}Sub TTILE${end}${end}
+			${rBB}TITLE${end}\t${j}${bf}Sub TITLE${end}${end}
 			${v}main text${end} ${y}Log messages${end}
 			${gB}Log cleared${end} ${jB}Log warnings${end} ${rB}Log Errors${end}
 		SPL
@@ -5372,7 +5374,7 @@ edit_color_conf(){ #
 		style0=$(grep -E -io "[a-z]*$" <<< $font0)
 # 		IFS=$(echo -en "\n\b")
 		font_color=$(
-		$d_yad --width=500 --height=600 --title "Zenvidia" --center \
+		$d_yad --width=500 --height=600 --title "$WIN_TITLE" --center \
 			--scroll --vscroll-policy=auto --hscroll_policy=none \
 			--window-icon=$img_zen_desktop --text "$w_text" \
 			--form --separator="|" --item-separator=";" --borders=15 --field="":LBL '' \
@@ -5398,10 +5400,10 @@ edit_color_conf(){ #
 		_exit=$?
 		color_temp=$color_conf
 		case $_exit in
-			0) trap "${rem_tmp[*]}" EXIT; menu=menu_modif ;;
-			1) trap "${rem_tmp[*]}" EXIT; base_menu ;;
+			0) menu=menu_modif ;;
+			1) base_menu ;;
 			2) menu="$@ edit_color_gui" ; color_temp=$color_TMP ;;
-			252) trap "${rem_tmp[*]}" EXIT; exit 0;;
+			252) exit 0;;
 		esac
 		IFS=$(echo -en "\n\b")
 		unset input_colors output_colors output_conf
@@ -5493,25 +5495,13 @@ x_yad_extract(){
 			## config output is always TRUE.
 			## does the section been modified ? FALSE/TRUE has changed.
 			line_c=$(grep "$option_def" $device_section_file)
-# 			setted_c=$(cut -d'|' -f1 <<< $line_c
 			option_type_c=$(cut -d'|' -f2 <<< $line_c)
 			option_c=$(cut -d'|' -f3 <<< $line_c)
 			value_c=$(cut -d'|' -f4 <<< $line_c)
 			if [ $(grep -c "$option_type_c.*$option_c.*$value_c" $xorg_cfg_mod ) -gt 0 ]; then
-# 			if [ $(grep "$d" $tmp_orig | grep -c "$options") -eq 1 ]; then
 				if [ $(grep -c "$options" $device_section_file) -eq 0 ]; then
 					if [ $(grep -c "$option_def" $device_section_file) -gt 0 ]; then
-						# TRUE
-# 						line_c=$(grep "$option_def" $device_section_file)
-# 	# 						setted_c=$(cut -d'|' -f1 <<< $line_c
-# 						option_type_c=$(cut -d'|' -f2 <<< $line_c)
-# 						option_c=$(cut -d'|' -f3 <<< $line_c)
-# 						value_c=$(cut -d'|' -f4 <<< $line_c)
-						# does the line have "Option" ?
-
-
 						if [[ "$option_type_c" =~ Option|Screen|Inactive ]]; then
-# 						if [[ "$option_type_c" =~ "Option" ]]; then
 							# write default 3 argument option line.
 							option_line_c="   $option_type_c\t\"$option_c\" ${a}$value_c${a}"
 						else
@@ -5677,7 +5667,7 @@ x_yad_block(){ #
 	xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	unset device_options tab_names rem_tmp device_section_list
 	## create a temp dir to remove at the end of the porcess.
-	xorg_tmp_dir=$(mktemp -d --tmpdir xorg.conf.XXXX)
+	xorg_tmp_dir=$(mktemp -d $zen_tmp_dir/xorg.conf.XXXX)
 	## main window
 	server_sections="ServerLayout;Screen,Inactive,Option;0|Files;ModulePath;0|InputDevice;Option;0"
 	device_sections="Device;Option;1|Screen;Option,DefaultDepth;1"
@@ -5702,7 +5692,11 @@ x_yad_block(){ #
 # 	tmp_orig=$(mktemp --tmpdir $xorg_tmp_dir/xorgconf.orig.XXXX)
 	tmp_orig=$(mktemp $xorg_tmp_dir/xorgconf.orig.XXXX)
 #  rem_tmp+=("rm -f $tmp_orig")
-	trap "rm -Rf $xorg_tmp_dir" EXIT
+# 	if [ $from_install = 0 ]; then
+# 		trap "rm -Rf $xorg_tmp_dir" EXIT
+# 	else
+# 		rem_tmp+=("rm -f $xorg_tmp_dir")
+# 	fi
 	c='<span color="#16BBC1">' # BLUE
 	device='Xorg'
 # 	logfile=$(mktemp --tmpdir brief.logfile.XXXX) # DEBUG
@@ -5724,7 +5718,7 @@ x_yad_block(){ #
 	done
 	cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
-	yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="Zenvidia" --window-icon=$img_zen_desktop \
+	yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="$WIN_TITLE" --window-icon=$img_zen_desktop \
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]}
 	_exit=$?
 	[ $_exit = 252 ] && exit 0
@@ -5732,7 +5726,7 @@ x_yad_block(){ #
 		x_yad_extract
 	fi
 	if [ $from_install = 0 ]; then
- 		rm -Rf $xorg_tmp_dir
+#  		rm -Rf $xorg_tmp_dir
 #  	trap "${rem_tmp[*]}" EXIT
 		edit_xorg_conf
 	fi
@@ -5808,8 +5802,8 @@ edit_xorg_conf(){ #
 	case $menu_xorg in
 		"1") x_yad_block ;;
 		"2") edit_xorg_full_text;;
-		"3") x_tmp=$(mktemp --tmpdir zn_xorg.XXXX); rem_tmp+=("rm -f $x_tmp"); xorg_conf;
-			  xorg_check; trap "${rem_tmp[*]}" EXIT; edit_xorg_conf
+		"3") x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX); xorg_conf #; rem_tmp+=("rm -f $x_tmp"); xorg_conf;
+			  xorg_check; edit_xorg_conf # trap "${rem_tmp[*]}" EXIT; edit_xorg_conf
 			;;
 	esac
 }
@@ -5855,9 +5849,10 @@ read_help(){ # trad doc ?
 	[ $task_opt -gt 0 ] && exit 0 || menu_manage
 }
 read_about(){ #
+	#Version :	${y}$(cat $(user_CF_DIR)/zen_version)${end}
 	log_txt=$"$(cat <<-ABOUT
 		${v}${j}${bf}About Zenvidia${end}${end}
-		Version :	${y}$(cat $(user_CF_DIR)/zen_version)${end}
+		Version :	${y}$(cat $nvdir/zen_version)${end}
 		License :	${y}LGPLv3${end}
 		Author :	${y}@PirateProd - 2020-2023${end}
 		website :	${y}$zenvidia_git${end}
@@ -5871,7 +5866,7 @@ read_about(){ #
 	log_txt="$log_txt"
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=''
 	w_formatted=1; w_wrap=1; w_width='700'; w_height='400'; all_btn=0; colors=1
-	win_yad_text "$log_brief" "--image=$img_zen_bar"
+	win_yad_text "$log_brief" "--image=zen-emblem"
 	IFS=$ifs
 	[ $task_opt -gt 0 ] && exit 0 || menu_manage
 }
@@ -6706,25 +6701,32 @@ base_menu(){ #
 	esac
 	}
 }
-install_controls(){ #
-	# check nvidia dir presence
+install_controls(){ # TASK migration line to remove in future release
 	if [ -d $install_dir/zenvidia ] ; then
+		mkdir -p $nvdir
+		cp -rf $install_dir/zenvidia/* $nvdir/
+		rm -Rf $install_dir/zenvidia
+	fi
+	# check nvidia dir presence
+	if [ -d $nvdir ] ; then
 		dir_msg="${j} OK${end}"
+# 	if [ -d $install_dir/zenvidia ] ; then
+# 		dir_msg="${j} OK${end}"
 	else		
 		warn_log=$"${j}ERROR\n${y}Zenvidia repository is missing${end}${end}"
 		warn_image='zen-error'
 		qst=0; ok_lbl='' ; cancel_lbl=$"Close"'!zen-close' ; kill_yad=0
 		win_yad_warns
 	fi
-	# check/change run packages permission
-	nvdl_last=$(ls -1 $nvdl/|sed -n '$p')
-	if [[ -s $nvdl/$nvdl_last ]] ; then
-		for changes in $(ls -1 $nvdl ); do
-			if [[ $(stat -c "%a" $nvdl/$changes) != 755 ]]; then
-				chmod 755 $nvdl/$changes
-			fi
-		done
-	fi
+# 	# check/change run packages permission
+# 	nvdl_last=$(ls -1 $nvdl/|sed -n '$p')
+# 	if [[ -s $nvdl/$nvdl_last ]] ; then
+# 		for changes in $(ls -1 $nvdl ); do
+# 			if [[ $(stat -c "%a" $nvdl/$changes) != 755 ]]; then
+# 				chmod 755 $nvdl/$changes
+# 			fi
+# 		done
+# 	fi
 }
 start_cmd(){
 ## this for function testing only in "$1"
@@ -6796,7 +6798,7 @@ start_cmd(){
 	else
 		#dep_control
 		test -x "$d_yad" || exit 0
-		install_controls
+# 		install_controls
 		connection_control
 		# test initramfs distro's tool.
 		initramfs_warn
@@ -6806,7 +6808,7 @@ start_cmd(){
 
 ## BASICS CHECK FUNCTIONS ###
 default_sets(){
-	## unfixed variables (could be change by user choice) ## ATTENTION not implemented yed.
+	## unfixed variables (could be change by user choice)
 	nv_root=${nv_root:-/opt}						# Nvidia main driver directory
 	nvlog=${nvlog:-${nvdir}/log}					# default logs directory
 	nvdl=${nvdl:-${nvdir}/release}				# default download driver backups directory
@@ -6816,6 +6818,8 @@ default_sets(){
 	nvtmp=${nvtmp:-${nvdir}/temp}					# default extract temp directory
 	buildtmp=${buildtmp:-${nvdir}/build}		# default build temp directory
 	## default main set value.
+	temp_ramfs=${temp_ramfs:-1}
+	backup_to_user_dir=${backup_to_user_dir:-0}
 	distro_warn=${distro_warn:-0}
 	use_drm=${use_drm:-1}
 	drm_modset=${drm_modset:-1}
@@ -6845,23 +6849,33 @@ default_sets(){
 	first_open=${first_open:-0}
 	hlp_txt=${hlp_txt:-1}
 }
-default_zen_dir(){
+default_zen_dir(){ # NOTE user backups dir check to remove in release.
 	## Outside the "make install" process, for various reasons (restoration, fresh OS install, etc..)
 	## user's directory existence and privileges may change. So, we check and fix it if necessary.
 	test -d $(user_CF_DIR) || {
 		mkdir -p $(user_CF_DIR)
-		mkdir -p $(user_CF_DIR)/{compats/series,updates,release}
+		mkdir -p $(user_CF_DIR)/{compats/series,updates,release,backups}
 	}
 	if [ ! -f $(user_CF_DIR)/version.txt ]; then
 		stat /usr/lib/modules/$(uname -r)/$(module_dest_location)/nvidia.* &>/dev/null
 		[ $? = 0 ] && modinfo -F version nvidia > $(user_CF_DIR)/version.txt
 	fi
 	[ "$(stat -c %U $(user_CF_DIR))" = "$(def_user)" ] || chown -R $(def_user):$(def_user) $(user_CF_DIR)
+	# TASK line to remove.
+	[ -d $(user_CF_DIR)/backups ] || mkdir -p $(user_CF_DIR)/backups
 }
 ## ### SCRIPT INTRO ###
+## config distro elf type
+libclass
+## LD_LIBRARY_PATH definition (useless in Fedora).
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir/$master$ELF_64
+## system bins path control and depencies list building if any.
+dep_exec_check
+## controle install path.
+install_controls
 ## main configuration file check and read mandatory vars config first.
 if [ ! -s $script_conf ]; then #
-	if [ $d_yad ]; then
+	if [ -x $d_yad ]; then
 		warn_log=$"<b>Script's config file missing.\n</b>"
 		warn_image='zen-error'
 		qst=0; ok_lbl='' ; cancel_lbl=$"Abort"'!zen-close' ; kill_yad=0
@@ -6874,13 +6888,7 @@ else
 	## read script mandatory vars config first.
 	. $script_conf
 fi
-## config distro elf type
-libclass
-## LD_LIBRARY_PATH definition (useless in Fedora).
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir/$master$ELF_64
-# plug_version=$(distro_version)
-## system bins path control and depencies list building if any.
-dep_exec_check
+dep_lib_check
 ## check users dirs privileges and load extra special distro config if any.
 if [ "$(def_user)" != "root" ]; then
 	## check user config dirs presence and privileges.
@@ -6895,7 +6903,7 @@ if [ "$(def_user)" != "root" ]; then
 		distro_warn=1
 	fi
 fi
-## check/install dependies
+## check/install dependies.
 dep_control
 ## extract graphic devices data.
 PCI_ID
@@ -6938,11 +6946,16 @@ if [[ $(def_user) != "root" ]]; then
 	upcompat="$(user_CF_DIR)/updates"
 	nvdl="$(user_CF_DIR)/release"
 	test -d $nvdl || mkdir -p $nvdl
-	[ $(chk_family) -gt 0 ] || { [ $optimus -gt 0 ] && opti_preset=1 ;}
-	## old version check and move. # NOTE TO REMOVE IN FUTURE RELEASE.
-	if [ $(ls -1 $nvdir/release | grep -c .) -gt 0 ]; then
-		mv -f $nvdir/release/* $(user_CF_DIR)/release/
+	# check/change run packages permission
+	nvdl_last=$(ls -1 $nvdl/|sed -n '$p')
+	if [[ -s $nvdl/$nvdl_last ]] ; then
+		for changes in $(ls -1 $nvdl ); do
+			if [[ $(stat -c "%a" $nvdl/$changes) != 755 ]]; then
+				chmod 755 $nvdl/$changes
+			fi
+		done
 	fi
+	[ $(chk_family) -gt 0 ] || { [ $optimus -gt 0 ] && opti_preset=1 ;}
 	## zen notify desktop entry option (define zenvidia changelog reading behaviour)
 	notif_desk_file=/home/$(def_user)/.config/autostart/zen_notify.desktop
 	notif_desk_opt=$(cat $notif_desk_file| sed -En "s/^Exec=.*-(.*)/\1/p")
@@ -6956,8 +6969,24 @@ if [[ $(def_user) != "root" ]]; then
 	## force optimus check to off and unset opti_preset.
 	[ $opti_preset_off = 1 ] && opti_preset=0
 fi
-## set default or null value after conf files reading in case reading failure.
+## set default or null value after conf files reading in case reading failure or missing values.
 default_sets
+## define global temporary directory.
+if [ $temp_ramfs = 1 ]; then
+	# TMPDIR=/dev/shm
+	TMPDIR=/run/user/$(def_user_id)
+	export TMPDIR
+fi
+## define backups directory.
+if [ $backup_to_user_dir = 1 ]; then
+	[ $(ls -Ub1 $nvbackup | wc -l) -gt 0 ] && mv -f -t $(user_CF_DIR)/backups/ $nvbackup/*
+	nvbackup=$(user_CF_DIR)/backups
+else
+	[ $(ls -Ub1 $(user_CF_DIR)/backups | wc -l) -gt 0 ] && mv -f -t $nvbackup/ $(user_CF_DIR)/backups/*
+fi
+## define global temporary folder
+zen_tmp_dir=$(mktemp -d --tmpdir zen_temp.XXXX)
+trap "rm -Rf $zen_tmp_dir" EXIT
 # load markup span font colors.
 zen_colors
 # pick all necessary env Definition
