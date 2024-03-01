@@ -347,7 +347,14 @@
  - Minor : Modules suffix detection in some function was faulty, replaced by a more simple one.
  - Tracking errors is difficult without feeback. Please consider to send a few.
 * 2024-02-23 - v2.3.45
- - Added a warning message for user Nvidia profiles rc. This is not tell in Nvidia docs that the user profile is the only one to edited, defaut is too often change by updates and user will loose his personnal change.
- - Fixed messages nutshells and some other minor fixes.
+ - Added a warning message for user Nvidia profiles rc. This is not tell in Nvidia docs that the user profile is the only one to be edited, defaut is too often change by updates and user will loose his personnal change.
+ - Fixed messages nutshells and some others minor fixes.
+* 2024-03-01 - v2.3.46
+ - Added 'temp_ramfs' option in user config file allowing user to set temporary files in ramfs (/run/user/xxxx) instead of /tmp path. Default is set to '1'. User with low RAM capacity will probably prefer to set this option to '0'.
+ - Added 'backup_to_user_dir' option in user config file allowing user to set driver backups storage to default user zenvidia directory (~/.zenvidia/backups). Default is set to '0', not used (operation will be reverse if reset to 1).
+ - Zenvidia directory has been changed in the view to create zenvidia tar gz release in github. Directory has switched from /usr/local/zenvidia to /usr/local/share/zenvidia. Scripts have been modified accordingly.
+ - zen_notify was reporting even if zenvidia version was matching and report an issue log which doesn't exist. Fixed.
+ - Note : Migration lines for above changes is temporarly add in script and will be remove in next release.
+ - Please report any bugs, mistakes, issues.
 
 

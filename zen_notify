@@ -20,7 +20,7 @@
 
 ## basics
 local_nvdir=/home/$USER/.zenvidia
-nvdir=/usr/local/zenvidia
+nvdir=/usr/local/share/zenvidia
 script_conf=$nvdir/script.conf
 basic_conf=$local_nvdir/basic.conf
 nvtmp=$local_nvdir/notify
@@ -41,8 +41,8 @@ export TEXTDOMAINDIR=$nvdir/locale
 # sleep 15
 
 [ -d $nvtmp ] || mkdir -p $nvtmp
+notif_temp=$(mktemp --tmpdir -d zen_notif-XXXX)
 ARCH=$HOSTTYPE
-drv_temp=$(mktemp --tmpdir zen_notif-XXXX)
 drv_list=$nvtmp/drvlist
 last_update=$nvtmp/last_update
 last_beta=$nvtmp/last_beta
@@ -56,13 +56,14 @@ ping -c2 www.nvidia.com &>/dev/null
 cnx=$?
 ifs=$IFS
 ## capture for exit status
-trap "IFS=\$ifs rm -f $drv_temp" EXIT
+trap "IFS=\$ifs rm -Rf $notif_temp" EXIT
 driver_ctrl(){
 	## reset all value.
 	unset ver_array last_array DRV_LIST
 	drv_diff=0
 	greater=0
 	rem_diff=0
+	drv_temp=$(mktemp $notif_temp/drv_notif-XXXX)
 	if [ $cnx -eq 0 ]; then
 		## default driver caracters max count.
 		nb=9
@@ -140,12 +141,11 @@ source_ctrl(){
 		rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
 		if [ -d $rep_git_local ]; then
 			if [ $driver_up -gt 0 ]; then
-			notif_txt=$"and Zenvidia"; line='\n'
+				notif_txt=$"and Zenvidia"; line='\n'
 			else
-			notif_txt='Zenvidia'; line=''
+				notif_txt='Zenvidia'; line=''
 			fi
-			# 	rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
-			tmp_git_src=$(mktemp -d --tmpdir tmp_git.XXX)
+			tmp_git_src=$(mktemp -d $notif_temp/tmp_git.XXX)
 			test -f $local_src/zen_git.log || touch $local_src/zen_git.log
 			IFS=$(echo -en "\n\b")
 			CHECK_GIT_REPO(){
@@ -156,7 +156,8 @@ source_ctrl(){
 				git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
 				# extract version line
 				git_rm_version=$(git log origin -n 1 | grep -E -o "v[0-9].*")
-				git_local_version=$(cat $local_nvdir/zen_version)
+				#git_local_version=$(cat $local_nvdir/zen_version)
+				git_local_version=$(cat $nvdir/zen_version)
 				git_rm_fetch_log=$(git log origin -n 1 | sed -n "/-/,/-/p")
 				# before acting, we need to know the last pull record in local dir.
 				if [ $rep_git_local ]; then
@@ -166,7 +167,7 @@ source_ctrl(){
 					if [ ! "$git_local_version" ]; then
 						git_local_version=$(git log origin -n 1 | grep -E -o "v[0-9].*")
 						test "$git_local_version" || git_local_version=0
-						echo -e "$git_local_version" > $local_nvdir/zen_version
+						echo -e "$git_local_version" > $nvdir/zen_version
 					fi
 					popd
 				else
@@ -175,26 +176,28 @@ source_ctrl(){
 				fi
 				# then, we need to know if log is about version update or issue warning message.
 				# log and issue is mandatory formated with a '-' in commit message.
+				# ISSUE is by default set to 0.
+				issue=0
 				if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
 					if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_version" ]; then
 						if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
-							if [ $(grep -c "-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+							if [ $(grep -c "\-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
 								cat <<-LOG >> $local_src/zen_git.log
 									$git_rm_fetch_date : $git_rm_version
 									$git_rm_fetch_log
 								LOG
 							fi
 						fi
-						issue=0
 					else
-						if [ $(grep -c "issue" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+						if [ $(grep -c "\- ISSUE :" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
 							issue=1
 							git_rm_warn_log=$(cut -d'-' -f2 <<< ${git_rm_fetch_log[*]})
 						fi
 					fi
 				fi
-					# if last pull/clone date is lower than the remote's, display update message.
-					if [ $git_pull_date -lt $git_rm_date ]; then
+				# if last pull/clone date is lower than the remote's, display update message.
+				if [ $git_pull_date -lt $git_rm_date ]; then
+					if [ "$git_rm_version" != "$git_local_version" ]; then
 						zen_up=1
 						# is the log message an issue warning ?
 						if [ $issue = 0 ]; then
@@ -205,6 +208,7 @@ source_ctrl(){
 							_driver_notif+=($"${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
 						fi
 					fi
+				fi
 			}
 			# clone remote .git dir only to get changes.
 			pushd $tmp_git_src

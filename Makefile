@@ -1,13 +1,11 @@
 # DEFINE FIRST THE CURRENT USER NAME
-#C_USER = $(shell ls -l "$(shell pwd)"| cut -d' ' -f3 | sed -n "2p")
-# C_USER = $(shell stat -c %U ../dev_zenvidia) # in box test
-C_USER = $(shell stat -c %U ../zenvidia)
+C_USER = $(shell loginctl list-users --no-legend | grep "active"|awk '{print $2}')
 # CHECK IF USER IS IN SU MODE
 S_USER = $(shell whoami)
 PREFIX = /usr/local
 USER_DIR = /home/$(C_USER)
 CONF_DIR = $(USER_DIR)/.zenvidia
-INSTALL_DIR = $(PREFIX)/zenvidia
+INSTALL_DIR = $(PREFIX)/share/zenvidia
 BIN_DIR = $(PREFIX)/bin
 NVIDIA_BAK = $(PREFIX)/NVIDIA_DRIVERS
 
@@ -24,7 +22,7 @@ install: check_su
 	## pre install
 	mkdir -p $(INSTALL_DIR) $(CONF_DIR)/{compats/series,updates,release}
 	mkdir -p $(PREFIX)/share/{applications,pixmaps,doc/zenvidia}
-	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats,locale}
+	mkdir -p $(INSTALL_DIR)/{temp,build,log,release,backups,compats,locale/locale_dev/locale_po}
 	## install
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -Dm644 -t $(INSTALL_DIR)/ *.conf
@@ -37,9 +35,11 @@ install: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	cp -rf -t $(INSTALL_DIR)/locale locale/*
+	install -Dm644 -t $(INSTALL_DIR)/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
+	install -Dm644 -t $(INSTALL_DIR)/locale_dev/locale_po locale/locale_dev/*
+	cp -rf -t $(INSTALL_DIR)/ locale/locale
 	## post install
-	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)
 	## restart polkit service
 	systemctl restart polkit.service
@@ -64,7 +64,6 @@ safeuninstall: check_su
 update: check_su
 	sudo -u $(C_USER) git pull
 	install -CDm755 -b -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
-	install -CDm644 -b -t $(INSTALL_DIR)/distro/ distro/*
 	install -CDm644 -b -t $(INSTALL_DIR)/ *.conf
 	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
@@ -73,7 +72,9 @@ update: check_su
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ docs/*.txt
 	install -Dm644 -t $(PREFIX)/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	install -CDm644 -t $(INSTALL_DIR)/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
+	install -CDm644 -t $(INSTALL_DIR)/locale_dev/locale_po locale/locale_dev/*
+	cp -ruf -t $(INSTALL_DIR)/ locale/locale
 	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
-	cp -ruf -t $(INSTALL_DIR)/locale locale/*
-	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(CONF_DIR)/zen_version
+	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)/zen_version
