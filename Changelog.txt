@@ -356,5 +356,10 @@
  - zen_notify was reporting even if zenvidia version was matching and report an issue log which doesn't exist. Fixed.
  - Note : Migration lines for above changes is temporarly add in script and will be remove in next release.
  - Please report any bugs, mistakes, issues.
+* 2024-03-03 - v2.3.47
+ - During commented line check and remove, it appears that building modules from source 'kernel_src' variable wasn't updated to the dedicated function and prevent the process to achieve. Fixed.
+ - 'Su' command for default user environment calls wasn't properly replace in script process. Very bad thing for inside not supported distribution. To simplify this process, 'su -l' is now used to all distribution not known to work with 'sudo -u' command. My appology for those distributions users (especially Arch).
+
+
 
 
