@@ -70,8 +70,9 @@ menu_list=(
 	$"Config xorg"!zen_start -x!zen-xorg,${opti_menu}
 	$"Edit Zenvidia configuration"!$d_zen -z!zen-preference,
 	$"Check Nvidia driver Update"!zen_start -u!zen-refresh,
-	${open_menu}${nvidia_help}${driver_changelog}${changelog_menu}
-	$"Zenvidia About"!$d_zen -a!zen-docs,
+	${open_menu}${driver_changelog}${nvidia_help}${changelog_menu}
+	$"Zenvidia Help and documentation"!$d_zen -s!zen-docs,
+	#$"Zenvidia About"!$d_zen -a!zen-docs,
 	$"Close Zenvidia task menu"!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \

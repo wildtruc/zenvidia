@@ -5,9 +5,7 @@ Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
 ## WARNINGS
-No Bumblebee support, see **[nvidia-prime-select](https://github.com/wildtruc/nvidia-prime-select)** for this. If it's not out of date.
-
-**The Script has been testeed under Fedora only. Almost all usual system sets are managed but some specifics per distro are not, users working on other distros may check distro conf manually until all this will automated.**
+**The Script has been tested under Fedora only. Almost all usual system sets are managed but some specifics per distro are not, users working on other distros may check distro conf manually until all this will automated.**
 
 ## Notice
 Project not maintained as a project is usually maintain. No waranty support. Just as it is.
