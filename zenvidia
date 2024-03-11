@@ -248,12 +248,9 @@ distro_name(){
 }
 set_su(){
 	w_text=$"$( cat <<-MSG
-		<b><big>Zenvida didn't find any optional Distro config file
-		for $plug_version</big></b>
+		<b>Su command is not congigured</b>
 
-		<b>Su command are not congigured</b>
-
-		Without a proper <b>su</b> command prompt, Zenvidia main functions
+		Without a proper <b>su</b> command for user calls, Zenvidia main functions
 		are unusable and script will abort.
 
 		Please, enter <b>sudo</b> or <b>su</b> command line with options for default
@@ -5687,7 +5684,7 @@ edit_distro_conf(){ #
 read_help(){ # trad doc ?
 	IFS=$(echo -en "\n\b")
 	log_brief="$zen_docs/HELP.txt"
-	log_txt=$"${j}<b>Zenvidia help text</b>${end}"
+	log_txt=$"${j}<b>Zenvidia help and documentation</b>${end}"
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=''
 	w_formatted=1; w_wrap=1; w_width='780'; w_height='400'; all_btn=0; colors=1
 	win_yad_text "$log_brief"
@@ -6811,10 +6808,11 @@ fi
 cmd_opt=$1; cmd_ver=$2
 ## option section is for zen_task_menu needs and is available only from zen_task_menu calls or from cammand line.
 while [ $# -gt 0 ]
-	getopts "rdhxpcnzouat" OPTION; do # 't' is the function's test option.
+	getopts "rsdhxpcnzouat" OPTION; do # 't' is the function's test option.
 	task_opt=1
 	case $OPTION in
 		r) read_zen_changelog;;
+		s) read_help;;
 		d) read_changelog;;
 		h) read_nv_help;;
 		x) [ $UID = 0 ] && edit_xorg_conf;;
@@ -6825,7 +6823,7 @@ while [ $# -gt 0 ]
 		o) [ $UID = 0 ] && win_open_switch;;
 		a) read_about;;
 		u) if [ $UID = 0 ]; then legacy_drv=0; check_for_newer; check_update; fi ;;
-		t) read_help ;;
+# 		t) read_help ;;
 	esac
 exit 0
 done
