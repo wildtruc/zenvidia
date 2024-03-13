@@ -713,9 +713,6 @@ version(){
 	else
 		stat /usr/lib/modules/$(uname -r)/$(module_dest_location)/nvidia.* &>/dev/null
 		[ $? = 0 ] && modinfo -F version nvidia || echo 0
-# 		if [ $(module_dest_location) nvidia  ]
-# 		modinfo -F version nvidia &>/dev/null
-# 		[ $? -eq 0 ] && modinfo -F version nvidia || echo 0
 	fi
 	return
 }
@@ -734,10 +731,10 @@ new_version(){
 old_version(){
 	modinfo -F version nvidia -k $KERNEL &>/dev/null
 	if [ $? -eq 0 ]; then
-		if test -f $tmp_old; then
+		if [ "$tmp_old" ]&&[ -f $tmp_old ]; then
 			cat $tmp_old
 		else
-			modinfo -F version nvidia -k $KERNEL
+			[ "${owr_version}" ] && echo ${owr_version} || modinfo -F version nvidia -k $KERNEL
 		fi
 	else
 		echo "0"
@@ -1885,6 +1882,7 @@ make_tip_docs(){
 }
 ## ### AFTER INSTALL ###
 clean_old_version(){ # post install part. #
+# 	[ "$owr_version" ] && clean_version=$owr_version || clean_version=$(old_version)
 	y_text=$"Cleaning old ${j}$(old_version)${end} source and DKMS tree"
 	pulse=1; log=0; hold=0 ; hide_txt=0; [ $hold = 1 ] && win_log_options
 	# syntax: { timeout=xx ;{ [script] }& eval lpid=$!; y_pulse; } | win_yad_progress
@@ -4953,6 +4951,7 @@ restore_pcks(){ #
 	if [[ $drive_packs ]]; then
 		res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\(.*[0-9]*\).tar.*$/\1/p")
 		res_suffix=$(printf "$drive_packs"|sed -n "s/.*\.//p")
+		owr_version=$(version)
 		ls /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so &>/dev/null
 		if [ $? -eq 0 ]||[ ! -d $nv_root/$drive_packs ]; then
 			## win_yad_warns
@@ -5015,9 +5014,12 @@ restore_pcks(){ #
 			## validate grub
 			echo $"# Create GRUB conf for nouveau driver blacklisting and other options."; sleep 2
 			$d_grub-mkconfig -o $grub_cfg 2>&1 | while read -r line; do echo "# * ${line}"; done
+
 			## remove /opt/nvidia.prev_version for compatibility restore purpose
 			## old_version var is use for compatibility with clean_old_version command.
 			if [ "$res_version" != "$(version)" ]; then
+				## update local version text to get old version function working on restore.
+				echo -e "$res_version" > $(user_CF_DIR)/version.txt
 				if [ -d $nv_root/nvidia.$(old_version) ]; then
 					rm -Rf $nv_root/nvidia.$(old_version)
 					clean_old_version
