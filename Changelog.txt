@@ -363,5 +363,11 @@
  - Add Zenvidia help and doc entry in zen_task_menu, removed About entry.
  - Modified above entry in translation and script.
  - Fixed text nutshells in script and translation.
+* 2024-03-13 - v2.3.49
+ - verion.txt in user config path wasn't update during driver restoration process returning the wrong previous version that could broke future installs. Fixed.
+ - Restoration process was improperly defining old_version preventing, because above statement, source and dkms to be removed. Fixed.
+ - Restoration function wasn't tested since number of changes in code. My bad, wasn't very serious.
+
+
 
 
