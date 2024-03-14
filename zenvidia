@@ -6263,7 +6263,7 @@ menu_manage(){ #
 	fi
 	nm=1
 	unset mng_list
-	for mng_cmd in $"Documention manual ($(version))" $"Change Logs ($(version))" $"Zenvidia Logs" $"Zenvidia Help" $"About Zenvidia"; do
+	for mng_cmd in $"Documention manual ($(version))" $"Change Logs ($(version))" $"Zenvidia Logs" $"Zenvidia Help and documentation" $"About Zenvidia"; do
 		mng_list+=("false")
 		mng_list+=("$nm")
 		mng_list+=("$mng_cmd")
@@ -6512,7 +6512,7 @@ base_menu(){ #
 	esac
 	}
 }
-install_controls(){ # TASK migration line to remove in future release
+install_controls(){
 	if [ -d $install_dir/zenvidia ] ; then
 		mkdir -p $nvdir
 		cp -rf $install_dir/zenvidia/* $nvdir/
@@ -6654,12 +6654,15 @@ default_zen_dir(){ # NOTE user backups dir check to remove in next release.
 		mkdir -p $(user_CF_DIR)
 		mkdir -p $(user_CF_DIR)/{compats/series,updates,release,backups}
 	}
-	if [ ! -f $(user_CF_DIR)/version.txt ]; then
+	## to prevent version.txt file to be wrong in case of command line restoration, or
+	## in case version.txt for a reason or an other is not present, we test and fix if necessary.
+	if [ ! -f $(user_CF_DIR)/version.txt ]||[ $(cat $(user_CF_DIR)/version.txt| grep -c "$(version)") -eq 0 ]; then
 		stat /usr/lib/modules/$(uname -r)/$(module_dest_location)/nvidia.* &>/dev/null
-		[ $? = 0 ] && modinfo -F version nvidia > $(user_CF_DIR)/version.txt
+		[ $? = 0 ] && modinfo -F version nvidia > $(user_CF_DIR)/version.txt || echo "" > $(user_CF_DIR)/version.txt
 	fi
 	[ "$(stat -c %U $(user_CF_DIR))" = "$(def_user)" ] || chown -R $(def_user):$(def_user) $(user_CF_DIR)
-	# TASK line to remove.
+
+	# TASK line to remove in future release.
 	[ -d $(user_CF_DIR)/backups ] || mkdir -p $(user_CF_DIR)/backups
 }
 ## ### SCRIPT INTRO ###
