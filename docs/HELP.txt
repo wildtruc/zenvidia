@@ -67,20 +67,26 @@ echo -e $"<big><b>A . <u>Usage</u></b></big>
 	Allow to edit Zenvidia general config file in graphic mode.
 	All Zenvida options are settable in different ways, this is the place you can find <u>open driver</u>
 	sets for example.
+
+	<b>*</b> Identify the options queried and set during driver installation process.
+	<b>**</b> Identify the options auto-set during driver installation process.
+	All other options can only be set from the configuration file.
+
 	<u>Options are :</u>
-	- <b>Compile open nvidia drivers</b> :
+	- <b>Compile open nvidia drivers *</b> :
 	  <i>Setted to yes, compile only the open driver, but not use it. Default is none. (open_drv=0)</i>
-	- <b>Use open nvidia drivers</b> :
+	- <b>Use open nvidia drivers *</b> :
 	  <i>If set to <u>use</u>, when previous var is set to <u>build</u>, open driver is uses in place of proprietary.</i>
 	  <i>Default is set to not use (use_open=0)</i>
-	- <b>Display open modules build messsage</b> :
+	- <b>Display open modules build messsage *</b> :
 	  <i>At each installation/update, Zenvidia display an open modules building warning. You can't unset</i>
 	  <i>this behaviour here. (open_wrn=1)</i>
-	- <b>Activate plymouth fbdev behaviour in grub conf</b> :
+	- <b>Activate plymouth/fbdev frame buffer behaviour in grub conf **</b> :
 	  <i>Allow to prevent tearing in some driver version and allow fbdev in VT terminal since 550 serie.</i>
 	  <i>Default set to 1. (drm_modset=1)</i>
-	- <b>Activate Nvidia persistenced</b> :
-	  <i>This allow GPU and partculary dGPU to be pre init at boot time. Default set to 0 (use_persistenced=0)</i>
+	- <b>Activate Nvidia persistenced **</b> :
+	  <i>This allow GPU and partculary dGPU to be pre init at boot time.This options is needed and</i>
+	  <i>automatically set for some open driver versions. Default set to 0 (use_persistenced=0)</i>
 	- <b>Use GZIP backup container instead of auto selected container</b> :
 	  <i>By default zenvidia will compress backed up archive into XZ format for multicore processors</i>
 	  <i>(above 8) and in GZIP for lower, this option force to use GZIP. Default is none (use_gzip=0)</i>
@@ -91,13 +97,13 @@ echo -e $"<big><b>A . <u>Usage</u></b></big>
 	  <i>During installation process zenvidia will detect if hardware is Optimus ready and auto set Optimus</i>
 	  <i>to 1. This option will prevent Optimus auto configuration by default.</i>
 	  <i>Default is none. (opti_preset_off=0)</i>
-	- <b>Select the PRIME render methode</b> :
+	- <b>Select the PRIME render methode *</b> :
 	  <i>During install process zenvidia will auto configure PRIME display if needed, NONE,PRIME,PRIME render</i>
 	  <i>offlaod set can be chosen. This option allow to permanently set to one of them.</i>
 	  <i>Default is NONE (render=NONE)</i>
-	- <b>Force use of PRIME render on Nvidia dGPU only</b> :
+	- <b>Force use of PRIME render on Nvidia dGPU only *</b> :
 	  <i>If set this option will force display to use PRIME render on Nvidia only. Default is none (offload=0)</i>
-	- <b>Set PRIME render configuration silent</b> :
+	- <b>Set PRIME render configuration silent *</b> :
 	  <i>This option will be ask and set during install process. If set, the PRIME function wont be display</i>
 	  <i>anymore. You need to unset to display again. Default is none (opti_auto_set=0)</i>
 	- <b>Prevent GCC compilator version mismatch</b> :
@@ -116,7 +122,7 @@ echo -e $"<big><b>A . <u>Usage</u></b></big>
 	- <b>Allow to store driver backups in user zenvidia path instead of default</b> :
 	  <i>This allow to store backed up Nvidia installation archives into user path in case /usr/local path is</i>
 	  <i>getting low or the case of small root partition. Default is none (backup_to_user_dir=0)</i>
-	- <b>Display first time alert open modules build message</b> :
+	- <b>Display first time alert open modules build message *</b> :
 	  <i>This is for first time sets of open driver management. Default is display. (first_open=1)</i>
 	- <b>To hold xterm and logs display</b> :
 	  <i>When set, this option hold compilation and libraries logs window. If not, only delay is used.</i>

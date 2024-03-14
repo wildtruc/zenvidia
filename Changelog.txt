@@ -367,7 +367,9 @@
  - verion.txt in user config path wasn't update during driver restoration process returning the wrong previous version that could broke future installs. Fixed.
  - Restoration process was improperly defining old_version preventing, because above statement, source and dkms to be removed. Fixed.
  - Restoration function wasn't tested since number of changes in code. My bad, wasn't very serious.
-
+* 2024-03-14 - v2.3.50
+ - Commande line rescue restoration tool was also affected by the issue in the previous fix upload. Fixed.
+ - A few nutshells in text and translation fixed.
 
 
 
