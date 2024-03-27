@@ -77,36 +77,73 @@ driver_ctrl(){
 		cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
 		LAST_DRV=$(cat $last_update | awk '{ print $1 }')
 		LAST_BETA=$(cat $last_beta)
-
-		## driver version could be in the form xxx.xxx.xxx or xxx.xx
-		## it is needed to short it to number only.
-		offi_short=$(echo "$LAST_DRV"| sed -n "s|\.||g;p")
-		beta_short=$(printf "$LAST_BETA"| sed -n "s|\.||g;p")
-
 		if [ -s $nvdir/version.txt ]; then
 			version=$(cat $nvdir/version.txt)
 		else
 			version=$(modinfo -F version nvidia)
 		fi
-	# 	unset ver_array last_array DRV_LIST
-		ver_array=( $(sed -n "s/\./ /g;p" <<< $version) )
-
-		if [ $beta_short -ne $offi_short ]; then
-			rem_diff=1
-			last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_BETA) )
+		## driver version could be in the form xxx.xxx.xxx or xxx.xx
+ 		## it is needed to short it to number only.
+		offi_short(){
+		if [ "$LAST_DRV" ]; then
+			unset count_array prefix part
+			count_array=( $(printf "$LAST_DRV"|tr . ' ') )
+			for c in ${count_array[@]}; do
+				i=$(printf "$c"|wc -m)
+				for ((i=$i; i<3; i++)) { prefix='0';}
+				part+=$(printf ${prefix}$c)
+			done
+			[ ${#count_array[*]} -eq 3 ] || suffix='000'
+			echo "${part[*]}$suffix"
 		else
-			rem_diff=0
-			last_array=( $(sed -n "s/\./ /g;p" <<< $LAST_DRV) )
+			echo "0"
 		fi
-		for ((i=0;i<=2;i++)) {
-				[ ${last_array[$i]} -eq ${ver_array[$i]} ] || drv_diff=1
-				[ ${last_array[$i]} -gt ${ver_array[$i]} ] && greater=1
 		}
+		beta_short(){
+		if [ "$LAST_BETA" ]; then
+			unset count_array prefix part
+			count_array=( $(printf "$LAST_BETA"|tr . ' ') )
+			for c in ${count_array[@]}; do
+				i=$(printf "$c"|wc -m)
+				for ((i=$i; i<3; i++)) { prefix='0';}
+				part+=$(printf ${prefix}$c)
+			done
+			[ ${#count_array[*]} -eq 3 ] || suffix='000'
+			echo "${part[*]}$suffix"
+		else
+			echo "0"
+		fi
+		}
+		ver_array(){
+		if [ "$version" ]; then
+			unset count_array prefix part
+			count_array=( $(printf "$version"|tr . ' ') )
+			for c in ${count_array[@]}; do
+				i=$(printf "$c"|wc -m)
+				for ((i=$i; i<3; i++)) { prefix='0';}
+				part+=$(printf ${prefix}$c)
+			done
+			[ ${#count_array[*]} -eq 3 ] || suffix='000'
+			echo "${part[*]}$suffix"
+		else
+			echo "0"
+		fi
+		}
+		if [ $(beta_short) -ne $(offi_short) ]; then
+			rem_diff=1 ; last_array=( $(beta_short) )
+		else
+			rem_diff=0 ; last_array=( $(offi_short) )
+		fi
+		for last in ${last_array[@]}; do
+			[ ${last} -eq $(ver_array) ] || drv_diff=1
+			[ ${last} -gt $(ver_array) ] && greater=1
+		done
 		if [ $rem_diff -eq 1 ]; then
 			DRV_LIST=( $"$LAST_DRV, official driver" $"$LAST_BETA, beta driver" )
 		else
 			DRV_LIST=( $"$LAST_DRV, official drivers" )
 		fi
+		echo -e "${DRV_LIST[*]}"
 		if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			IFS=$(echo -en "\n\b")
 			cnt=0
@@ -151,14 +188,14 @@ source_ctrl(){
 			CHECK_GIT_REPO(){
 				local_date=$(env LANG=En_en date +%Y''%m''%d)
 				# extract date from log
-				git_rm_fetch_date=$(git log origin -n 1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
+				git_rm_fetch_date=$(git log ${git_source} -n 1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
 				# convert date to comparable number
 				git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
 				# extract version line
-				git_rm_version=$(git log origin -n 1 | grep -E -o "v[0-9].*")
-				#git_local_version=$(cat $local_nvdir/zen_version)
-				git_local_version=$(cat $nvdir/zen_version)
-				git_rm_fetch_log=$(git log origin -n 1 | sed -n "/-/,/-/p")
+				git_rm_version=$(git log ${git_source} -n 1 | grep -E -o "v[0-9].*")
+				git_local_version=$(cat $local_nvdir/zen_version)
+# 				git_local_version=$(cat $nvdir/zen_version)
+				git_rm_fetch_log=$(git log ${git_source} -n 1 | sed -n "/-/,/-/p")
 				# before acting, we need to know the last pull record in local dir.
 				if [ $rep_git_local ]; then
 					pushd $rep_git_local
