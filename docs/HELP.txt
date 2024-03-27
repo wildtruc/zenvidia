@@ -14,7 +14,7 @@ echo -e $"<big><b>A . <u>Usage</u></b></big>
 
  <b>2. Command line</b> (administrator priviledge required)
 
-  Commende line tools are only available with X server off.
+  RESCUE MODE ONLY : Commande line tools are only available with X server off.
 
   In some distro case (maybe all), session manager will auto restart if shutdown, to fix this desktop
   manager have to be disabled in a supersuer terminal with :

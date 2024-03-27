@@ -364,12 +364,17 @@
  - Modified above entry in translation and script.
  - Fixed text nutshells in script and translation.
 * 2024-03-13 - v2.3.49
- - verion.txt in user config path wasn't update during driver restoration process returning the wrong previous version that could broke future installs. Fixed.
+ - version.txt in user config path wasn't update during driver restoration process returning the wrong previous version that could broke future installs. Fixed.
  - Restoration process was improperly defining old_version preventing, because above statement, source and dkms to be removed. Fixed.
  - Restoration function wasn't tested since number of changes in code. My bad, wasn't very serious.
 * 2024-03-14 - v2.3.50
  - Commande line rescue restoration tool was also affected by the issue in the previous fix upload. Fixed.
  - A few nutshells in text and translation fixed.
+* 2024-03-27 - v2.3.51
+ - zen_notify was not enought strict on driver update version to make a real effective comparison. New form is still under whatch to see if it is corresponding to all comparison cases.
+ - zen_nofify was still pointing to /usr/local zenvidia version text. Changed to user zenvidia config directory.
+ - Because May 7th decision, git remote origin source repository has been define in script.conf to be easely change in future. Script updated accordingly.
+ - French translation nutshells
 
 
 

@@ -5,17 +5,17 @@ Actual version pretty name : **2.0**
 
 ---------------------------------------------------------------------------------------------------
 ## WARNINGS
-**The Script has been tested under Fedora only. Almost all usual system sets are managed but some specifics per distro are not, users working on other distros may check distro conf manually until all this will automated.**
+**GitHub as decide to force developpers and contributors to use two-factor authentication (2FA) starting at May 7th, 2024.**
+This is an authoritative decision, compeling members to link their personal data to Google, Microsoft and Apple via their smartphones.
+All Github developper members have chosen to share their personnal or common work freely, not in the idea to become a Google, Microsoft, Apple products.
+Because I'm not in a position to say the exact nature of the restrictions imposed by Github from that date, Zenvidia has been migrated to Gitlab.
+The project will remain on Github and updated regularly until we can get a real idea of the restrictions.
 
 ## Notice
 Project not maintained as a project is usually maintain. No waranty support. Just as it is.
 Update will be made only on my own bugs discovery or from fatal error send by users in **Discussion** threads.
 
 Exchange are still open in this same Zenvidia's git **Discussion** section.
-
-Wiki is out of date.
-
-Base language is english.
 
 ---------------------------------------------------------------------------------------------------
 ## Important change log notes
