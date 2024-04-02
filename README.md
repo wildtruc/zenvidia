@@ -8,7 +8,7 @@ Actual version pretty name : **2.0**
 **GitHub as decide to force developpers and contributors to use two-factor authentication (2FA) starting at May 7th, 2024.**
 This is an authoritative decision, compeling members to link their personal data to Google, Microsoft and Apple via their smartphones.
 All Github developper members have chosen to share their personnal or common work freely, not in the idea to become a Google, Microsoft, Apple products.
-Because I'm not in a position to say the exact nature of the restrictions imposed by Github from that date, Zenvidia has been migrated to Gitlab.
+Because I'm not in a position to say the exact nature of the restrictions imposed by Github from that date, **[Zenvidia has been migrated to Gitlab](https://gitlab.com/Wildtruc/zenvidia)**.
 The project will remain on Github and updated regularly until we can get a real idea of the restrictions.
 
 ## Notice
