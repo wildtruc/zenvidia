@@ -772,15 +772,15 @@ msgid "Set Optimus Render config auto"
 msgstr "Définir automatiquement la configuration du rendu Optimus"
 
 #: .. from initial pot line
-msgid "Cleaning old ${j}$(old_lib_version)${end} source and DKMS tree"
+msgid "Cleaning old ${j}$(old_version)${end} source and DKMS tree"
 msgstr "Nettoyyage de l'ancienne arborescence source et DKMS de ${j}$(old_version)${end}"
 
 #: .. from initial pot line
-msgid "# Cleaning $rep_clean $(old_lib_version) DKMS tree"
+msgid "# Cleaning $rep_clean $(old_version) DKMS tree"
 msgstr "# Nettoyage de $rep_clean $(old_version) DKMS"
 
 #: .. from initial pot line
-msgid "# Cleaning $rep_clean $(old_lib_version) source tree"
+msgid "# Cleaning $rep_clean $(old_version) source tree"
 msgstr "# Nettoyage de $rep_clean $(old_version) SOURCE"
 
 #: .. from initial pot line
@@ -844,7 +844,7 @@ msgid "# ${j}($n%)${end}${ge}${sf} * Blacklist and GRUB conf update if needed${e
 msgstr "# ${j}($n%)${end}${ge}${sf} * Mise à jour de la configuration GRUB et Blacklist si besoin${end}${end}"
 
 #: .. from initial pot line
-msgid "# ${v}${j}($n%)${end} - Cleaning old $(old_lib_version) source and DKMS tree if needed.${end}"
+msgid "# ${v}${j}($n%)${end} - Cleaning old ${old_lib_version} source and DKMS tree if needed.${end}"
 msgstr "# ${v}${j}($n%)${end} - Nettoyage des anciennes arborescences $(old_version) source et DKMS.${end}"
 
 #: .. from initial pot line **

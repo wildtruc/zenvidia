@@ -1,5 +1,5 @@
 # Zenvidia
-This is a bash/Yad(ex-zenity) script for managing **NVIDIA©** propriatary and open source drivers.
+This is a bash/Yad(ex-zenity) script for managing **NVIDIA©** proprietary and open source drivers.
 
 Actual version pretty name : **2.0**
 

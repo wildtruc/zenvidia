@@ -375,6 +375,10 @@
  - zen_nofify was still pointing to /usr/local zenvidia version text. Changed to user zenvidia config directory.
  - Because May 7th decision, git remote origin source repository has been define in script.conf to be easely change in future. Script updated accordingly.
  - French translation nutshells
+* 2024-04-29 - v2.3.52
+ - Added missing /etc/vulkan nvidia json to backup process.
+ - A few minor fixes.
+ - French translation nutshells
 
 
 
