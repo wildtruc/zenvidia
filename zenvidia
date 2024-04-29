@@ -377,12 +377,10 @@ dep_exec_check(){
 	d_probe=$(command -v modprobe)
 	# grub could be, grub-[command] or grub2-[command]. Let 'find' catch it for us.
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
-	p_git=$(command -v git) || deplist+=("git")
 	p_wget=$(command -v wget) || deplist+=("wget")
 	p_gcc=$(command -v gcc) || deplist+=("gcc")
 	p_dkms=$(command -v dkms) || deplist+=("dkms")
 	d_yad=$(command -v yad) || deplist+=("yad")
-	d_zen=$(command -v zenity) || deplist+=("zenity")
 	d_xdpy=$(command -v xdpyinfo) || deplist+=("xdpyinfo")
 	d_ssl=$(command -v openssl) || deplist+=("openssl")
 	d_randr=$(command -v xrandr) || deplist+=("xrandr")
@@ -401,10 +399,10 @@ dep_lib_check(){
 	# rh : kernel-devel kernel-headers /usr/src/kernels/linux-$(uname -r)
 	if [ $resolve_dep = 0 ]; then
 		case $(distro_version) in
-			arch|manjaro) deplist+=("kernel-headers") ;;
-			rhel|fedora|centos) deplist+=("kernel-headers"); deplist+=("kernel-devel");;
-			mageia|mandriva) deplist+=("kernel-desktop-devel-latest");; # deplist+=("kernel-desktop-devel");;
-			ubuntu|mint|debian) deplist+=("kernel-headers"); deplist+=("kernel-devel-$(uname -r)");;
+			arch|manjaro) deplist+=("kernel-headers"); deplist+=("git") ;;
+			rhel|fedora|centos) deplist+=("kernel-headers"); deplist+=("kernel-devel"); deplist+=("git") ;;
+			mageia|mandriva) deplist+=("kernel-desktop-devel-latest"); deplist+=("git") ;; # deplist+=("kernel-desktop-devel");;
+			ubuntu|mint|debian) deplist+=("kernel-headers"); deplist+=("kernel-devel-$(uname -r)"); deplist+=("git") ;;
 # 			*) ;;
 		esac
 	fi
@@ -3459,6 +3457,8 @@ backup_old_version(){ #
 		tar_count "tar uf nvidia.$bak_version.tar /etc/modprobe.d/nvidia-blacklist.conf"
 		test -f /etc/modprobe.d/nvidia-drm.conf && tar_count "tar uf nvidia.$bak_version.tar /etc/modprobe.d/nvidia-drm.conf"
 		test -f /etc/modprobe.d/open-NVIDIA.conf && tar_count "tar uf nvidia.$bak_version.tar /etc/modprobe.d/open-NVIDIA.conf"
+		tar_count "tar uf nvidia.$bak_version.tar /etc/vulkan/icd.d/nvidia_icd.json"
+		tar_count "tar uf nvidia.$bak_version.tar /etc/vulkan/implicit_layer.d/nvidia_layers.json"
 		## if backup is create with a use_open var to 1 and the present driver config is different,
 		## open-NVIDIA.conf file is not enought to tell the right way of use. User's use_open var must be saved too.
 		tar_count "tar uf nvidia.$bak_version.tar /home/$(def_user)/.zenvidia/basic.conf"
@@ -3479,6 +3479,7 @@ backup_old_version(){ #
  		[ -d /usr/$master$ELF_64/nvidia ]&& tar_count "tar uf nvidia.$bak_version.tar /usr/$master$ELF_64/nvidia"
 		tar_count "tar uf nvidia.$bak_version.tar /usr/$master$ELF_64/xorg/modules/drivers/nvidia_drv.so"
 		tar_count "tar uf nvidia.$bak_version.tar /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia*"
+		tar_count "tar uf nvidia.$bak_version.tar /usr/share/X11/xorg.conf.d/nvidia-drm-outputclass.conf"
 		make -C /usr/src/nvidia-$bak_version clean
 		tar_count "tar uf nvidia.$bak_version.tar /usr/src/nvidia-$bak_version"
 		if [ -d /usr/src/open-nvidia-$bak_version ]; then
@@ -4376,7 +4377,7 @@ win_yad_progress(){
 	#		 autoclose with no progress bar text	>> pulse=1; log=1; hold=0 ; hide_txt=1
 	#		 autoclose with progres bar text			>> pulse=1; log=0; hold=0 ; hide_txt=0
 
-	[ $log = 1 ] && do_log="--height=300 --hide-text --enable-log='' --log-expanded --log-height=300 $x_hold"
+	[ $log = 1 ] && do_log="--height=300 --hide-text --enable-log= --log-expanded --log-height=300 $x_hold"
 	autoclose='--auto-close'; nobutton='--no-buttons'
 	if [ $hold = 1 ]&&[ "$xt_hold" = 1 ]; then autoclose=''; nobutton=''; fi
 	[ $hide_txt = 1 ] && hide_txt='--hide-text' || hide_txt=''
@@ -5683,7 +5684,7 @@ edit_distro_conf(){ #
 	fi
 	menu_modif
 }
-read_help(){ # trad doc ?
+read_help(){
 	IFS=$(echo -en "\n\b")
 	log_brief="$zen_docs/HELP.txt"
 	log_txt=$"${j}<b>Zenvidia help and documentation</b>${end}"
