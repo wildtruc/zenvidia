@@ -379,6 +379,8 @@
  - Added missing /etc/vulkan nvidia json to backup process.
  - A few minor fixes.
  - French translation nutshells
-
+* 2024-06-08 - v2.3.53
+ - Added GSP firmware modprobe option for 555 serie. Dedicated option in basic.conf is GSP_firm=0/1. Default: enabled.
+ - Added backup_prev option to basic.conf file allowing user to enable or disable driver backup process during install time. Default: enabled.
 
 
