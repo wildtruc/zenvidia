@@ -1196,6 +1196,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 	fi
 }
 blacklist_and_grub_set(){ # Perform blacklist and grub config. #
+	local serie mod short option message
 	## font display differently if install process in on.
 	if [ $from_install = 1 ]; then
 		fonts="${j}($n%)${end}${ge}${sf}"
@@ -1265,25 +1266,39 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 	fi
 	## blacklist nouveau
 	[ -e /etc/modprobe.d/blacklist-nouveau.conf ] || echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
-	## NOTE : This part is unsure, usualy nvidia driver prefer modeset config in grub,
-	## this filter could be remove in near future.
-	if [ $(chk_family) -ge 535 ]; then
-		drm_conf_file=/etc/modprobe.d/nvidia-drm.conf
-		grep "modeset=$drm_modset" $drm_conf_file &>/dev/null
-		if [ $? -gt 0 ]; then
-			if [ "$timeout" != '' ];then
-				echo $"# Update modprobe nvidia-drm option for $drm_msg."; sleep 2
+	## modprobe options.
+	## NOTE : Usualy nvidia driver prefer mod options config in grub,
+	## modprobe conf are set, for some of them, for session and mods reload.
+	opt_mod_list=(
+		"535,nvidia_drm,drm,modeset=$drm_modset,nvidia-drm"
+		"555,nvidia,gsp,NVreg_EnableGpuFirmware=$GSP_firm,GSP firmware"
+		)
+	for option_set in "${opt_mod_list[@]}"; do
+		#local serie mod short option message
+		serie=$(cut -d',' -f1 <<< $option_set )
+		if [ $(chk_family) -ge ${serie} ]; then
+			mod=$(cut -d',' -f2 <<< $option_set )
+			short=$(cut -d',' -f3 <<< $option_set )
+			option=$(cut -d',' -f4 <<< $option_set )
+			message=$(cut -d',' -f5 <<< $option_set )
+			conf_file=/etc/modprobe.d/nvidia-${short}.conf
+			grep "${option}" $conf_file &>/dev/null
+			if [ $? -gt 0 ]; then
+				if [ "$timeout" != '' ]; then
+					echo $"# Update modprobe ${message} option for $drm_msg."; sleep 2
+				else
+					echo $"# ${fonts} * Update modprobe ${message} option for $drm_msg.${end}${end}"; sleep 2
+				fi
+				echo "options ${mod} ${option}" > $conf_file
 			else
-				echo $"# ${fonts} * Update modprobe nvidia-drm option for $drm_msg.${end}${end}"; sleep 2
-			fi
-			echo "options nvidia_drm modeset=$drm_modset" > $drm_conf_file
-			if [ "$timeout" != '' ];then
-				echo $"# Modprobe $drm_msg nvidia-drm option already set."; sleep 2
-			else
-				echo $"# ${fonts} * Modprobe $drm_msg nvidia-drm option already set.${end}${end}"; sleep 2
+				if [ "$timeout" != '' ]; then
+					echo $"# Modprobe ${drm_msg} ${message} option already set."; sleep 2
+				else
+					echo $"# ${fonts} * Modprobe ${drm_msg} ${message} option already set.${end}${end}"; sleep 2
+				fi
 			fi
 		fi
-	fi
+	done
 }
 ## OPTIMUS SETUP
 # let xorg_conf configure the xorg config file, then ask for prime or optimus if detected.
@@ -3119,27 +3134,28 @@ INSTALL_DRIVER(){ #
 		echo "$n"
 		## at install only, nvidia-installer is located in temp rep.
 		install_bin="./nvidia-installer"
-		echo $"# ${v}${j}($n%)${end} - Backing up old driver version, if any${end}"; sleep 2
-		#
-		# backup driver repository (shits happens!)
-		unset report_log
-		if [ -d $nv_root/nvidia.$(old_version) ]; then
-			bak_version=$(old_version)
-			if [[ -s $nvbackup/nvidia.$bak_version.tar$zip_ex ]]; then
-				echo $"# ${y}${j}($n%)${end} - Driver already backed up. Skipped.${end}"; sleep 1
-				report_log+=($"${vB}Previous version:\t\t${end}${gB} passed\t${end}> ${y}previously backed up${end}\n")
+		if [ ${backup_prev} = 1 ]; then
+			echo $"# ${v}${j}($n%)${end} - Backing up old driver version, if any${end}"; sleep 2
+			#
+			# backup driver repository (shits happens!)
+			unset report_log
+			if [ -d $nv_root/nvidia.$(old_version) ]; then
+				bak_version=$(old_version)
+				if [[ -s $nvbackup/nvidia.$bak_version.tar$zip_ex ]]; then
+					echo $"# ${y}${j}($n%)${end} - Driver already backed up. Skipped.${end}"; sleep 1
+					report_log+=($"${vB}Previous version:\t\t${end}${gB} passed\t${end}> ${y}previously backed up${end}\n")
+				else
+					y_text=$"Backup : $bak_version backup archive creation"
+					pulse=1; log=0; hold=0 ; hide_txt=0
+					{ timeout=30; {
+					backup_old_version; } & eval lpid=$!; y_pulse; } | win_yad_progress
+					report_log+=($"${vB}Previous version:\t\t${end}${gB} success\t${end}> ${y}$bak_version normal backup process${end}\n")
+					log=1
+				fi
 			else
-				y_text=$"Backup : $bak_version backup archive creation"
-				pulse=1; log=0; hold=0 ; hide_txt=0
-				{ timeout=30; {
-				backup_old_version; } & eval lpid=$!; y_pulse; } | win_yad_progress
-				report_log+=($"${vB}Previous version:\t\t${end}${gB} success\t${end}> ${y}$bak_version normal backup process${end}\n")
-				log=1
+				report_log+=($"${vB}Previous version:\t\t${end}${jB} warning\t${end}> ${y}no directory to archive.${end}\n")
 			fi
-		else
-			report_log+=($"${vB}Previous version:\t\t${end}${jB} warning\t${end}> ${y}no directory to archive.${end}\n")
 		fi
-
 		n=$[ $n+5 ] ; echo "$n"
 		## temp value to n
 		p=$n
@@ -6619,9 +6635,11 @@ default_sets(){
 	## default main set value.
 	temp_ramfs=${temp_ramfs:-1}
 	backup_to_user_dir=${backup_to_user_dir:-0}
+	backup_prev=${backup_prev:-1}
 	distro_warn=${distro_warn:-0}
 	use_drm=${use_drm:-1}
 	drm_modset=${drm_modset:-1}
+	GSP_firm=${GSP_firm:-1}
 	opti_preset=${opti_preset:-0}
 	from_install=${from_install:-0}
 	rem_extract=${rem_extract:-1}
