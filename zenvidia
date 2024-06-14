@@ -1297,6 +1297,7 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 					echo $"# ${fonts} * Modprobe ${drm_msg} ${message} option already set.${end}${end}"; sleep 2
 				fi
 			fi
+		## TODO : retropédalage GSP sur régression pilote.
 		fi
 	done
 }
@@ -4204,7 +4205,7 @@ download_only(){ #
 		qst=0; cancel_lbl=$"Close"'!zen-close' ; kill_yad=0
 		win_yad_warns
 
-		[ $rem_extract = 0 ] || test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
+		[ $rem_extract -eq 0 ] || test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
 		mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
 		chmod 755 $nvdl/nv-update-$LAST_PACK
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
@@ -6530,6 +6531,7 @@ base_menu(){ #
 	}
 }
 install_controls(){
+	## migration de /usr/local/zenvidia à /usr/local/share/zenvidia
 	if [ -d $install_dir/zenvidia ] ; then
 		mkdir -p $nvdir
 		cp -rf $install_dir/zenvidia/* $nvdir/
@@ -6846,7 +6848,7 @@ while [ $# -gt 0 ]
 		z) edit_script_conf;;
 		o) [ $UID = 0 ] && win_open_switch;;
 		a) read_about;;
-		u) if [ $UID = 0 ]; then legacy_drv=0; check_for_newer; check_update; fi ;;
+		u) if [ $UID = 0 ]; then legacy_drv=0; tmp_dir; check_for_newer; check_update; fi ;;
 # 		t) read_help ;;
 	esac
 exit 0
