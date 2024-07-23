@@ -2,14 +2,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zenvidia-trans\n"
 "POT-Creation-Date: 2023-12-02 12:25+0200\n"
-"PO-Revision-Date: 2024-03-21 15:39+0100\n"
+"PO-Revision-Date: 2024-07-15 14:30+0200\n"
 "Last-Translator: @PirateProd <wildtruc@noneltd.net>\n"
 "Language-Team: French Task force\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.4.4\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-Bookmarks: 555,-1,-1,-1,-1,-1,-1,-1,-1,-1\n"
 "X-Poedit-SearchPath-0: locale/fr_FR/LC_MESSAGES/zenvidia.mo\n"
@@ -575,7 +575,7 @@ msgid ""
 ")"
 msgstr ""
 "$(cat <<-MSG\n"
-"${j}${bf}Suppresion de pilote Ouvert${end}${end}\n"
+"${j}${bf}Suppression de pilote Ouvert${end}${end}\n"
 "${v}Vous allez supprimer les pilotes Ouverts de l’arborescence des pilotes.\n"
 "Êtes-vous certain ?${end}\n"
 "MSG\n"
@@ -658,20 +658,28 @@ msgid "# ${fonts} * Create GRUB conf for nouveau driver blacklisting and other o
 msgstr "# ${fonts} * Crée les définitions GRUB pour la quarantaine du pilote Nouveau.${end}${end}"
 
 #: .. from initial pot line
-msgid "# Update modprobe nvidia-drm option for $drm_msg."
-msgstr "# Mise à jour de l'option modprobe nvidia-drm pour $drm_msg."
+msgid "# Update modprobe ${message} option for ${drm_msg}."
+msgstr "# Mise à jour de l'option modprobe ${message} pour ${drm_msg}."
 
 #: .. from initial pot line
-msgid "# ${fonts} * Update modprobe nvidia-drm option for $drm_msg.${end}${end}"
-msgstr "# ${fonts} * Mise à jour de l'option modprobe nvidia-drm pour $drm_msg.${end}${end}"
+msgid "# ${fonts} * Update modprobe ${message} option for ${drm_msg}.${end}${end}"
+msgstr "# ${fonts} * Mise à jour de l'option modprobe ${message} pour ${drm_msg}.${end}${end}"
 
 #: .. from initial pot line
-msgid "# Modprobe $drm_msg nvidia-drm option already set."
-msgstr "# Définition de l'option Modprobe $drm_msg nvidia-drm déjà faite."
+msgid "# Modprobe ${drm_msg} ${message} option already set."
+msgstr "# Définition de l'option Modprobe ${drm_msg} ${message} déjà faite."
 
 #: .. from initial pot line
-msgid "# ${fonts} * Modprobe $drm_msg nvidia-drm option already set.${end}${end}"
-msgstr "# ${fonts} * Définition de l'option Modprobe $drm_msg nvidia-drm déjà faite.${end}${end}"
+msgid "# ${fonts} * Modprobe ${drm_msg} ${message} option already set.${end}${end}"
+msgstr "# ${fonts} * Définition de l'option Modprobe ${drm_msg} ${message} déjà faite.${end}${end}"
+
+#: .. from initial pot line
+msgid "# Remove modprobe ${message} option for ${drm_msg}."
+msgstr "# Suppression de l'option modprobe ${message} pour ${drm_msg}."
+
+#: .. from initial pot line
+msgid "# ${fonts} * Remove modprobe ${message} option for ${drm_msg}.${end}${end}"
+msgstr "# ${fonts} * Suppression de l'option modprobe ${message} pour ${drm_msg}.${end}${end}"
 
 #: .. from initial pot line ##############
 msgid ""
@@ -845,7 +853,7 @@ msgstr "# ${j}($n%)${end}${ge}${sf} * Mise à jour de la configuration GRUB et B
 
 #: .. from initial pot line
 msgid "# ${v}${j}($n%)${end} - Cleaning old ${old_lib_version} source and DKMS tree if needed.${end}"
-msgstr "# ${v}${j}($n%)${end} - Nettoyage des anciennes arborescences $(old_version) source et DKMS.${end}"
+msgstr "# ${v}${j}($n%)${end} - Nettoyage des anciennes arborescences ${old_lib_version} source et DKMS.${end}"
 
 #: .. from initial pot line **
 msgid "\\t\\t\\t\\t${gB} old version\\t${end}> ${y}${old_lib_version} directory cleaned${end}.\\n"

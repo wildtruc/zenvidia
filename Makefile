@@ -39,9 +39,10 @@ install: check_su
 	install -Dm644 -t $(INSTALL_DIR)/locale_dev/locale_po locale/locale_dev/*
 	cp -rf -t $(INSTALL_DIR)/ locale/locale
 	## post install
-	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
+	sudo -u "$(C_USER)" git log -n1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)
 	## restart polkit service
+	systemctl daemon-reload
 	systemctl restart polkit.service
 
 uninstall: check_su
@@ -76,5 +77,5 @@ update: check_su
 	install -CDm644 -t $(INSTALL_DIR)/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t $(INSTALL_DIR)/ locale/locale
 	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
-	sudo -u "$(C_USER)" git log origin/master -n 1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
+	sudo -u "$(C_USER)" git log -n1 | grep -E -o "v[0-9]..*" > $(INSTALL_DIR)/zen_version
 	chown -R $(C_USER):$(C_USER) $(CONF_DIR)/zen_version

@@ -415,16 +415,22 @@ msgstr ""
 msgid "# ${fonts} * Create GRUB conf for nouveau driver blacklisting and other options.${end}${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "# Update modprobe nvidia-drm option for $drm_msg."
+msgid "# Update modprobe ${message} option for ${drm_msg}."
 msgstr ""
 #: .. from initial pot line
-msgid "# ${fonts} * Update modprobe nvidia-drm option for $drm_msg.${end}${end}"
+msgid "# ${fonts} * Update modprobe ${message} option for ${drm_msg}.${end}${end}"
 msgstr ""
 #: .. from initial pot line
-msgid "# Modprobe $drm_msg nvidia-drm option already set."
+msgid "# Modprobe ${drm_msg} ${message} option already set."
 msgstr ""
 #: .. from initial pot line
-msgid "# ${fonts} * Modprobe $drm_msg nvidia-drm option already set.${end}${end}"
+msgid "# ${fonts} * Modprobe ${drm_msg} ${message} option already set.${end}${end}"
+msgstr ""
+#: .. from initial pot line
+msgid "# Remove modprobe ${message} option for ${drm_msg}."
+msgstr ""
+#: .. from initial pot line
+msgid "# ${fonts} * Remove modprobe ${message} option for ${drm_msg}.${end}${end}"
 msgstr ""
 #: .. from initial pot line
 msgid ""

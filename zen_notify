@@ -188,21 +188,21 @@ source_ctrl(){
 			CHECK_GIT_REPO(){
 				local_date=$(env LANG=En_en date +%Y''%m''%d)
 				# extract date from log
-				git_rm_fetch_date=$(git log ${git_source} -n 1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
+				git_rm_fetch_date=$(git log -n1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
 				# convert date to comparable number
 				git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
 				# extract version line
-				git_rm_version=$(git log ${git_source} -n 1 | grep -E -o "v[0-9].*")
+				git_rm_version=$(git log -n1 | grep -E -o "v[0-9].*")
 				git_local_version=$(cat $local_nvdir/zen_version)
 # 				git_local_version=$(cat $nvdir/zen_version)
-				git_rm_fetch_log=$(git log ${git_source} -n 1 | sed -n "/-/,/-/p")
+				git_rm_fetch_log=$(git log -n1 | sed -n "/-/,/-/p")
 				# before acting, we need to know the last pull record in local dir.
 				if [ $rep_git_local ]; then
 					pushd $rep_git_local
 					git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
 					git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
 					if [ ! "$git_local_version" ]; then
-						git_local_version=$(git log origin -n 1 | grep -E -o "v[0-9].*")
+						git_local_version=$(git log -n1 | grep -E -o "v[0-9].*")
 						test "$git_local_version" || git_local_version=0
 						echo -e "$git_local_version" > $nvdir/zen_version
 					fi
