@@ -17,7 +17,7 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
-# set -x
+# set -vx
 # set -vxEmb
 # set -evxEmb
 # set -xmb
@@ -878,7 +878,7 @@ exec_initramfs(){
 nv_persistenced(){
 	## nvidia percistenced allow GPU to be pre init in some case.
 	nv_persist_ctl=/lib/systemd/system/nvidia-persistenced.service
-	if [[ $use_persistenced = 1 || $use_open = 1 && $(chk_family) -ge 535 ]]; then
+	if [[ $use_persistenced = 1 || $use_open = 1 && $(chk_family) -lt 555 && $(chk_family) -ge 535 ]]; then
 		[ -f $nv_persist_ctl ] || { touch $nv_persist_ctl; chmod 644 $nv_persist_ctl; nv_persistenced_conf;}
 # 		nv_persistenced_conf
 		systemctl daemon-reload
@@ -1274,20 +1274,19 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 		"555,nvidia,gsp,NVreg_EnableGpuFirmware=$GSP_firm,GSP firmware"
 		)
 	for option_set in "${opt_mod_list[@]}"; do
-		#local serie mod short option message
 		serie=$(cut -d',' -f1 <<< $option_set )
+		mod=$(cut -d',' -f2 <<< $option_set )
+		short=$(cut -d',' -f3 <<< $option_set )
+		option=$(cut -d',' -f4 <<< $option_set )
+		message=$(cut -d',' -f5 <<< $option_set )
+		conf_file=/etc/modprobe.d/nvidia-${short}.conf
 		if [ $(chk_family) -ge ${serie} ]; then
-			mod=$(cut -d',' -f2 <<< $option_set )
-			short=$(cut -d',' -f3 <<< $option_set )
-			option=$(cut -d',' -f4 <<< $option_set )
-			message=$(cut -d',' -f5 <<< $option_set )
-			conf_file=/etc/modprobe.d/nvidia-${short}.conf
 			grep "${option}" $conf_file &>/dev/null
 			if [ $? -gt 0 ]; then
 				if [ "$timeout" != '' ]; then
-					echo $"# Update modprobe ${message} option for $drm_msg."; sleep 2
+					echo $"# Update modprobe ${message} option for ${drm_msg}."; sleep 2
 				else
-					echo $"# ${fonts} * Update modprobe ${message} option for $drm_msg.${end}${end}"; sleep 2
+					echo $"# ${fonts} * Update modprobe ${message} option for ${drm_msg}.${end}${end}"; sleep 2
 				fi
 				echo "options ${mod} ${option}" > $conf_file
 			else
@@ -1297,7 +1296,17 @@ blacklist_and_grub_set(){ # Perform blacklist and grub config. #
 					echo $"# ${fonts} * Modprobe ${drm_msg} ${message} option already set.${end}${end}"; sleep 2
 				fi
 			fi
-		## TODO : retropédalage GSP sur régression pilote.
+		else
+			## remove GSP or modset config in case of driver regression.
+			grep "${option}" $conf_file &>/dev/null
+			if [ $? -eq 0 ]; then
+				if [ "$timeout" != '' ]; then
+					echo $"# Remove modprobe ${message} option for ${drm_msg}."; sleep 2
+				else
+					echo $"# ${fonts} * Remove modprobe ${message} option for ${drm_msg}.${end}${end}"; sleep 2
+				fi
+				rm -f $conf_file
+			fi
 		fi
 	done
 }
@@ -3247,13 +3256,13 @@ INSTALL_DRIVER(){ #
 			fi
 			n=$[ $n+20]; echo "$n"
 		fi
-		cd $nvtmp
-		if [[ -s $nvtmp/$extracted_release/nvidia-installer ]]; then
-			echo $"# ${v}${j}($n%)${end} - Backup new Nvidia-Installer to $nvdir${end}"; sleep 2
-			#
-			cp -f NVIDIA-Linux-$ARCH-$(new_version)/nvidia-installer $nvdir
-			n=$[ $n+1 ]; echo "$n" # 5
-		fi
+# 		cd $nvtmp
+# 		if [[ -s $nvtmp/$extracted_release/nvidia-installer ]]; then
+# 			echo $"# ${v}${j}($n%)${end} - Backup new Nvidia-Installer to $nvdir${end}"; sleep 2
+# 			#
+# 			cp -f NVIDIA-Linux-$ARCH-$(new_version)/nvidia-installer $nvdir
+# 			n=$[ $n+1 ]; echo "$n" # 5
+# 		fi
 		echo $"# ${v}${j}($n%)${end} - Update new driver version file${end}"; sleep 2
 		#
 		printf "$(new_version)" > $nvdir/version.txt
