@@ -1336,6 +1336,9 @@ msgstr ""
 msgid "${v}Driver download ${j}$LAST_PACK${end} failure.\\n The package ${j}$run_pack${end} doesn't exist.${end}"
 msgstr ""
 #: .. from initial pot line
+msgid "# Downloading $file_down of $file_up $file_ex."
+msgstr ""
+#: .. from initial pot line
 msgid "${v}Remote content control...${end}"
 msgstr ""
 #: .. from initial pot line

@@ -2055,6 +2055,10 @@ msgid "${v}Driver download ${j}$LAST_PACK${end} failure.\\n The package ${j}$run
 msgstr "${v}Échec du téléchargement de ${j}$LAST_PACK${end}.\\n Le paquet ${j}$run_pack${end} n'existe pas.${end}"
 
 #: .. from initial pot line
+msgid "# Downloading $file_down of $file_up $file_ex."
+msgstr "# Téléchargement de $file_down sur $file_up $file_ex."
+
+#: .. from initial pot line
 msgid "${v}Remote content control...${end}"
 msgstr "${v}Contrôle du contenu distant...${end}"
 

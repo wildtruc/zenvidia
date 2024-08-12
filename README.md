@@ -9,14 +9,6 @@ Project not maintained as a project is usually maintain. No waranty support. Jus
 Update will be made only on my own bugs discovery or from fatal error send by users.
 
 ---------------------------------------------------------------------------------------------------
-## Important change log notes
-v2.3.43 NOTES :
- - Nvidia-installer, no matter what, remove dkms used driver tree in case of a libraries reinstall only, sometime in conjonction with installed kernel modules. There is too way to prevent this :
- 1) Not allowed libraries reinstall.
- 2) back up and restore dkms and modules.
- The first proposal is the simpliest, but there is cases where libraries reinstall could be necessary (files corruption, accidental lost, etc). at this point, it is chosen to privilege the solution 2, event if this is a bit loud. Fix will be ask to Nvidia's developper and will be hopefully heard.
-
----------------------------------------------------------------------------------------------------
 ## Main Features
  - Driver Install.
  - Driver or Modules update.

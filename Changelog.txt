@@ -384,7 +384,9 @@
  - Added backup_prev option to basic.conf file allowing user to enable or disable driver backup process during install time. Default: enabled.
 * 2024-06-14 - v2.3.54
  - tmp_dir function wasn't properly activated for temp_ramfs=1 and launch from the driver update check command in zen_task_menu. Fixed.
-* 2024-06-14 - v2.3.55
+* 2024-07-23 - v2.3.55
  - Since 555 serie nvidia-persistenced options looks to be unecessary for open-nvidia modules. From there, the auto activation of the service is disabled starting 555.xx.
  - Remove "origin" word in git log checks from zen_notify and makefile (gitlab/github origins compatibility).
  - Translation FR updated.
+* 2024-08-12 - v2.3.56
+ - From the last wget upgrade output can't be catch to display download informations. Download progress has been convert to progress only.
