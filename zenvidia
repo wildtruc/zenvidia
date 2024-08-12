@@ -4228,13 +4228,16 @@ download_only(){ #
 }
 last_pack(){ #
 	track(){
-    # picked up & inspired by winetricks download progress commande:
-    # Parse a percentage, a size, and a time into $1, $2 and $3
-    # then use them to create the output line.
-   	perl -p -e "$| = 1; s|^.* +([0-9]+%) +([0-9,.]+[GMKB]) +([0-9hms,.]+).*$|\1\n# $run_pack\t(\1): time left \3\t\2\/s|"
+		sleep 1
+		until [ $file_up = $file_down ]; do
+			file_down=$(du -h -BM $buildtmp/NVIDIA-Linux-x86_64-$LAST_PACK.run | awk '{print $1}'| grep -Eo "[0-9]+")
+			echo -e $"# Downloading $file_down of $file_up $file_ex."
+			echo "$(( $((100*$file_down))/$file_up ))"
+			sleep 0.5
+		done
 	}
 	download_cmd(){
-		$p_wget -c https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack $buildtmp/ 2>&1
+		$p_wget -c -P $buildtmp/ https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack
 	}
 	download_error(){
 		warn_log="$w_text"
@@ -4245,14 +4248,13 @@ last_pack(){ #
 	y_text=$"${v}Remote content control...${end}"
 	pulse=1; log=0; hold=0 ; hide_txt=1; [ $hold = 1 ] && win_log_options
 	{ timeout=30
-	{	$p_wget -q -O $nvtmp/bug_list https://$nvidia_ftp-$ARCH/$LAST_PACK/
-		cat $nvtmp/bug_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| perl -pe "s/^.*\'(.*)\'/\1/p" \
-		> $nvtmp/selector
+	{	$p_wget -q -O $nvtmp/dl_list https://$nvidia_ftp-$ARCH/$LAST_PACK/
+		cat $nvtmp/dl_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| sed -En "s/^.*'(.*)'/\1/p" > $nvtmp/dl_selector
 	} & eval lpid=$!; y_pulse; } | win_yad_progress
 
-	if [ -s $nvtmp/bug_list ]; then
-		if [ $(cat $nvtmp/selector | grep -c "$LAST_PACK") -gt 0 ] ; then
-			RUN_PACK=$(cat $nvtmp/selector)
+	if [ -s $nvtmp/dl_list ]; then
+		if [ $(cat $nvtmp/dl_selector | grep -c "$LAST_PACK") -gt 0 ] ; then
+			RUN_PACK=$(cat $nvtmp/dl_selector| grep -v "[0-9]sum")
 		fi
 
 		unset drv_list
@@ -4265,7 +4267,7 @@ last_pack(){ #
 		l_text=$"${v}Choose the version to install${end}"
 		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
 		ok_lbl=$"Select"'!zen-ok'; l_tail=0; w_head=0
-		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='300'
+		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='100'
 		run_pack=$(win_yad_list "${drv_list[*]}")
 		_exit=$?
 		[ $_exit -eq 252 ] && exit 0
@@ -4274,16 +4276,20 @@ last_pack(){ #
 			[ $task_opt -gt 0 ] && exit 0 || base_menu
 		fi
 		## from there, look into 'selector' file for sha256sum file.
-		if [ -e $nvtmp/selector ]; then
-			if [ $(cat $nvtmp/selector| grep -c "sha256sum") -gt 0 ]; then
+		if [ -e $nvtmp/dl_selector ]; then
+			if [ $(cat $nvtmp/dl_selector| grep -c "sha256sum") -gt 0 ]; then
 				run_pack_sha=$run_pack.sha256sum
 			fi
 		fi
-
+		file_size=$(cat $nvtmp/dl_list | grep -A1 -E "NVIDIA-Linux-x86_64-$LAST_PACK.run" | sed -En "s/^.*>(.*)<.*$/\1/;s/^([0-9]+)([A-Z]*)$/\1;\2/p")
 		y_text=$"<b>Downlaoding ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
 		pulse=0; log=0; hold=0 ; hide_txt=0; [ $hold = 1 ] && win_log_options
-		{	test $run_pack_sha && $p_wget -c https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack_sha $buildtmp/ &>/dev/null
-			download_cmd | track
+		{	test $run_pack_sha && $p_wget -c -P $buildtmp/ https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack_sha &>/dev/null
+			file_down=0
+			file_up=$(cut -d';' -f1 <<< $file_size)
+			file_ex=$(cut -d';' -f2 <<< $file_size)
+			download_cmd &
+			track
 		} | win_yad_progress
 		err=$?
 		if test $err -gt 128; then
@@ -4294,15 +4300,16 @@ last_pack(){ #
 		fi
 		# get weight of the pack in ko.
 		_local=$(du -h $buildtmp/$run_pack | awk '{print $1}'| grep -o "[0-9]*")
-		_remote=$(cat $nvtmp/bug_list | grep -A1 "$run_pack<"|sed -En "s/^.*>(.*)<\/.*>.*$/\1/g;2p"| grep -o "[0-9]*")
+		_remote=$(cat $nvtmp/dl_list | grep -A1 "$run_pack<"|sed -En "s/^.*>(.*)<\/.*>.*$/\1/g;2p"| grep -o "[0-9]*")
 		if [ -f $buildtmp/$run_pack.sha256sum ]; then
-			local_sha=$buildtmp/$run_pack.sha256sum
+			pushd $buildtmp &>/dev/null
 			sha256sum $run_pack
-			sha256sum --status -c $local_sha
+			sha256sum --status -c $run_pack.sha256sum
 			if [ $? = 1 ]; then
 				w_text=$"${j}<b>Download check sum error</b>${end}.\nTransaction aborted\nTry to restart driver download from <b>Update menu</b>"
 				download_error
 			fi
+			popd &>/dev/null
 		fi
 		if [ $_remote -ne $_local ]; then
 			w_text=$"${j}<b>Download unexpected end</b>${end}.\nPlease restart driver download from <b>Update menu</b>"
@@ -4321,7 +4328,6 @@ last_pack(){ #
 		if [ $_exit -eq 1 ]; then [ $task_opt -gt 0 ] && exit 0 || base_menu; fi
 	fi
 }
-
 ## TOOLS ###
 
 ## common windows.
