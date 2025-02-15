@@ -17,13 +17,13 @@
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
-# set -vx
+# set -x
 # set -vxEmb
 # set -evxEmb
 # set -xmb
 
 ## Fixed Variables (could not be change)
-## ### ZENVIDIA VARS ###
+## ### ZENVIDIA VARS ### readonly install_dir="/usr/local" (AI fix)
 install_dir=/usr/local							# default tools & system install directory
 nvdir=$install_dir/share/zenvidia			# default Zenvidia directory
 conf_dir=$nvdir									# default config files directory
@@ -61,6 +61,13 @@ nc='\e[0m'
 ## check if X server is alive
 ps -A | grep -i xorg &>/dev/null
 eval x_alive=$?
+## AI suggestion
+# if pgrep -x "Xorg" > /dev/null; then
+#     x_alive=0
+# else
+#     x_alive=1
+# fi
+
 ## save sys IFS variable for restoration purpose.
 ## ex: IFS=$' \t\n'
 ifs=$IFS
@@ -655,10 +662,14 @@ nv_open_modules_set(){ #
 }
 gcc_and_proc_options(){
 	# test driver code compilator version __GNUC__, __GNUC_MINOR__
-	test $(grep -E -c "gcc_mismatch" $basic_conf) -gt 0 && (
-		if [ $gcc_mismatch = 1 ]; then ignore_mismatch="IGNORE_CC_MISMATCH=1"; else ignore_mismatch=''; fi
-		export IGNORE_CC_MISMATCH=$gcc_mismatch
-	)
+ 	if [ "$basic_conf" != '' ]; then
+# 	test $(grep -E -c "gcc_mismatch" $basic_conf) -gt 0 && (
+		if [ $(grep -E -c "gcc_mismatch" $basic_conf) -gt 0 ]; then
+			if [ $gcc_mismatch = 1 ]; then ignore_mismatch="IGNORE_CC_MISMATCH=1"; else ignore_mismatch=''; fi
+			export IGNORE_CC_MISMATCH=$gcc_mismatch
+#  	)
+		fi
+	fi
 	proc=$(grep -E -c "processor.*[0-9]{,2}" /proc/cpuinfo)
 	## Select tuen compression coantainer for backup.
 	if [ $use_gzip -eq 0 ]; then
@@ -702,6 +713,11 @@ rt_options(){ #
 			base_menu
 		fi
 	fi
+}
+dkms_version(){
+	## depending of the age/kind of distributions DKMS could be 3.0.x or 3.1.x version.
+	## Behaviour of AUTOINSTALL and no-autoinstall is not the same for each
+	$p_dkms --version | sed -n "s/^.*-//p" | awk -F '.' '{print $1$2}'
 }
 ## nvidia driver vars [in functions)
 ## some sets have to be place as function to be re-used at multi levels.
@@ -1112,7 +1128,7 @@ nv_open_switch(){ # NVIDIA MODULE SWITCH. #
 				fi
 				sleep 2
 				## add no-autoinstall blank file
-				touch /etc/dkms/no-autoinstall
+				if [ $(dkms_version) -lt 31 ]; then touch /etc/dkms/no-autoinstall; fi
 				## set DKMS AUTOINSTALL values for each driver type.
 				echo -e $"# ${v}Set ${y}$drv_on${end} DKMS AUTOINSTALL option to \"yes\".${end}"
 				echo -e "AUTOINSTALL=\"yes\"" >> /usr/src/$drv_on-$(version)/dkms.conf
@@ -3185,6 +3201,7 @@ INSTALL_DRIVER(){ #
 			cp -rf /var/lib/dkms/$compiled_driver/* $nvtmp/old_kernel/dkms/$compiled_driver/
 		fi
 		## ALERT REVERSE PROCESS FOR 396 SERIE AND OLDER.
+# 		if [ $(chk_family) -gt 396 ]&&[ $(chk_family) -lt 570 ]; then
 		if [ $(chk_family) -gt 396 ]; then
 			process_type=1
 			# install driver first, then control if everything ok
@@ -4161,19 +4178,21 @@ from_net(){ #
 		INSTALL_DRIVER
 }
 download_menu(){ #
-		l_text=$"$( cat <<-INFO
-			${jB}${bf}Downloads${end}${end}
-			Select the drivers version you wish to $ok_label.
-			in the list below
-		INFO
-		)"
-		output_type=1
+	l_text=$"$( cat <<-INFO
+		${jB}${bf}Downloads${end}${end}
+		Select the drivers version you wish to $ok_label.
+		in the list below
+	INFO
+	)"
+	output_type=1
 	if [ ${#DOWN_list[*]} -gt 3 ]; then
 		IFS=$(echo -en "\n\b")
 		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
 		ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0
 		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='300'; w_height='0'
 		dl_cmd=$( win_yad_list "${DOWN_list[*]}" )
+		_exit=$?
+		[ $_exit -eq 252 ] && exit 0
 	else
 		dl_cmd=${DOWN_list[1]}
 		warn_log=$"$( cat <<-MSG
@@ -4186,8 +4205,8 @@ download_menu(){ #
 		qst=1; ok_lbl=$"Ok"'!zen-ok'; cancel_lbl=$"Back to main"'!zen-back' ; kill_yad=0
 		win_yad_warns
 	fi
-	_exit=$?
-	[ $_exit -eq 252 ] && exit 0
+# 	_exit=$?
+# 	[ $_exit -eq 252 ] && exit 0
 	if [ $_exit -eq 1 ]; then
 		IFS=$ifs
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
@@ -5188,7 +5207,7 @@ edit_script_conf(){
 				## udpate program that apprently need 'autoinstall all' to be set (fedora here).
 				if [ $open_drv -ne $old_open_drv ]; then
 					if [ $open_drv = 1 ]; then
-						touch /etc/dkms/no-autoinstall
+						if [ $(dkms_version) -lt 31 ]; then touch /etc/dkms/no-autoinstall; fi
 					else
 						test -f /etc/dkms/no-autoinstall && rm -f /etc/dkms/no-autoinstall
 					fi
@@ -6339,7 +6358,7 @@ dm_serv_restore(){
 			echo -e "${nc}# ${yel}Exec $KERNEL modules reload."; sleep 2
 			exec_mod_load
 			echo -e "${nc}# ${yel}Exec $KERNEL modules init."; sleep 2
-			progress_msg(){ echo -en "\r${nc}#${blu} ($m sec.) Exec $KERNEL modules initramfs."; }; m=1; do_slp=1
+			progress_msg(){ echo -en "\r${nc}#${cya} ($m sec.) Exec $KERNEL modules initramfs."; }; m=1; do_slp=1
 			exec_initramfs
 			echo -e "\n${nc}# ${yel}Done.${nc}"
 			echo -e "# ${yel}License is $license ${nc}."
@@ -6349,7 +6368,7 @@ dm_serv_restore(){
 				echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2; )
 				$d_sys enable $(dm_serv).service
 				echo -e "${nc}# ${yel}Start $(dm_serv) service${nc}."; sleep 2
-				echo -e "${blu}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
+				echo -e "${cya}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
 				$d_sys start $(dm_serv).service
 			else
 				echo -e "${nc}# ${yel}You can 'enable' and 'start' your Display Manager now.${nc}."
@@ -6373,7 +6392,7 @@ restore_cmdline(){
 	## clean old libraries
 	if [ "$dkms_ins" != "" ]; then
 		if [[ $cmd_ver != $dkms_ins ]]; then
-			echo -e "# ${blu}Cleaning $dkms_ins old installation${nc} ..."
+			echo -e "# ${cya}Cleaning $dkms_ins old installation${nc} ..."
 			sleep 2
 			rm -f /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so.$dkms_ins
 			rm -f $install_dir/$master$ELF_32/libnvidia-*.so.$dkms_ins
@@ -6386,17 +6405,24 @@ restore_cmdline(){
 		fi
 	fi
 	restore_pcks_cmd
-	echo -e "\n# ${blu}- Registering $cmd_ver libraries (ldconfig)${nc} ..."
-	ldconfig
-	echo -e "# ${blu}- Depmod $cmd_ver modules ..."
-	progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
+# 	echo -e "\n# ${blu}- Registering $cmd_ver libraries (ldconfig)${nc} ..."
+# 	ldconfig
+	echo -e "# ${cya}- Depmod $cmd_ver modules ..."
+	progress_msg(){ echo -en "\r${nc}#${cya} - Depmod $cmd_ver modules ($m sec.)"; }
 	m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 	## check modules
-	echo -e "\n${nc}# ${blu}- Testing $cmd_ver modules availbility${nc} ..."
+	echo -e "\n${nc}# ${cya}- Testing $cmd_ver modules availbility${nc} ..."
 	vermagic=$(modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
 	license=$(modinfo -F license nvidia -k $KERNEL)
-	test $vermagic && echo -e "# ${yel}Initramfs update${nc}." || \
-	( echo -e "# ${red}Test failed${nc}."; echec=1; rebuild_cmdline )
+	if [[ "$vermagic" =~ "$(uname -r)" ]]; then
+		echo -e "# ${yel}Initramfs update${nc}."
+	else
+		echo -e "# ${red}Test failed${nc}."; echec=1; rebuild_cmdline
+		# define again newly install dkms modules for DM restart section.
+		dkms_ins=$(modinfo -F version $libmod/nvidia.ko*)
+	fi
+# 	test $vermagic && echo -e "# ${yel}Initramfs update${nc}." || \
+# 	( echo -e "# ${red}Test failed${nc}."; echec=1; rebuild_cmdline )
 	sleep 2
 	if [ $echec = 0 ]; then
 		echo -e "\n${nc}# ${yel}Done.${nc}"
@@ -6408,8 +6434,7 @@ rebuild_cmdline(){
 	if [ $echec = 1 ]; then
 		echo -e "# ${red}WARNING ${yel}: No $cmd_ver modules set in the backup${nc}.\n"; sleep 2
 	fi
-	clear
-	echo -e "# ${yel}Build & Install $cmd_ver DKMS $KERNEL modules ($license) :${blu}"; sleep 2
+	echo -e "# ${yel}Build & Install $cmd_ver DKMS $KERNEL modules ($license) :${cya}"; sleep 2
 	if [ $($p_dkms status -m $module/$cmd_ver -k $KERNEL| grep -cv "added") -gt 0 ]; then
 		$p_dkms remove -m "$module/$cmd_ver" -k $KERNEL
 		$p_dkms add -m "$module/$cmd_ver" -k $KERNEL
@@ -6420,8 +6445,8 @@ rebuild_cmdline(){
 	## recheck modules
 	vermagic=$(modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
 	license=$(modinfo -F license nvidia -k $KERNEL)
-	if [[ $vermagic ]]; then
-		echo -e "\n${nc}# ${yel}Initramfs update aand other routines.${blu}"; sleep 2
+	if [[ "$vermagic" =~ "$(uname -r)" ]]; then
+		echo -e "\n${nc}# ${yel}Initramfs update and other routines.${cya}"; sleep 2
 		dm_serv_restore
 	else
 		echo -e "\n# ${red}Failed${nc}."
@@ -6441,11 +6466,11 @@ rescue_cmdline(){
 			cp -f *.ko $libmod/
 			## compress modules.
 			clear
-			echo -e "# ${blu}- Compressing modules if needed${nc}."; sleep 2
+			echo -e "# ${cya}- Compressing modules if needed${nc}."; sleep 2
 			is_RT=$(grep -ic "CONFIG_PREEMPT_RT=y" /boot/config-$KERNEL)
 			[ $is_RT = 0 ]|| xz -T12 $libmod/*.ko
-			echo -e "# ${blu}- Depmod $cmd_ver modules ..."
-			progress_msg(){ echo -en "\r${nc}#${blu} - Depmod $cmd_ver modules ($m sec.)"; }
+			echo -e "# ${cya}- Depmod $cmd_ver modules ..."
+			progress_msg(){ echo -en "\r${nc}#${cya} - Depmod $cmd_ver modules ($m sec.)"; }
 			m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )"
 			## rebuild initramfs in case of trouble booting.
 			clear
@@ -6807,6 +6832,9 @@ if [[ $(def_user) != "root" ]]; then
 	. $color_conf
 	## force optimus check to off and unset opti_preset.
 	[ $opti_preset_off = 1 ] && opti_preset=0
+else
+	basic_conf=$conf_dir/basic.conf
+	. $basic_conf
 fi
 ## set default or null value after conf files reading in case reading failure or missing values.
 default_sets
