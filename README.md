@@ -9,11 +9,6 @@ Project not maintained as a project is usually maintain. No waranty support. Jus
 Update will be made only on my own bugs discovery or from fatal error send by users.
 
 ---------------------------------------------------------------------------------------------------
-## YOUR ATTENTION !
-Oberved DKMS 3.1.4 regression on the "no-autoinstall" empty file in /etc/dkms breaking the drivers installation process by crashing the Xserver when installing the 570.86.16 beta driver.
-To prevent this behaviour, it is needed to downgrade DKMS to the previous version (3.0.13).
-
----------------------------------------------------------------------------------------------------
 ## Main Features
  - Driver Install.
  - Driver or Modules update.
@@ -81,7 +76,7 @@ As superuser :
   # to update (this including git update command) :
   make update
 ```
-Then :
+Then : (outside the task bar menu)
 Through terminal command line for GUI.
 ```sh
 	zen_start # (with administrator priviledge)

@@ -390,3 +390,9 @@
  - Translation FR updated.
 * 2024-08-12 - v2.3.56
  - From the last wget upgrade output can't be catch to display download informations. Download progress has been convert to progress only.
+* 2025-02-15 - v2.3.57
+ - Update for dkms 3.1.5 behaviour ending the usage of no-autoinstall file for dual driver compilation. Normaly, not used driver wont be removed by dkms anymore and kernel dkms scriplet is compiling normaly the used modules.
+ - Fixed a misbehaviour in command line rescue tool.
+ - NB: Sorry to so late for upload, but it was needed to control if the kernel scriplets and other auto compiling options were good before push it to git.
+
+
