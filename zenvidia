@@ -5402,7 +5402,7 @@ x_yad_extract(){
 			value=$(cut -d'|' -f4 <<< $options)
 			# define if value exist and is quoted. Then set quote.
 			[ "$value" != '' ] && a='"' || a=''
-			if	[[ "$value" =~ [0-9]{2}$|[0-9]\ [0-9]$ ]]; then
+			if	[[ "$value" =~ [0-9]{2}$|[0-9]\ [0-9]$ ]]&&[ "$option" != "DPI" ]; then
 				a=''
 			fi
 			# for log only
@@ -5413,7 +5413,7 @@ x_yad_extract(){
 			option_type_c=$(cut -d'|' -f2 <<< $line_c)
 			option_c=$(cut -d'|' -f3 <<< $line_c)
 			value_c=$(cut -d'|' -f4 <<< $line_c)
-			if [ $(grep -c "$option_type_c.*$option_c.*$value_c" $xorg_cfg_mod ) -gt 0 ]; then
+			if [ $(grep -c "$option_type_c.*$option_c" $xorg_cfg_mod ) -gt 0 ]; then
 				if [ $(grep -c "$options" $device_section_file) -eq 0 ]; then
 					if [ $(grep -c "$option_def" $device_section_file) -gt 0 ]; then
 						if [[ "$option_type_c" =~ Option|Screen|Inactive ]]; then
@@ -5423,7 +5423,7 @@ x_yad_extract(){
 							# write 2 or 1 arguments line.
 							option_line_c="   $option_c\t${a}$value_c${a}"
 						fi
-						log_on='FALSE to TRUE' # we write
+						[ ${value} != ${value_c} ] && log_on='VALUE MODIFIED' || log_on='FALSE to TRUE' # we write
 						sed -Ei "s|^[#]?.*${option_type}.*${b}${option}${b}.*$|${option_line_c}|" $xorg_cfg_mod
 					else
 						# FALSE
