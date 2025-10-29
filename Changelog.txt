@@ -398,4 +398,5 @@
  - Xorg configuration tool GUI misbehaviour as following:
  - When detecting double quote for DPI value when the value only is changed. Fixed.
  - When checking value for metamodes when the value is changed. Fixed.
-
+* 2025-10-29 - v2.3.59
+ - Minor : removed HELP.md from Makefile. Unused.

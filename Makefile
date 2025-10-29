@@ -26,7 +26,7 @@ install: check_su
 	## install
 	install -Dm755 -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -Dm644 -t $(INSTALL_DIR)/ *.conf
-	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
+	install -Dm644 -t $(INSTALL_DIR)/ README.md
 	install -Dm644 -t $(INSTALL_DIR)/ OLD-README.md
 	install -Dm644 -o $(C_USER) -g $(C_USER) -t $(USER_DIR)/.config/autostart/ desktop_files/zen_notify.desktop
 	install -Dm644 -o $(C_USER) -g $(C_USER) -t $(USER_DIR)/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
@@ -66,7 +66,7 @@ update: check_su
 	sudo -u $(C_USER) git pull
 	install -CDm755 -b -t $(BIN_DIR)/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -CDm644 -b -t $(INSTALL_DIR)/ *.conf
-	install -Dm644 -t $(INSTALL_DIR)/ {README,HELP}.md
+	install -Dm644 -t $(INSTALL_DIR)/ README.md
 	install -Dm644 -t $(USER_DIR)/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	install -Dm644 -t $(PREFIX)/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t $(PREFIX)/share/pixmaps/ pixmaps/*.png
