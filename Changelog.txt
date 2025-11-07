@@ -405,4 +405,7 @@
  - For next script steps, the code has been prepared for the 'set -e' local env variable (break on error), but not available yet, it still needs more debug.
  - Fixes on break and exit codes.
  - Script is in progress to support Wayland/Xwayland (not available yet).
+* 2025-11-05 - v2.3.61
+ - URGENT FIX : Yad really dislike 'set -e' local env variable even if not active. Regression needed. Debian fixes are still set and active.
+ - Script for Fedora user is OK, Debian under test, Arch has issues.
 
