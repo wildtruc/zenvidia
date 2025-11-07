@@ -17,6 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
+set -e
 
 ## basics
 local_nvdir=/home/$USER/.zenvidia
@@ -40,6 +41,8 @@ export TEXTDOMAINDIR=$nvdir/locale
 ## to uncomment only in case of session autostart notif issue.
 # sleep 15
 
+shopt -s extglob
+
 [ -d $nvtmp ] || mkdir -p $nvtmp
 notif_temp=$(mktemp --tmpdir -d zen_notif-XXXX)
 ARCH=$HOSTTYPE
@@ -57,6 +60,7 @@ cnx=$?
 ifs=$IFS
 ## capture for exit status
 trap "IFS=\$ifs rm -Rf $notif_temp" EXIT
+# cnx(){ ping -c2 www.nvidia.com &>/dev/null; echo "$?"; return; }
 driver_ctrl(){
 	## reset all value.
 	unset ver_array last_array DRV_LIST
@@ -145,19 +149,22 @@ driver_ctrl(){
 		fi
 		echo -e "${DRV_LIST[*]}"
 		if [ ${#DRV_LIST[@]} -gt 0 ]; then
+			unset sol eol
 			IFS=$(echo -en "\n\b")
 			cnt=0
 			for drv_line in ${DRV_LIST[@]}; do
 				driver=$(printf "$drv_line"|cut -d',' -f1)
 				release=$(printf "$drv_line"|cut -d',' -f2)
 				if [ $drv_diff -gt 0 ]; then
-					if [ $cnt -eq 0 ]; then sol='';eol=''; else sol='\n';eol=''; fi
+					if [ $cnt -eq 0 ]; then sol=''; eol=''; else sol='\n'; eol=''; fi
+# 					if [ $cnt -eq 0 ]; then local sol=""; local eol=""; else local sol='\n'; local eol=""; fi
+# 					if [ ${cnt} -gt 0 ]; then sol='\n'; eol=''; fi
 					if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
 						_driver_notif+=( $"$sol<b>$driver</b> $release.$eol" )
 					else
 						_driver_notif+=( $"$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
 					fi
-					((cnt++))
+					cnt=$((cnt+1))
 				fi
 			done
 			if [[ $greater -gt 0 || ! "$(echo -e "${DRV_LIST[*]}")" =~ $(modinfo -F version nvidia) ]]; then
@@ -173,9 +180,71 @@ driver_ctrl(){
 		msg_suffix=''
 	fi
 }
+CHECK_GIT_REPO(){
+	local_date=$(env LANG=En_en date +%Y''%m''%d)
+	# extract date from log
+	git_rm_fetch_date=$(git log -n1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
+	# convert date to comparable number
+	git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
+	# extract version line
+	git_rm_version=$(git log -n1 | grep -E -o "v[0-9].*")
+	git_local_version=$(cat $local_nvdir/zen_version)
+# 				git_local_version=$(cat $nvdir/zen_version)
+	git_rm_fetch_log=$(git log -n1 | sed -n "/-/,/-/p")
+	# before acting, we need to know the last pull record in local dir.
+	if [ $rep_git_local ]; then
+		pushd $rep_git_local
+		git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
+		git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
+		if [ ! "$git_local_version" ]; then
+			git_local_version=$(git log -n1 | grep -E -o "v[0-9].*")
+			test "$git_local_version" || git_local_version=0
+			echo -e "$git_local_version" > $nvdir/zen_version
+		fi
+		popd
+	else
+		git_pull_date=0
+		git_local_version=0
+	fi
+	# then, we need to know if log is about version update or issue warning message.
+	# log and issue is mandatory formated with a '-' in commit message.
+	# ISSUE is by default set to 0.
+	issue=0
+	if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
+		if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_version" ]; then
+			if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
+				if [ $(grep -c "\-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+					cat <<-LOG >> $local_src/zen_git.log
+						$git_rm_fetch_date : $git_rm_version
+						$git_rm_fetch_log
+					LOG
+				fi
+			fi
+		else
+			if [ $(grep -c "\- ISSUE :" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
+				issue=1
+				git_rm_warn_log=$(cut -d'-' -f2 <<< ${git_rm_fetch_log[*]})
+			fi
+		fi
+	fi
+	# if last pull/clone date is lower than the remote's, display update message.
+	if [ $git_pull_date -lt $git_rm_date ]; then
+		if [ "$git_rm_version" != "$git_local_version" ]; then
+			zen_up=1
+			# is the log message an issue warning ?
+			if [ $issue = 0 ]; then
+				notif_msg+="$notif_txt "
+				_driver_notif+=($"${line}zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
+			else
+				notif_msg+="$notif_txt "
+				_driver_notif+=($"${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
+			fi
+		fi
+	fi
+}
 source_ctrl(){
 	if [ $cnx -eq 0 ]; then
-		rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d)
+		local rep_git_local=$(find -P $HOME -maxdepth 4 -name "zenvidia" -type d 2>/dev/null)
 		if [ -d $rep_git_local ]; then
 			if [ $driver_up -gt 0 ]; then
 				notif_txt=$"and Zenvidia"; line='\n'
@@ -185,68 +254,6 @@ source_ctrl(){
 			tmp_git_src=$(mktemp -d $notif_temp/tmp_git.XXX)
 			test -f $local_src/zen_git.log || touch $local_src/zen_git.log
 			IFS=$(echo -en "\n\b")
-			CHECK_GIT_REPO(){
-				local_date=$(env LANG=En_en date +%Y''%m''%d)
-				# extract date from log
-				git_rm_fetch_date=$(git log -n1 | sed -n '/Date/p'| awk '{print $3" "$4" "$6}')
-				# convert date to comparable number
-				git_rm_date=$(date -d "$git_rm_fetch_date" +%Y''%m''%d)
-				# extract version line
-				git_rm_version=$(git log -n1 | grep -E -o "v[0-9].*")
-				git_local_version=$(cat $local_nvdir/zen_version)
-# 				git_local_version=$(cat $nvdir/zen_version)
-				git_rm_fetch_log=$(git log -n1 | sed -n "/-/,/-/p")
-				# before acting, we need to know the last pull record in local dir.
-				if [ $rep_git_local ]; then
-					pushd $rep_git_local
-					git_local_pull_date=$(cat .git/logs/refs/heads/master| grep "clone\|pull"|awk '{print $5}'|sed -n '$p')
-					git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
-					if [ ! "$git_local_version" ]; then
-						git_local_version=$(git log -n1 | grep -E -o "v[0-9].*")
-						test "$git_local_version" || git_local_version=0
-						echo -e "$git_local_version" > $nvdir/zen_version
-					fi
-					popd
-				else
-					git_pull_date=0
-					git_local_version=0
-				fi
-				# then, we need to know if log is about version update or issue warning message.
-				# log and issue is mandatory formated with a '-' in commit message.
-				# ISSUE is by default set to 0.
-				issue=0
-				if [ ${#git_rm_fetch_log[*]} -gt 0 ]; then
-					if [ "$git_rm_version" ]&&[ "$git_rm_version" != "$git_local_version" ]; then
-						if [ $(grep -c "$git_rm_fetch_date" $local_src/zen_git.log) -eq 0 ]; then
-							if [ $(grep -c "\-" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
-								cat <<-LOG >> $local_src/zen_git.log
-									$git_rm_fetch_date : $git_rm_version
-									$git_rm_fetch_log
-								LOG
-							fi
-						fi
-					else
-						if [ $(grep -c "\- ISSUE :" <<< ${git_rm_fetch_log[*]}) -gt 0 ]; then
-							issue=1
-							git_rm_warn_log=$(cut -d'-' -f2 <<< ${git_rm_fetch_log[*]})
-						fi
-					fi
-				fi
-				# if last pull/clone date is lower than the remote's, display update message.
-				if [ $git_pull_date -lt $git_rm_date ]; then
-					if [ "$git_rm_version" != "$git_local_version" ]; then
-						zen_up=1
-						# is the log message an issue warning ?
-						if [ $issue = 0 ]; then
-							notif_msg+="$notif_txt "
-							_driver_notif+=($"${line}zenvidia git repo update.\n$git_rm_fetch_date $git_rm_version")
-						else
-							notif_msg+="$notif_txt "
-							_driver_notif+=($"${line}zenvidia git warning.\n$git_rm_fetch_date $git_rm_warn_log")
-						fi
-					fi
-				fi
-			}
 			# clone remote .git dir only to get changes.
 			pushd $tmp_git_src
 			git clone -n --depth=1 $zenvidia_git .

@@ -1,5 +1,5 @@
 # DEFINE FIRST THE CURRENT USER NAME
-C_USER = $(shell loginctl list-users --no-legend | grep "active"|awk '{print $2}')
+C_USER = $(shell stat -c %U -- /run/user/*)
 # CHECK IF USER IS IN SU MODE
 S_USER = $(shell whoami)
 PREFIX = /usr/local

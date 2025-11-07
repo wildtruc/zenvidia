@@ -400,3 +400,9 @@
  - When checking value for metamodes when the value is changed. Fixed.
 * 2025-10-29 - v2.3.59
  - Minor : removed HELP.md from Makefile. Unused.
+* 2025-11-05 - v2.3.60
+ - Fix for Debian : Debian doesn't use 'loginctl' as Fedora like does. Default user detection has been update to a better and multi distro detection using 'stat' either in 'Makefile' and codes.
+ - For next script steps, the code has been prepared for the 'set -e' local env variable (break on error), but not available yet, it still needs more debug.
+ - Fixes on break and exit codes.
+ - Script is in progress to support Wayland/Xwayland (not available yet).
+

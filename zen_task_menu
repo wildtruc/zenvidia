@@ -17,6 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with main.c;if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
+set -e
 
 d_yad=$(command -v yad)
 d_zen=$(command -v zenvidia)
@@ -38,6 +39,8 @@ test -f $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 export PATH=$PATH:/usr/local/bin
 export TEXTDOMAIN=zenvidia
 export TEXTDOMAINDIR=/usr/local/share/zenvidia/locale
+
+shopt -s extglob
 
 [ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
