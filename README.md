@@ -64,7 +64,7 @@ As normal user :
   git clone https://github.com/wildtruc/zenvidia.git
   cd zenvidia/
 ```
-As superuser :
+As **superuser** or with **sudo** in prefix :
 ```sh
   # then :
   # to install to default :
@@ -76,13 +76,14 @@ As superuser :
   # to update (this including git update command) :
   make update
 ```
-Then : (outside the task bar menu)
+Then restart the Destop manager to get the **task bar menu**.
+Or : (outside the task bar menu)
 Through terminal command line for GUI.
 ```sh
-	zen_start # (with administrator priviledge)
+	sudo zen_start # (with administrator priviledge)
 	zenvidia  # (with no priviledge)
 ```
-or with desktop file from end user inface menu > settings > others menu.
+or with desktop file from end user interface menu > settings > others menu.
 ```sh
 	zenvidia (admin) # (with administrator priviledge)
 	zenvidia (user)  # (with no priviledge)
@@ -102,19 +103,19 @@ Default desktop entry file is set to ```-n```, you can manage options through **
 
 ---------------------------------------------------------------------------------------------------
 ## Usage
-Most of the main functions are available from the desktop task bar menu entries. There not needs to use commande line or desktop manu entries.
+Most of the main functions are available from the desktop task bar menu entries. There not needs to use commande line or desktop menu entries.
 
 ### GUI
-With **end user interface menu > system settings > others menu** (it could differ by distribution).
+With **end user interface menu > system settings > others menu** (it could differ by distribution) or task bar menu.
 
 ### Command line
-Command line tool is only for rescue services, and need to be launch with Desktop manager disable. Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
+Command line tool is only for rescue purposes, and need to be launch with Desktop manager disable. Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
 
 ```zenvidia [command] [version]```
 
 command are : _restore, rebuild, rescue, reinit_.
 
-version is the desired driver version _(displayed with zenvidia command alone with X server off)_.
+**version** is the desired driver version _(displayed with zenvidia command alone with X server off)_.
 
 Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen and some older distribution or Nvidia versions prevent switching to TTY console with Ctrl+Alt+F(x).
 If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.
