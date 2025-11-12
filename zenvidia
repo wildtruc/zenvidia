@@ -20,7 +20,7 @@
 # set -x
 # set -vxEmb
 # set -evxEmb
-#  set -xmb
+# set -xmb
 
 ## Fixed Variables (could not be change)
 ## ### ZENVIDIA VARS ### readonly install_dir="/usr/local" (AI fix)
@@ -58,16 +58,6 @@ pur='\e[0;35m'
 nc='\e[0m'
 
 ## ### PROLOGUE ###
-## check if X server is alive
-ps -A | grep -i xorg &>/dev/null
-eval x_alive=$?
-## AI suggestion
-# if pgrep -x "Xorg" > /dev/null; then
-#     x_alive=0
-# else
-#     x_alive=1
-# fi
-
 ## save sys IFS variable for restoration purpose.
 ## ex: IFS=$' \t\n'
 ifs=$IFS
@@ -84,16 +74,9 @@ def_user_id(){
 	stat -c %u -- /run/user/*
 }
 su_cmd(){
-## sudo -l work in most distribution, by dev choice, sudo -u is use
-## for known working distro with this command.
-## rhel|fedora|ubuntu|mint|debian) echo "$(command -v su) -l" && return;;
-## *) cat $script_conf | sed -En "s/su_cmd=\"(.*)\"/\1/g;p" && return;;
-## *) echo "$(command -v su) -l" && return;;
-	case $(distro_version) in
-		arch|manjaro|sles|mageia|mandriva) su_cmd='su -l';;
-		rhel|fedora|ubuntu|mint|debian) echo "$(command -v sudo) -u" && return;;
-		*) echo $su_cmd_prompt && return;;
-	esac
+	if [ ${su_cmd_prompt} ]; then echo "${su_cmd_prompt}"; else
+		[ -e $(command -v sudo) ] && echo "sudo -u" || echo "su -l"
+	fi
 }
 pkg_installer(){
 	pkg_mng=1
@@ -122,14 +105,16 @@ pkg_install_cmd(){
 		*) echo "none" ; pkg_inst=0 && return ;;
 	esac
 }
-Xorg_bin(){
-# 	case $plug_version in
-	case $(distro_version) in
- 		arch|manjaro) echo "$(command -v Xorg)";;
- 		rhel|fedora|centos|mageia|mandriva|opensuse|sles) echo "$(command -v X)";;
-		ubuntu|mint|debian) echo "$(command -v Xorg)";;
-		*) echo "X" && return ;;
-	esac
+x_check(){
+	## check if X server is alive
+	ps -A | grep "Xorg\|wayland" &>/dev/null
+	echo "$?"
+	return
+}
+x_version(){
+	for x in "Xorg" "Xwayland" "wayland"; do
+		[ $(ps -A | grep -c "${x}") -gt 0 ] && echo $x && return
+	done
 }
 # elf types
 libclass(){
@@ -154,8 +139,8 @@ libclass(){
 		case $(distro_version) in
 			arch|manjaro) master=lib; ELF_32=''; ELF_64='' ;;
 			rhel|fedora|centos|mageia|mandriva|opensuse|sles) master=lib; ELF_32=''; ELF_64='';;
-			ubuntu|mint|debian) master=lib; ELF_32="/i386-linux-gnu"; ELF_64="/x86_64-linux-gnu";;
-			*) master=lib; ELF_32=''; ELF_64='64';;
+			ubuntu|mint|debian) master=lib; ELF_32="/i386-linux-gnu"; ELF_64='';;
+			*) master=lib; ELF_32=''; ELF_64='';;
 		esac
 		ELF_LIST=( $ELF_64 )
 		ELF_LIB_LIST=( $master$ELF_64 )
@@ -184,28 +169,19 @@ kernel_src(){
 	esac
 }
 user_DL_DIR(){
-	if [ $x_alive -eq 0 ]; then
-		if [[ $(whoami) == "root" ]]; then
-			echo $( $(su_cmd) $(def_user) xdg-user-dir DOWNLOAD )
-		else
-			echo "xdg-user-dir DOWNLOAD"
-		fi
-		return
+	if [ $(x_check) -eq 0 ]; then
+		echo "/home/$(def_user)/"$"Downloads"
 	fi
 }
 user_CF_DIR(){
-	if [ $x_alive -eq 0 ]; then
-		if [[ $(whoami) == "root" ]]; then
-			echo $( $(su_cmd) $(def_user) xdg-user-dir )'/.zenvidia'
-		else
-			echo "/home/$USER/.zenvidia"
-		fi
-		return
+	if [ $(x_check) -eq 0 ]; then
+		echo "/home/$(def_user)/.zenvidia"
 	fi
 }
 rem_drv_list(){
-	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		$(su_cmd) "$(def_user)" $(command -v zen_notify) -n &>/dev/null
+	if ! [ -e $(user_CF_DIR)/notify/drvlist ]; then
+# 		$(su_cmd) "$(def_user)" $(command -v zen_notify) -n &>/dev/null
+		$(su_cmd) "$(def_user)" zen_notify -n &>/dev/null
 	fi
 	echo "$(user_CF_DIR)/notify/drvlist" && return
 }
@@ -255,7 +231,7 @@ distro_name(){
 	echo $NAME
 	return
 }
-set_su(){
+set_su(){ # DELETE
 	w_text=$"$( cat <<-MSG
 		<b>Su command is not congigured</b>
 
@@ -291,6 +267,7 @@ set_su(){
 # 		su_cmd=$(echo "$set_args"|cut -d';' -f2)
 # 		if [ $(grep -c "su_cmd=" $script_conf ) -eq 0 ]; then echo -e 'su_cmd="'$su_cmd'"' >> $script_conf; fi
 		[ -s $script_conf ] && [ $(grep -c "su_cmd_prompt=" $script_conf ) -eq 0 ] && echo -e 'su_cmd_prompt="'$su_cmd_prompt'"' >> $script_conf
+		. $script_conf
 	else
 		exit 0
 	fi
@@ -938,7 +915,7 @@ restore_pcks_cmd(){ #
 	[ "$zip_type" = "gz" ] && zip_opt='gzip'
 	[ "$zip_type" = "xz" ] && zip_opt='xz'
 	[ "$zip_type" = "zst" ] && zip_opt='zstd'
-	if [ $x_alive -gt 0 ]; then
+	if [ $(x_check) -gt 0 ]; then
 		echo -e $"# ${yel}Uncompressing $cmd_ver archive for $KERNEL${nc} :\n"
 		verbose='-v'
 	else
@@ -4310,7 +4287,7 @@ last_pack(){ #
 			fi
 		fi
 		file_size=$(cat $nvtmp/dl_list | grep -A1 -E "NVIDIA-Linux-x86_64-$LAST_PACK.run" | sed -En "s/^.*>(.*)<.*$/\1/;s/^([0-9]+)([A-Z]*)$/\1;\2/p")
-		y_text=$"<b>Downlaoding ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
+		y_text=$"<b>Downloading ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
 		pulse=0; log=0; hold=0 ; hide_txt=0; [ $hold = 1 ] && win_log_options
 		{	test $run_pack_sha && $p_wget -c -P $buildtmp/ https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack_sha &>/dev/null
 			file_down=0
@@ -6626,7 +6603,7 @@ start_cmd(){
 # 	xprop -root &>/dev/null
 # 	if [ $? -gt 0 ]; then
 	gcc_and_proc_options
-	if [ $x_alive -gt 0 ]; then
+	if [ $(x_check) -gt 0 ]; then
 		help_text(){
 			cat <<-HT
 				Command line option : $(basename $0 ) [option] [driver version]
@@ -6765,8 +6742,6 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$install_dir/$master$ELF_32:$install_dir
 dep_exec_check
 ## controle install path.
 install_controls
-## check su command to allow root to get default user env.
-[ "$(su_cmd)" != "" ] || set_su
 ## main configuration file check and read mandatory vars config first.
 if [ ! -s $script_conf ]; then #
 	if [ -x $d_yad ]; then
@@ -6782,6 +6757,8 @@ else
 	## read script mandatory vars config first.
 	. $script_conf
 fi
+## check su command to allow root to get default user env.
+[ "$(su_cmd)" != "" ] || set_su
 dep_lib_check
 ## check users dirs privileges and load extra special distro config if any.
 if [ "$(def_user)" != "root" ]; then
@@ -6854,9 +6831,10 @@ if [[ $(def_user) != "root" ]]; then
 	notif_desk_file=/home/$(def_user)/.config/autostart/zen_notify.desktop
 	notif_desk_opt=$(cat $notif_desk_file| sed -En "s/^Exec=.*-(.*)/\1/p")
 	## in case of first use, take care to launch zen_notify which is launching zen_task_menu
-	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		$(su_cmd) "$(def_user)" $(command -v zen_notify) -n &>/dev/null
-	fi
+# 	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
+# 		$(su_cmd) "$(def_user)" zen_notify -n &>/dev/null
+# 	fi
+	[ -e $(user_CF_DIR)/notify/drvlist ] || $(su_cmd) "$(def_user)" zen_notify -n &>/dev/null
 	## then read script conf.
 	. $basic_conf
 	. $color_conf
