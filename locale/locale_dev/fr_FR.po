@@ -1927,6 +1927,10 @@ msgid "Download"
 msgstr "Télécharger"
 
 #: .. from initial pot line
+msgid "Downloads"
+msgstr "Téléchargements"
+
+#: .. from initial pot line
 msgid ""
 "$(cat <<-INFO\n"
 "${j}${bf}Install from stock${end}${end}\n"
@@ -2067,7 +2071,7 @@ msgid "${v}Choose the version to install${end}"
 msgstr "${v}Choisissez la version à installer${end}"
 
 #: .. from initial pot line
-msgid "<b>Downlaoding ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
+msgid "<b>Downloading ${j}$LAST_PACK${end} driver from ${y}$nvidia_ftp${end}</b>"
 msgstr "<b>Téléchargement du pilote ${j}$LAST_PACK${end} depuis ${y}$nvidia_ftp${end}</b>"
 
 #: .. from initial pot line
