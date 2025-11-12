@@ -408,4 +408,12 @@
 * 2025-11-05 - v2.3.61
  - URGENT FIX : Yad really dislike 'set -e' local env variable even if not active. Regression needed. Debian fixes are still set and active.
  - Script for Fedora user is OK, Debian under test, Arch has issues.
+* 2025-11-12 - v2.3.62
+ - Removed most parts based on SU command to avoid misbehaviour in some functions tree flow.
+ - From above, sudo/su -l command was needed to get current user data, but the "stat" command update fixes most of functions needing by the work-arround.
+ - Some function have been re-ordered to correspond to above fixes.
+ - This should normally resolve the previous issues from 60/61 (Debian/Arch).
+ - Next version will bring 'set -e' script env variable and many fixes arround changes in errors log and Yad splash. It still under debug.
+
+
 
