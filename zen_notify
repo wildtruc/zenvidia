@@ -19,6 +19,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301,  USA
 set -e
 
+export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 ## basics
 local_nvdir=/home/$USER/.zenvidia
 nvdir=/usr/local/share/zenvidia
@@ -198,14 +199,16 @@ CHECK_GIT_REPO(){
 		git_pull_date=$(date -d "@$git_local_pull_date" +%Y''%m''%d)
 		if [ ! "$git_local_version" ]; then
 			git_local_version=$(git log -n1 | grep -E -o "v[0-9].*")
-			test "$git_local_version" || git_local_version=0
-			echo -e "$git_local_version" > $nvdir/zen_version
+# 			test "$git_local_version" || git_local_version=0
+# 			echo -e "$git_local_version" > $nvdir/zen_version
+			echo -e "$git_local_version" > $local_nvdir/zen_version
 		fi
 		popd
-	else
-		git_pull_date=0
-		git_local_version=0
 	fi
+# 	else
+		git_pull_date=${git_pull_date:-0}
+		git_local_version=${git_local_version:-0}
+# 	fi
 	# then, we need to know if log is about version update or issue warning message.
 	# log and issue is mandatory formated with a '-' in commit message.
 	# ISSUE is by default set to 0.

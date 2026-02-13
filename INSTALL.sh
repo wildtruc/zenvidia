@@ -11,37 +11,30 @@ CONF_DIR=${USER_DIR}/.zenvidia
 INSTALL_DIR=${PREFIX}/share/zenvidia
 BIN_DIR=${PREFIX}/bin
 
-# export PS4='$(tput setaf 6) zenvidia install: $(tput sgr 0)'
-
 ## terminal fonts colors.
 red='\e[1;31m'
-# red=$(tput setaf 1)
 yel='\e[0;33m'
 grn='\e[0;32m'
 blu='\e[0;34m'
 cya='\e[0;36m'
 pur='\e[0;35m'
 nc='\e[0m'
-# nc=$(tput sgr 0)
 
 
 check_su(){
-# [ ${S_USER} != "root" ] && { echo -e "${red}WARNING: You can't run this shell as ${S_USER}. You must be ROOT${nc}" && exit ;} || return
-if [ ${S_USER} != "root" ]; then echo -e "${red}WARNING: You can't run this shell as ${S_USER}. You must be ROOT${nc}"; exit ; fi
+if [ ${S_USER} != "root" ]; then
+	echo -e "${red}WARNING: You can't run this shell as ${S_USER}. You must be ROOT${nc}"	; exit ; fi
 }
 make_install(){
 	## pre install
 	mkdir -p ${INSTALL_DIR} ${CONF_DIR}/{compats/series,updates,release}
 	mkdir -p ${PREFIX}/share/{applications,pixmaps,doc/zenvidia}
 	mkdir -p ${INSTALL_DIR}/{temp,build,log,release,backups,compats,locale/locale_dev/locale_po}
-	mkdir -p ${USER_DIR}/.config/autostart
-	## install
+	## install system
 	install -Dm755 -t ${BIN_DIR}/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -Dm644 -t ${INSTALL_DIR}/ *.conf
 	install -Dm644 -t ${INSTALL_DIR}/ README.md
 	install -Dm644 -t ${INSTALL_DIR}/ OLD-README.md
-	install -Dm644 -o ${C_USER} -g ${C_USER} -t ${USER_DIR}/.config/autostart/ desktop_files/zen_notify.desktop
-	install -Dm644 -o ${C_USER} -g ${C_USER} -t ${USER_DIR}/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
 	install -Dm644 -t ${PREFIX}/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t ${PREFIX}/share/pixmaps/ pixmaps/*.png
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.txt
@@ -50,17 +43,26 @@ make_install(){
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -rf -t ${INSTALL_DIR}/ locale/locale
+	# install user
+	mkdir -p ${USER_DIR}/.config/autostart ${CONF_DIR}/{compats/series,updates,release,backups}
+	install -Dm644 -t ${CONF_DIR}/ basic.conf distro.conf
+# 	install -Dm644 -o ${C_USER} -g ${C_USER} -t ${USER_DIR}/.config/autostart/ desktop_files/zen_notify.desktop
+# 	install -Dm644 -o ${C_USER} -g ${C_USER} -t ${USER_DIR}/.config/autostart/ desktop_files/nvidia-settings-rc.desktop
+# 	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/zen_notify.desktop
+	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	## post install
 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${INSTALL_DIR}/zen_version
+# 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${CONF_DIR}/zen_version
+	cp -f ${INSTALL_DIR}/zen_version ${CONF_DIR}/
 	chown -R ${C_USER}:${C_USER} ${CONF_DIR} ${USER_DIR}/.config/autostart
 	## restart polkit service
 	systemctl daemon-reload
 	systemctl restart polkit.service
-	echo -e "Install done."
-	bash ${INSTALL_DIR}/bin/zen_task_menu &
-	echo -e "Task bar menu started."
+	echo -e "INSTALL DONE."
+	# start xtray zenvidia task bar
+	echo -e "Please reload your desktop manager for the system tray task bar menu starting."
 }
-uninstall(){
+make_uninstall(){
 	rm -Rf ${INSTALL_DIR} ${CONF_DIR}
 	rm -f ${BIN_DIR}/{zenvidia,zen_notify,zen_start,zen_task_menu,zenvidia-modules-reload}
 	rm -f ${USER_DIR}/.config/autostart/{zen_notify,nvidia-settings-rc}.desktop
@@ -68,23 +70,23 @@ uninstall(){
 	rm -f ${PREFIX}/share/pixmaps/zen-*.png
 	rm -Rf ${PREFIX}/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
-	echo -e "UnInstall done."
+	echo -e "UNINSTALL DONE."
 }
-safeuninstall(){
+make_safeuninstall(){
 	rm -f ${BIN_DIR}/{zenvidia,zen_notify,zen_start,zen_task_menu,zenvidia-modules-reload}
 	rm -f ${USER_DIR}/.config/autostart/{zen_notify,nvidia-settings-rc}.desktop
 	rm -f ${PREFIX}/share/applications/{zenvidia,zenvidia-unpriviledge}.desktop
 	rm -f ${PREFIX}/share/pixmaps/zen-*.png
 	rm -Rf ${PREFIX}/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
-	echo -e "Safe UnInstall done."
+	echo -e "SAFE UNINSTALL DONE."
 }
-update(){
+make_udapte(){
 	sudo -u ${C_USER} git pull
+	## system
 	install -CDm755 -b -t ${BIN_DIR}/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -CDm644 -b -t ${INSTALL_DIR}/ *.conf
 	install -Dm644 -t ${INSTALL_DIR}/ README.md
-	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	install -Dm644 -t ${PREFIX}/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t ${PREFIX}/share/pixmaps/ pixmaps/*.png
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.txt
@@ -93,10 +95,16 @@ update(){
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t ${INSTALL_DIR}/ locale/locale
-	echo -e "\nPLEASE, UPDATE ZENVIDIA BASIC CONFIGURATION AS APPROPRIATE IF NEEDED.\n"
+	# user
+	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${INSTALL_DIR}/zen_version
-	chown -R ${C_USER}:${C_USER} ${CONF_DIR}/zen_version
-	echo -e "Update done. Please reload your desktop manager if needed."
+# 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${CONF_DIR}/zen_version
+	cp -f ${INSTALL_DIR}/zen_version ${CONF_DIR}/
+	chown -R ${C_USER}:${C_USER} ${CONF_DIR}
+	echo -e "UPDATE DONE."
+	echo -e "\nPLEASE, CONTROL ZENVIDIA USER CONFIGURATION AFTER FIRST LAUNCH.\n"
+	echo -e "(user config is automaically control and update at zenvidia start, a little check could be necessary)"
+	echo -e "Please reload your desktop manager for the system tray task bar update."
 }
 make_help(){
 	echo -e ${grn}"Command line: $(basename $0 ) [option]"
@@ -113,9 +121,9 @@ if [ $# -gt 0 ]; then
 	while (( $# > 0 )); do
 		case ${1} in
 			install) make_install ;;
-			uninstall) uninstall ;;
-			safeuninstall) safeuninstall ;;
-			udapte) udapte ;;
+			uninstall) make_uninstall ;;
+			safeuninstall) make_safeuninstall ;;
+			udapte) make_udapte ;;
 			*|help) echo -e "${red}Wrong option${nc}"; make_help ;;
 		esac
 		shift

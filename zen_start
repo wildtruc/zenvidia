@@ -1,7 +1,7 @@
 #!/bin/bash
 
+set -e
 pk_exec=$(command -v pkexec)
 if [ $(stat -c %u /run/user/*) -gt 0 ]; then
-	$pk_exec /usr/local/bin/zenvidia ${1}
+	$pk_exec /usr/local/bin/zenvidia ${@}
 fi
-exit 0

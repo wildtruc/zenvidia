@@ -414,6 +414,21 @@
  - Some function have been re-ordered to correspond to above fixes.
  - This should normally resolve the previous issues from 60/61 (Debian/Arch).
  - Next version will bring 'set -e' script env variable and many fixes arround changes in errors log and Yad splash. It still under debug.
-
+* 2026-02-13 - v2.4.00
+ - Huge update : Script has been mostly rewrite to handle "set" heading and "shopt" bash commands reveling numbers of mistakes and wrong behaviour.
+ - Added (many) errors/failures/alerts lock command to handle bad break issues.
+ - Replace Makefile by INSTALL.sh. Failure revealed by test on a haedless Debian server.
+ - DM restart now handle system reboot on higher serie installation case (ex: 580 > 590) to prevent firmware misbehaviour.
+ - Default User detection in INSTALL.sh and script has been changed to take care of other distro behaviour (stat replace logind).
+ - DKMS 3.2 and higher force initramfs to be executed for all installed kernel and extend installatiuon process. /etc/dkms/framework.conf.d.zenvidia.conf has been added to compil per kernel and prevent excess time. Script depmod and initramfs have been disabled for 3.2 and higher.
+ - XDG_SESSION_TYPE is no recognize and set when executing task bar menu command with polkit. Fixed.
+ - ... and so many, many (I've lost myself).
+ - Prime/offlaod section upgrade were not tested, I don't have any device to do so.
+ - Commande line tool has not been fully reviewed and are lock for the moment.
+ - Nvidia-setting profile rc is still break (no clue).
+ - Text display in installation process could have faulty size in some line. It will be update in next release.
+ - Transalation PO files hasn't been update yet.
+ - Outside Fedora envirronment behaviour is uncertain. You need to test.
+ - Personal message : All this just because I wanted to prepare the script to manage cuda-tools, but this is an other story...
 
 

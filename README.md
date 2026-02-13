@@ -68,32 +68,24 @@ As **superuser** or with **sudo** in prefix :
 ```sh
   # then :
   # to install to default :
-  make install
+  INSTALL.sh install
   # to remove all :
-  make uninstall
+  INSTALL.sh uninstall
   # to remove safely (doesn't remove downloaded driver packages)
-  make safeuninstall
+  INSTALL.sh safeuninstall
   # to update (this including git update command) :
-  make update
+  INSTALL.sh update
 ```
 Then restart the Destop manager to get the **task bar menu**.
-Or : (outside the task bar menu)
-Through terminal command line for GUI.
+Or : (outside restart)
+Through terminal command line.
 ```sh
-	sudo zen_start # (with administrator priviledge)
-	zenvidia  # (with no priviledge)
+	zen_notify -n # (no priviledge required) Will start the notifier that will start the tray task menu.
+	zen_start # (with polkit administrator priviledge) Will start zenvidia only.
 ```
-or with desktop file from end user interface menu > settings > others menu.
-```sh
-	zenvidia (admin) # (with administrator priviledge)
-	zenvidia (user)  # (with no priviledge)
-```
-Or by the desktop menu entry in Setting menu.
-The GUI will ask you for admin/superuser password.
-
 ### Zen Notify
 Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
-It is installed at the same time as Zenvidia when launching `make install` command.
+It is installed at the same time as Zenvidia.
 
 It comes with 2 options:
  - -z > check zenvidia script and nvidia drivers.
@@ -105,7 +97,7 @@ Default desktop entry file is set to ```-n```, you can manage options through **
 ## Usage
 Most of the main functions are available from the desktop task bar menu entries. There not needs to use commande line or desktop menu entries.
 
-### GUI
+### From menu entry
 With **end user interface menu > system settings > others menu** (it could differ by distribution) or task bar menu.
 
 ### Command line
@@ -117,7 +109,7 @@ command are : _restore, rebuild, rescue, reinit_.
 
 **version** is the desired driver version _(displayed with zenvidia command alone with X server off)_.
 
-Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen and some older distribution or Nvidia versions prevent switching to TTY console with Ctrl+Alt+F(x).
+Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen on some older distribution or Nvidia versions prevent switching to TTY console with Ctrl+Alt+F(x).
 If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.
 
 ---------------------------------------------------------------------------------------------------
