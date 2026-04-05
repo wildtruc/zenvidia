@@ -430,5 +430,13 @@
  - Transalation PO files hasn't been update yet.
  - Outside Fedora envirronment behaviour is uncertain. You need to test.
  - Personal message : All this just because I wanted to prepare the script to manage cuda-tools, but this is an other story...
-
-
+* 2026-04-05 - v2.5.11
+ - Add Cuda toolkit installation management.
+ - Replace simple 'echo' message by a function managing all type of message: not globally implemented yet.
+ - Fix dummy error in download system section that disallow ... downloading. I'd say it, dummy.
+ - Fix other minor errors that wouldn't be armful in previous upload.
+ - There is other minor changes to do corresponding to new addittions.
+ - Translation is actually broken and need to be remake.
+ - At least a good news : nvidia-settings profile rc is finally back with 595 drivers !
+ - Known issue : dkms 3.2 and above are handling the dracut command by it self, everything goes nice for most operation (update, other kernel) but do not validate in driver complete install process not matter what. The work-arround is to execute dracut again after the compilation process, but for the issue by it self, I have no clue.
+ - Note : Cuda section needs a dedicated readme. Reason: it should have been easy to implement, but not really in fact because cuda is huge, installation memory usage is huge, storage is huge.
