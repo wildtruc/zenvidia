@@ -1,7 +1,11 @@
 #!/bin/bash
 
+set -euo pipefail
+#export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
+
 if [ -e /var/run/nv-modules-reload.pid ]; then
-	#set -x
+	PCI_ID=$(lspci -mnn | grep "VGA.*NVIDIA" | awk '{print "0000:"$1}')
+	DEVICE_DIR="/sys/bus/pci/devices/$PCI_ID"
 	d_nv_persistenced=$(command -v nvidia-persistenced)
 	d_probe=$(command -v modprobe)
 	d_sys=$(command -v systemctl)
@@ -10,15 +14,19 @@ if [ -e /var/run/nv-modules-reload.pid ]; then
 
 	export PATH=$PATH:$install_dir/bin
 
-	echo "session modules reload active > update and reload nvidia modules."
-	[ -e $nv_persist_ctl ] && $d_sys stop nvidia-persistenced.service
-	sleep 1
 	if [ $(lsmod | grep -c "nouveau") -gt 0 ]; then
 		$d_probe -r nouveau
 	else
-		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia
+		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && && echo "[zenvidia] $PCI_ID modules unload done" || true
 	fi
-	$d_probe -a nvidia_uvm nvidia_drm nvidia_modeset nvidia
+	if [ -e "/sys/bus/pci/rescan" ]; then
+	 	echo 1 > /sys/bus/pci/rescan && echo "global pci rescan done" >> $reload_log || true
+	fi
+	# if [ -e "$DEVICE_DIR/rescan" ]; then
+	# 	echo 1 > $DEVICE_DIR/rescan && echo "[zenvidia] device $PCI_ID rescan done" || true
+	# fi
+	$d_probe -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID modules reload done" || true
+
 	find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
 	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$(uname -r).*"
 	if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
@@ -26,9 +34,9 @@ if [ -e /var/run/nv-modules-reload.pid ]; then
 	fi
 	[ -e $nv_persist_ctl ] && systemctl start nvidia-persistenced.service
 	rm -f /var/run/nv-modules-reload.pid
-	echo "session modules reload active > exec system daemon service."
-	#$d_sys daemon-reload
+	echo "[zenvidia] session modules reload active > exec system daemon service."
+	$d_sys daemon-reload
 	#$d_sys daemon-reexec
 else
-	echo "session modules reload inactive > Nothing to do."
+	echo "[zenvidia] session modules reload inactive > Nothing to do."
 fi

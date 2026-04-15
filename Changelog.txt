@@ -440,3 +440,11 @@
  - At least a good news : nvidia-settings profile rc is finally back with 595 drivers !
  - Known issue : dkms 3.2 and above are handling the dracut command by it self, everything goes nice for most operation (update, other kernel) but do not validate in driver complete install process not matter what. The work-arround is to execute dracut again after the compilation process, but for the issue by it self, I have no clue.
  - Note : Cuda section needs a dedicated readme. Reason: it should have been easy to implement, but not really in fact because cuda is huge, installation memory usage is huge, storage is huge.
+* 2026-04-15 - v2.5.19
+ - dracut issue : Re-introduce use_dkms 0/1. Compile from source has been fixed and is more fast. Default to 1 (use dkms).
+ - use_dkms : set to 0, 'Install drivers', 'Driver upgrade', 'Update driver only (dkms)' will be compiled from source.
+ - hardware_compat has been modified to a stronger sed regex.
+ - zenvidia and driver check at session start do not need a local zenvidia git dir anymore. Say 'thanks' to the power of curl.
+ - In continuity of the above change, zenvidia changelog display and reading has been change. Old change log will be saved.
+ - A few other modifications/additions corresponding to change started in previous release.
+ - Xterm and xorg config section was claiming unlink variables. Fixed.
