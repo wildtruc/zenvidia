@@ -38,6 +38,7 @@ make_install(){
 	install -Dm644 -t ${PREFIX}/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t ${PREFIX}/share/pixmaps/ pixmaps/*.png
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.txt
+	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
@@ -52,7 +53,6 @@ make_install(){
 	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	## post install
 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${INSTALL_DIR}/zen_version
-# 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${CONF_DIR}/zen_version
 	cp -f ${INSTALL_DIR}/zen_version ${CONF_DIR}/
 	chown -R ${C_USER}:${C_USER} ${CONF_DIR} ${USER_DIR}/.config/autostart
 	## restart polkit service
@@ -60,7 +60,9 @@ make_install(){
 	systemctl restart polkit.service
 	echo -e "INSTALL DONE."
 	# start xtray zenvidia task bar
-	echo -e "Please reload your desktop manager for the system tray task bar menu starting."
+	echo -e "Reload your desktop manager for the system tray task bar refresh or start."
+	echo -e "Or quit zen_task_menu if already lauch and type in a terminal as default user:"
+	echo -e "zen_notify -z (or -n if driver check only)"
 }
 make_uninstall(){
 	rm -Rf ${INSTALL_DIR} ${CONF_DIR}
@@ -90,6 +92,7 @@ make_udapte(){
 	install -Dm644 -t ${PREFIX}/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
 	install -Dm644 -t ${PREFIX}/share/pixmaps/ pixmaps/*.png
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.txt
+	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
@@ -98,13 +101,14 @@ make_udapte(){
 	# user
 	install -Dm644 -t ${USER_DIR}/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${INSTALL_DIR}/zen_version
-# 	sudo -u "${C_USER}" git log -n1 | grep -E -o "v[0-9]..*" > ${CONF_DIR}/zen_version
 	cp -f ${INSTALL_DIR}/zen_version ${CONF_DIR}/
 	chown -R ${C_USER}:${C_USER} ${CONF_DIR}
 	echo -e "UPDATE DONE."
-	echo -e "\nPLEASE, CONTROL ZENVIDIA USER CONFIGURATION AFTER FIRST LAUNCH.\n"
+	echo -e "\nCONTROL ZENVIDIA USER CONFIGURATION AFTER FIRST LAUNCH.\n"
 	echo -e "(user config is automaically control and update at zenvidia start, a little check could be necessary)"
-	echo -e "Please reload your desktop manager for the system tray task bar update."
+	echo -e "Reload your desktop manager for the system tray task bar refresh."
+	echo -e "Or quit zen_task_menu if already lauch and type in a terminal as default user:"
+	echo -e "zen_notify -z (or -n if driver check only)"
 }
 make_help(){
 	echo -e ${grn}"Command line: $(basename $0 ) [option]"

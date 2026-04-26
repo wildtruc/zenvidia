@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tips>
+<!--   <menus> -->
+	<locale code="en_EN">
+		<!--<menu>
+			<tip key="">
+				<p>-</p>
+				<p>-</p>
+			</tip>
+			<tip key="">
+				<p>-</p>
+				<p>-</p>
+			</tip>
+			<tip key="">
+				<p>-</p>
+				<p>-</p>
+			</tip>
+			<tip key=""><p>-</p></tip>
+			<tip key=""><p>-</p></tip>
+		</menu>-->
+		<base_menu>
+			<tip key="Install drivers">
+				<p>This is the driver installation part.</p>
+				<p>Only ".run" packages are managed here and installed from directly</p>
+				<p>downlaoded fiLe or from a selected one in user or a local directory</p>
+			</tip>
+			<tip key="Update drivers or modules">
+				<p>This is the update or upgrade driver part.</p>
+				<p>Actual or other kernels are managed from there.</p>
+			</tip>
+			<tip key="Configuration and Tools">
+				<p>This part is decated to all edits and configurations.</p>
+				<p>It try to cover all user needs, whether for the systtem, Nvidia or Zenvidia.</p>
+			</tip>
+			<tip key="Help and Documentation">
+				<p>All you need to check and/or understand Nvidia drivers is here.</p>
+				<p>This part include Nvidia's and Zenvidia's docs and informations.</p>
+			</tip>
+		</base_menu>
+		<menu_install>
+			<tip key="From a local package">
+				<p>Install a new driver from a user directory local package</p>
+				<p>or a already downloaded listed in Zenvidia path.</p>
+			</tip>
+			<tip key="From NVIDIA server">
+				<p>Will display the full drivers list from the Nvidia server.</p>
+				<p>Download and installation will be executed afterward.</p>
+			</tip>
+		</menu_install>
+		<menu_update>
+			<tip key="Driver upgrade">
+				<p>Download only or install directly could be selected as final process.</p>
+				<p>When download only is selected, you need to go afterward to:</p>
+				<p>» main menu » Install Drivers</p>
+				<p>Note : All download are stored in Zenvidia path.</p>
+			</tip>
+			<tip key="Update driver only (dkms)">
+				<p>Install nvidia modules for a new running kernel</p>
+				<p>Used to rebuild drivers for the current kernel</p>
+				<p>This fonction use only DMKS script.</p>
+			</tip>
+			<tip key="Update driver only">
+				<p>Install nvidia modules for a new running kernel</p>
+				<p>Used to rebuild drivers for the current kernel</p>
+				<p>This fonction use only source directory.</p>
+			</tip>
+			<tip key="Update driver only (force)">
+				<p>Optional command to force install from driver sources.</p>
+				<p>This is useful in case of DKMS bug or failure.</p>
+			</tip>
+			<tip key="Update driver for an other kernel">
+				<p>This command allow to build driver against any other kernel installed in the system.</p>
+				<p>This fonction use only source directory.</p>
+			</tip>
+			<tip key="Update driver for an other kernel (dkms)">
+				<p>This command allow to build driver against any other kernel installed in the system.</p>
+				<p>This fonction use only DMKS script.</p>
+			</tip>
+			<tip key="Update Cuda Toolkit">
+				<p>This command will check Cuda Toolkit update.</p>
+				<p>Install is allowed at the end of process.</p>
+				<p>Note: because Cuda is taking a huge place, it wont be kept afterward.</p>
+			</tip>
+		</menu_update>
+		<menu_modif>
+			<tip key="Edit Xorg config file">
+				<p>Edit the current xorg configuration file in /etc/X11.</p>
+			</tip>
+			<tip key="Edit Zenvidia config">
+				<p>Edit Zenvidia basic user conf script to set or unset mostly everything.</p>
+			</tip>
+			<tip key="Edit Yad GUI colors">
+				<p>Change defaults font colors.</p>
+			</tip>
+			<tip key="Nvidia-settings">
+				<p>Start Nvidia-setting graphic UI tool.</p>
+			</tip>
+			<tip key="Edit Distro config">
+				<p>Modify the distribution configation file.</p>
+				<p>You can add here very specifics distro's variables.</p>
+				<p>Notice: this configuration file edition is optional.</p>
+			</tip>
+			<tip key="Manage drivers packages">
+				<p>This tool is to backup, restore and remove old or current driver install.</p>
+				<p>It also manage dowloaded nvidia's .run pack.</p>
+				<p>Note: if "backup_prev" option is set and a old installation is found,</p>
+				<p>it'd be automatically backed up prior to new version installation.</p>
+			</tip>
+			<tip key="Zenvidia notification config">
+				<p>Configuration tool for Zen_notify daily update checker.</p>
+			</tip>
+			<tip key="Open driver switch tool">
+				<p>(Optional)</p>
+				<p>When available, this tool allow to switch between</p>
+				<p>open and proprietary source drivers.</p>
+			</tip>
+			<tip key="PRIME Display config">
+				<p>(Optional)</p>
+				<p>When available, manage Prime Display behaviour.</p>
+				<p>PRIME and PRIME render offload managed only.</p>
+			</tip>
+		</menu_modif>
+		<menu_manage>
+			<tip key="Documentation manual"><p>Read the full current Nvidia documentation file</p></tip>
+			<tip key="Change Logs"><p>Read the current Nvidia version changelog file</p></tip>
+			<tip key="Zenvidia Logs"><p>Read the Zenvidia changelog file</p></tip>
+			<tip key="Zenvidia Help and documentation"><p>Read Zenvidia documentation file</p></tip>
+			<tip key="About Zenvidia"><p>Read current Zenvidia README file</p></tip>
+		</menu_manage>
+
+	</locale>
+<!-- Translation "fr_FR" last date 24/4/26 -->
+	<locale code="fr_FR">
+		<base_menu>
+			<tip key="Installer des Pilotes">
+				<p>Ceci est la partie consacrée à l'installation du pilote.</p>
+				<p>Seuls les paquets ".run" sont ici gérés et installés depuis un paquet</p>
+				<p>directement téléchargé ou depuis répertoire local ou utilisateur.</p>
+			</tip>
+			<tip key="Mettre à jour les pilotes et modules">
+				<p>Ceci est la partie consacrée à la mise à niveau ou à jour.</p>
+				<p>Les noyaux actuels ou alternatifs sont gérés à partir d'ici.</p>
+			</tip>
+			<tip key="Outils et Configurations">
+				<p>Cete partie est consacrée aux éditions et configurations.</p>
+				<p>Il tente de couvrir tous les besoins de l'utilisateur</p>
+				<p>que ce soit pour le système, Nvidia ou Zenvidia.</p>
+			</tip>
+			<tip key="Aide et Documentation">
+				<p>Tout ce que vous avez besoin pour noter ou comprendre les pilotes Nvidia.</p>
+				<p>Vous trouverez ici les informations et documents de Nvidia et Zenvidia.</p>
+			</tip>
+		</base_menu>
+		<menu_install>
+			<tip key="Depuis un paquet local">
+				<p>Installe un nouveau pilote depuis le répertoire utilisateur</p>
+				<p>ou déjà téléchargé et disponible depuis le dépot Zenvidia.</p>
+			</tip>
+			<tip key="Depuis le serveur NVIDIA">
+				<p>Affichera la liste complète des pilotes depuis le serveur Nvidia.</p>
+				<p>Le télécahrgement et l'installation seront exécutés après coup.</p>
+			</tip>
+		</menu_install>
+		<menu_update>
+			<tip key="Mise à niveau du pilote">
+			<p>Vérifie les mises à jour pilote.</p>
+			<p>Vous pouvez choisir durant le processus de télécharger seulement ou d'installer.</p>
+			<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez coup à:</p>
+			<p>» Menu principal » Installer des pilotes.</p>
+			<p>Note: Tous les téléchargements sont stockés dans le dépôt Zenvidia.</p>
+			</tip>
+			<tip key="Mettre à jour le pilote uniquement (dkms)">
+			<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
+			<p>Utilisé pour re-contruire le pilote courant.</p>
+			</tip>
+			<tip key="Mettre à jour le pilote uniquement">
+			<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
+			<p>Utilisé pour re-contruire le pilote courant.</p>
+			<p>Cette fonction utilise uniquement le répertoire source. </p>
+			</tip>
+			<tip key="Mettre à jour le pilote uniquement (forcé)">
+			<p>Commande optionnelle pour forcer l'installation depuis les sources pilotes</p>
+			<p>Utilisé pour re-contruire le pilote courant dans le cas d'un bug ou échec de DKMS.</p>
+			</tip>
+			<tip key="Mettre à jour le pilote pour un autre noyau (dkms)">
+			<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
+			<p>Cette fronctionn utilise DKMS.</p>
+			</tip>
+			<tip key="Mettre à jour le pilote pour un autre noyau">
+			<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
+			<p>Cette fonction utilise uniquement le répertoire source.</p>
+			</tip>
+			<tip key="Misee à jour de Cuda Toolkit">
+			<p>Cette commande contrôlera les mise à jour Cuda Toolkit.</p>
+			<p>L'installation sera permise à la fin du processus.</p>
+			<p>Note: puisque Cuda prend énormément de place, le paque ne sera pas conservé après coup.</p>
+			</tip>
+		</menu_update>
+		<menu_manage>
+			<tip key="Manuel de documentation">
+				<p>Lire le fichier documentation intégrale courant du pilote Nvidia</p>
+			</tip>
+			<tip key="Journal des modifications">
+				<p>Lire le journal courant des modifications du pilote Nvidia</p>
+			</tip>
+			<tip key="Journal des modifications Zenvidia"><p>Lire le journal des modifications Zenvidia</p></tip>
+			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
+			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
+		</menu_manage>
+		<menu_modif>
+			<tip key="Éditer le fichier de configuration Xorg">
+				<p>Éditer le fichier de configuration courant xorg dans /etc/X11.</p>
+			</tip>
+			<tip key="Éditer la configuration de Zenvidia">
+				<p>Éditer le fichier configuration de base de Zenvidia et toutes ses options.</p>
+			</tip>
+			<tip key="Éditer les couleurs du GUI Yad">
+				<p>Changer les couleurs par défaut des polices.</p>
+			</tip>
+			<tip key="Nvidia-settings">
+				<p>Démarrer l'outil graphique Nvidia-setting.</p>
+			</tip>
+			<tip key="Éditer la configuration de la distribution">
+				<p>Permet de modifier le fichier de configuration de la distribution locale.</p>
+				<p>Vous pouvez ajouter ici les variables spéciales de la distribution.</p>
+				<p>Information: cette édition est très optionnelle.</p>
+			</tip>
+			<tip key="Gérer les paquets de pilotes">
+				<p>Cet outil permet de sauvegarder, restaurer ou supprimer des pilotes</p>
+				<p>anciens ou courants, ainsi que de gérer les paquets Nvidia téléchargés.</p>
+				<p>Note: si l'option "back_prev" est activée et qu'une installation précédente</p>
+				<p>est trouvée durant la mise à jour du pilote, elle sera automatiquement</p>
+				<p>sauvegardée avant l'installation d'une nouvelle version.</p>
+			</tip>
+			<tip key="Configuration des notifications Zenvidia">
+				<p>Outil de configuration pour le contrôle journalier de Zen_notify.</p>
+			</tip>
+			<tip key="Outil de permutation du pilote Ouvert">
+				<p>(Optionnel)</p>
+				<p>Quand disponible, cet outil permet de basculer entre</p>
+				<p>les pilotes Ouvert (MIT/GPL) et Propriétaire (NVIDIA®).</p>
+			</tip>
+			<tip key="Configuration PRIME Display">
+				<p>(Optionnel)</p>
+				<p>Quand disponible, gére le comportement du Prime Display.</p>
+				<p>Pris en charge de PRIME et PRIME render offload uniquement.</p>
+			</tip>
+		</menu_modif>
+	</locale>
+<!--   </menus> -->
+</tips>
+

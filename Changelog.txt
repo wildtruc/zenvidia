@@ -448,3 +448,17 @@
  - In continuity of the above change, zenvidia changelog display and reading has been change. Old change log will be saved.
  - A few other modifications/additions corresponding to change started in previous release.
  - Xterm and xorg config section was claiming unlink variables. Fixed.
+* 2026-04-26 - v2.5.24
+ - Fix missing links in "compiling from source section": compiling from source wasn't made to be used as installation driver maker since a long time. I had forgotten that point.
+ - Add --no-dkms option to Nvidia libraries installer supposed to fix nvidia-installer dkms auto remove seen when compling from driver source.
+ - From above addition, add also a new driver backup fonction to unsure that new driver stored in dkms path wasn't lost if the issue recurs.
+ - Introduce new help tips behaviours that will popup on mouse hover instead to be displayed in Yad window. "help_txt" option must be set to 1 in zenvidia config file.
+ - From above addition, only main few menus are afectted at the point.
+ - Fixed misplaced WIN_TITLE var need by package manager to be correctly displayed.
+ - Fixed wrong packages manager command line pipe that prevent to execute command correctly.
+ - help_tip function need "xq" installed. Tip file is an xml file.
+ - zen_notify curl function need "jq" installed. Git query is read from json format.
+ - Still continuing to update text messages to new displaying fonction.
+ - Translation is under way. Could be still long to publish.
+ - Command line rescue tools are still off.
+

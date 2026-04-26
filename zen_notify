@@ -84,7 +84,7 @@ version_array(){
 		echo "${part[*]}$suffix"
 	return
 }
-git_local_version(){ [ -f $local_nvdir/zen_version ] && cat $local_nvdir/zen_version || echo "none"; }
+git_local_version(){ [ -f ${local_nvdir}/zen_version ] && cat ${local_nvdir}/zen_version || cat ${nvdir}/zen_version; }
 git_log_message(){
 	git_master=0
 	if [ ${git_master} = 0 ]; then
