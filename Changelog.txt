@@ -461,4 +461,5 @@
  - Still continuing to update text messages to new displaying fonction.
  - Translation is under way. Could be still long to publish.
  - Command line rescue tools are still off.
-
+* 2026-04-27 - v2.5.25
+ - Dummy error : forgot to reset devel tips behaviour to normal state. Wasn't a good day.
