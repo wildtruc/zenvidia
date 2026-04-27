@@ -7474,9 +7474,14 @@ menu_install(){
 		n=$[ $n+1 ]
 	done
 	local l_text="${j}${bf}"$"Install new drivers"$"${end}\n${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-	local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	local w_width='400' w_height='300'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	if [ $hlp_txt = 0 ]; then
+		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+	else
+		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	fi
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	local w_width='500' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	ui_mod=1
 	force=''
@@ -7510,9 +7515,14 @@ menu_update(){
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd")${end}") # TEST
 	done
 	local l_text="${j}${bf}"$"Update Drivers or kernel modules$""${end}${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-	local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	local w_width='400' w_height='300'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	if [ $hlp_txt = 0 ]; then
+		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+	else
+		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	fi
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	local w_width='500' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	local home=/home/$(def_user)
 	force=''
@@ -7555,9 +7565,14 @@ menu_modif(){
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd")${end}") # TEST
 	done
 	local l_text="${j}${bf}"$"Configuration and Tools""${end}${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-	local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	local w_width='400' w_height='300'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	if [ $hlp_txt = 0 ]; then
+		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+	else
+		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	fi
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	local w_width='500' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then win_open_switch; else  is_SU; base_menu; fi ;;
@@ -7591,8 +7606,12 @@ menu_manage(){
 	done
 	local l_text="${j}${bf}"$"Help and Documentation""${end}${end}"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
-	local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	local w_width='400' w_height='300'
+	if [ $hlp_txt = 0 ]; then
+		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+	else
+		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	fi
+	local w_width='500' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	case $menu_cmd in
 		1) read_nv_help ;;
@@ -7839,7 +7858,11 @@ base_menu(){
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd")${end}") # TEST
 	done
 	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
-	local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	if [ $hlp_txt = 0 ]; then
+		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+	else
+		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	fi
 	local w_width='580' w_height='300'
 
 	# local cancel_lbl=$"Exit"'!zen-stop' ok_lbl=$"Select"'!zen-ok'
