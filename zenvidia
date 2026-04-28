@@ -7480,8 +7480,8 @@ menu_install(){
 	else
 		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	fi
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	local w_width='500' w_height='300'
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	ui_mod=1
 	force=''
@@ -8037,7 +8037,6 @@ declare_default_sets(){
 	nvtmp=${nvtmp:-${nvdir}/temp}					# default extract temp directory
 	buildtmp=${buildtmp:-${nvdir}/build}		# default build temp directory
 	## default main set value.
-	temp_ramfs=${temp_ramfs:-1}
 	backup_to_user_dir=${backup_to_user_dir:-0}
 	backup_prev=${backup_prev:-1}
 	distro_warn=${distro_warn:-0}
@@ -8077,6 +8076,7 @@ declare_default_sets(){
 	divider=${divider:-DEFAULT}
 	# cuda_install_dir=${cuda_install_dir:-/usr/local}
 	cuda_install_dir=${cuda_install_dir:-DEFAULT}
+	temp_ramfs=${temp_ramfs:-0}
 }
 default_zen_dir(){
 	## Outside the "make install" process, for various reasons (restoration, fresh OS install, etc..)
@@ -8177,10 +8177,10 @@ fi
 ## define global temporary folder
 # user /run/user tmp dir share tmpfs space.
 # To use to resolve rw access to temp files
-if [ $temp_ramfs = 1 ]; then
-	TMPDIR=/run/user/$(def_user_id)
-	export TMPDIR
-fi
+# if [ $temp_ramfs = 1 ]; then
+# 	TMPDIR=/run/user/$(def_user_id)
+# 	export TMPDIR
+# fi
 zen_tmp_dir=$(mktemp -d --tmpdir zen_temp.XXXX)
 trap_on_exit 'IFS=$ifs' # security, not necessary needed.
 trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
