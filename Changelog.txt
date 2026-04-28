@@ -463,3 +463,9 @@
  - Command line rescue tools are still off.
 * 2026-04-27 - v2.5.25
  - Dummy error : forgot to reset devel tips behaviour to normal state. Wasn't a good day.
+* 2026-04-28 - v2.5.26
+ - It appears that tmpfs even is sharing its allocation to entire system doesn't share its sapce in the same way to all user and ... I wasn't aware of that.
+ - Exemple : My PC is olding 32G of ram, tmpfs divide it by 2 and keep 16G, but... /run/user is not olding the 16G but 6.4G and share it between users and finally leave only 3.2G to user 1000.
+ - Zenvidia was allowing to choose between tmpfs and /run/user/1000 tmpfs, for Nvidia driver this is not an issue, but for Cuda IT IS !
+ - The present fix remove temp_ramfs function from zenvidia and fix all tmpfs space needs. You can remove temp_ramfs option from zenvidia conf safely.
+ - Importante note: dedicated user 1000 tmpfs allocation doesn't look to use swapfs if memory space is missing.
