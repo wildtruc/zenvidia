@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tips>
+	<locale code="en_EN">
+	<edit_script_conf>
+		<tip key="open_drv">
+			<p>If checked, zenvidia will activate the Nvidia Open driver management.</p>
+			<p>At this point, NVIDIA© will continue to be use and Open driver will</p>
+			<p>be compiled and stored in DKMS storage path.</p>
+		</tip>
+		<tip key="use_open">
+			<p>If checked, Open Driver will be used instead of NVIDIA©.</p>
+			<p>It's an active set and the switcher will execute immediatly after validation.</p>
+			<p>IMPORTANT NOTTE:</p>
+			<p>If settings window is launch from system tray without admin privileges, you need</p>
+			<p>to return to Zenvidia system tray and re-excute switch tool to take effect.</p>
+		</tip>
+		<tip key="open_wrn">
+			<p>When set, this option will display Open driver warning and cautions at each</p>
+			<p>driver update or installation before builing the dedicated modules. Option is</p>
+			<p>automaticaly unset.</p>
+			<p>Defautt is set at first use, then unset. </p>
+		</tip>
+		<tip key="drm_modset">
+			<p>DRM_MODSET allocate and configure the DRM/KMS modes.</p>
+			<p>This is used by system frame buffer to display proper TTY render.</p>
+			<p>For this, it need the grub option nvidia.drm.modeset=1 and nvidia.drm.fbdev=1</p>
+			<p>For rescent drivers drm.modeset and fbdev are enabled by default.</p>
+			<p>See Nvidia Documentation: chapter 36 for more details.</p>
+			<p>To set for older driver version than 570 serie. Default "off"</p>
+		</tip>
+		<tip key="GSP_firm">
+			<p>Will set the modprobe options NVreg_EnableGpuFirmware to use GSP firmware</p>
+			<p>instead of vendor default for older version series.</p>
+			<p>GSP firmware is used by default since 555 serie.</p>
+			<p>Default modprobe configuration is "do not set" the option. </p>
+		</tip>
+		<tip key="use_persistenced">
+			<p>Will set the persistenced power management service for discret card (dGPU).</p>
+			<p>This is mainly dedicate to Optimus laptop through PRIME offload or direct dGPU</p>
+			<p>render only to prevent card's power supply to be idle.</p>
+			<p>To use if you meet power supply issues with PRIME on desktop manager idles.</p>
+			<p>Defaut is "off".</p>
+		</tip>
+		<tip key="use_gzip">
+			<p>If set modules will be compressed to GZIP instead of XZ compression format.</p>
+			<p>Most rescent distributions use XZ for better performances, but some rare ones</p>
+			<p>still use GZIP. This option is used in "compilation from source" only, DKMS</p>
+			<p>manage this behaviour be itself. Defautl is always unset.</p>
+		</tip>
+		<tip key="use_dkms">
+			<p>If unset, all compilation process will use source directory instead of DKMS</p>
+			<p>full automation. Useful if you meet issues with DKMS or if you want a faster</p>
+			<p>operation. All process use DKMS storage and path format. Default is "on".</p>
+		</tip>
+		<tip key="fix_profiles">
+			<p>For an unknown reason the profiles-rc provided by Nvidia couldn't be read by</p>
+			<p>Nvidia-setting GUI in some default user space if the json file is not fully</p>
+			<p>indented. This option fix this.</p>
+			<p>If the profiles are correctly displayed in your Nvidia-settings GUI this</p>
+			<p>option is useless. Default is "off".</p>
+			<p>If the profiles still don’t appear even after enabling the option, it’s not</p>
+			<p>Zenvidia’s fault but the Nvidia developers probably (not their first).</p>
+		</tip>
+		<tip key="opti_preset_off">
+			<p>Zenvidia auto detect if the environment is an Optimus laptap or not, then</p>
+			<p>perform basic settings before configuring PRIME.</p>
+			<p>If set the option will force Optimus management to off and leave the system</p>
+			<p>as it is. In this case, only integrated GPU will be used.</p>
+			<p>Also useful when there is more than one Nvidia card dedicated to the system and</p>
+			<p>could bring confusion between a PC and an Optimus laptop.</p>
+			<p>Because this is a reverse set, default is "on".</p>
+			<p>In a non Optimus environment, this option has no effect.</p>
+		</tip>
+		<tip key="render">
+			<p>Will set between PRIME: sharing rendering between GPUs (render offload)</p>
+			<p>and PRIME offload: Running app with DRI_PRIME=1 [app].</p>
+			<p>PRIME links the integrated GPU (iGPU) and the discrete GPU (dGPU): one can drive</p>
+			<p>display while the other performs rendering.</p>
+			<p>PRIME Offload sent render requests to the dGPU for a specific application while</p>
+			<p>the primary iGPU keeps displaying and rendering for all other requests.</p>
+			<p>This option is always set because the real option is in the "extra" column.</p>
+			<p>Default is "NONE"</p>
+		</tip>
+		<tip key="offload">
+			<p>Will set rendering on discrete GPUs only (dGPU)</p>
+			<p>All PRIME methodes are off and primary GPU display is disabled (iGPU).</p>
+			<p>If you are concerne by performances and not by power saving, this is your clue.</p>
+			<p>Default is "off".</p>
+		</tip>
+		<tip key="opti_auto_set">
+			<p>PRIME or direct discret GPU render are set once during first configuration.</p>
+			<p>This set will allow to display PRIME configuration again at each driver updates.</p>
+			<p>Default is "off" after first use.</p>
+		</tip>
+		<tip key="gcc_mismatch">
+			<p>Nvidia-installer and driver source could meet GCC incompatibity.</p>
+			<p>When set, this option work-around the compilateur mismatch and do not check</p>
+			<p>GCC version. Could be set safely. Default is "off".</p>
+		</tip>
+		<tip key="use_indirect">
+			<p>Will set libGLX_indirect: OpenGL rendering over network/X11.</p>
+			<p>Allows running an OpenGL app from a server and displaying output</p>
+			<p>on a remote client via X11. Useful for remote desktops, but can</p>
+			<p>be slower and limit some extensions.</p>
+			<p>Use in very rare circonstances. Default is always "off".</p>
+		</tip>
+		<tip key="use_glvnd">
+			<p>Will set libglvnd: multi-vendor management for OpenGL/Mesa.</p>
+			<p>libglvnd intercepts libGL calls in user space and redirects each</p>
+			<p>application to the GL library provided by the appropriate GPU.</p>
+			<p>Prevents conflicts when multiple drivers coexist.</p>
+			<p>To unset for very old driver version and in very rare circonstances.</p>
+			<p>Dafult is "on"</p>
+		</tip>
+		<tip key="wayland_link">
+			<p>Nvidia-installer do not create system sublink during librairies installation</p>
+			<p>(.so,.so.1). When set, this option fix wayland library links.</p>
+			<p>Note: This behaviour occur on Xorg drived distribution, it doesn't mean that</p>
+			<p>nvidia-installer doesn't detect wayland and not create links during process.</p>
+			<p>Default is "set" since zenvidia 2.5.24.</p>
+		</tip>
+		<tip key="backup_prev">
+			<p>If set, this option will backup Nvidia driver installation before update or</p>
+			<p>installation process. This is optionnal. Default is "off"</p>
+			<p>Note: Alternativly, driver backup could be done from Zenvidia package manager separatly.</p>
+		</tip>
+		<tip key="backup_to_user_dir">
+			<p>Driver backup function usualy store archive tar ball in Zenvidia default path,</p>
+			<p>this set allows to store them in Zenvidia user's directory instead.</p>
+			<p>Useful if you're starting to run out of space in system path.</p>
+		</tip>
+		<tip key="use_cuda">
+			<p>If set, the option will activate Cuda Toolkit management.</p>
+			<p>It will check at each driver update for a corresponding version in Cuda</p>
+			<p>remote server directory.</p>
+		</tip>
+		<tip key="divider">
+			<p>This option will set which of octects (1000) or bytes (1024) will be displayed</p>
+			<p>in storage space controls.</p>
+			<p>Default is octets (DEFAULT) with multiplier of 1000.</p>
+		</tip>
+		<tip key="cuda_install_dir">
+			<p>By default nvidia cuda installer will set install path to /usr/local.</p>
+			<p>You can set here an other path manually like /opt, /home, etc.</p>
+			<p>Note that Zenvida will ask at first installation where to install data.</p>
+			<p>Default is '/usr/local' (DEFAULT)</p>
+		</tip>
+		<tip key="cuda_install_warn">
+			<p>Zenvidia ask at first Cuda install to choose where to install Cuda Toolkit. </p>
+			<p>By default, when answered, the question wont be display again.</p>
+			<p>This set allows to activate it the window once again.</p>
+		</tip>
+		<tip key="first_open">
+			<p>Zenvidia warn at Open Driver installation or updates about Open Driver limitations.</p>
+			<p>This is only informative and doesn't need to be displayed again.</p>
+			<p>It set the option allow to display warnings again. Default is "off".</p>
+		</tip>
+		<tip key="xt_hold">
+			<p>If set this option allows to hold xterm or Yad log window instead of defay.</p>
+			<p>This uselful if you wish to check installation or compilation logs before</p>
+			<p>going to next step. Default is "delay".</p>
+			<p>ATTENTION: This option overclass "delay" option.</p>
+		</tip>
+		<tip key="xt_delay">
+			<p>If set, this option will extend or reduce the timeout delay in secondes during which the</p>
+			<p>Yad or Xterm log window is paused. Default is "4", set is in extra column.</p>
+			<p>ATTENTION: this option depend of "hold" option above and is acttive only if "hold xterm</p>
+			<p>and logs display" is set to "0". Set "0" cancel the delay.</p>
+		</tip>
+		<tip key="read_timeout">
+			<p>Will affect the timeout dedicate to displayed message before sending the next one.</p>
+			<p>Depends of each person focus skill, sometime it's more, sometimes it's less.</p>
+			<p>It could be 1, 1.25, etc. Default is 2 secondes.</p>
+		</tip>
+		<tip key="hlp_txt">
+			<p>If set, this option will display help tips (this help tip) in all sections where</p>
+			<p>they are available. This is set by default at first Zenvidia installation.</p>
+			<p>You can "unset" it safely after becoming familiar with the script or if you.</p>
+			<p>just don't care.</p>
+		</tip>
+	</edit_script_conf>
+	</locale>
+	<locale code="pr_FR">
+	<edit_script_conf>
+		<tip key="open_drv">
+			<p>Si activé, zenvidia activera la gestion du pilote Open de Nvidia.</p>
+			<p>À ce stade, NVIDIA© continuera d'être utilisé et le pilote Open sera</p>
+			<p>compilé et stocké dans le chemin de stockage DKMS.</p>
+		</tip>
+		<tip key="use_open">
+			<p>Si activé, le pilote Open sera utilisé à la place de NVIDIA©.</p>
+			<p>Il s'agit d'un paramètre actif et le commutateur s'exécutera immédiatement après</p>
+			<p>la validation de la fenêtre.</p>
+			<p>REMARQUE IMPORTANTE: si la fenêtre des paramètres est lancée depuis la barre d'état</p>
+			<p>sans privilèges d'administrateur vous devez retourner dans la barre d'état de Zenvidia</p>
+			<p>et réexécuter l'outil de permutation pour que la modification prenne effet.</p>
+		</tip>
+			<tip key="open_wrn">
+			<p>Lorsqu'elle est activée, cette option affiche des avertissements et des mises en garde</p>
+			<p>concernant le pilote Open à chaque mise à jour ou installation du pilote avant la</p>
+			<p>compilation des modules dédiés. L'option est automatiquement désactivée.</p>
+			<p>Elle est activée par défaut lors de la première utilisation, puis désactivée. </p>
+		</tip>
+		<tip key="drm_modset">
+			<p>DRM_MODSET alloue et configure les modes DRM/KMS.</p>
+			<p>Ceci est utilisé par le frame buffer du système pour afficher correctement le rendu TTY.</p>
+			<p>Pour cela, l'option grub nvidia.drm.modeset=1 et la sous-option nvidia.drm.fbdev=1</p>
+			<p>sont nécessaires.</p>
+			<p>Pour les pilotes actuels, drm.modeset et fbdev sont activés par défaut.</p>
+			<p>Voir la documentation Nvidia : chapitre 36 pour plus de détails/</p>
+			<p>À définir pour les versions de pilotes antérieures à la série 570. Par défaut "off"</p>
+		</tip>
+		<tip key="GSP_firm">
+			<p>Définit l'option modprobe NVreg_EnableGpuFirmware pour utiliser le firmware GSP</p>
+			<p>à la place du firmware par défaut du fabricant pour les anciennes séries de pilotes.</p>
+			<p>Le firmware GSP est utilisé par défaut depuis la série 555.</p>
+			<p>La configuration modprobe par défaut est "ne pas définir" l'option est à (0).</p>
+			</tip>
+		<tip key="use_persistenced">
+			<p>Définit le service de gestion de l'alimentation persistante pour la carte discrète (dGPU).</p>
+			<p>Cette option est principalement destinée aux laptop Optimus à travers PRIME offload</p>
+			<p>où le rendu direct sur dGPU uniquement, pour empêcher l'alimentation de la carte de</p>
+			<p>passer en veille.</p>
+			<p>À utiliser si vous rencontrez des problèmes d'alimentation avec PRIME lorsque le</p>
+			<p>gestionnaire de bureau est en veille. La valeur par défaut est "désactivée".</p>
+		</tip>
+		<tip key="use_gzip">
+			<p>Si cette option est activée, les modules seront compressés au format GZIP au lieu du</p>
+			<p>format XZ. La plupart des distributions récentes utilisent XZ pour de meilleures</p>
+			<p>performances, mais certaines plus rares, utilisent encore GZIP. Cette option est utilisée</p>
+			<p>uniquement avec "compiler à partir des sources".</p>
+			<p>Note: DKMS gère ce comportement de lui-même.</p>
+			<p>La valeur par défaut est "toujours désactivée".</p>
+		</tip>
+		<tip key="use_dkms">
+			<p>Si désactivée, tout le processus de compilation utilisera le répertoire source au lieu</p>
+			<p>de l'automate DKMS. Utile en cas de problèmee avec DKMS ou pour une opération plus rapide.</p>
+			<p>La fonction utilise l'arborescence DKMS pour le stockage. "Actif" par défaut.</p>
+		</tip>
+		<tip key="fix_profiles">
+			<p>Pour une raison inconnue, le fichier profiles-rc fourni par Nvidia ne peut pas être lu par</p>
+			<p>le GUI de Nvidia-settings dans certains espaces utilisateur si le fichier json n'est pas</p>
+			<p>entièrement indenté. Cette option corrige ce problème.</p>
+			<p>Si les profils s'affichent correctement dans votre GUI Nvidia-settings, cette option n'est</p>
+			<p>pas nécessaire. La valeur par défaut est "désactivée".</p>
+		</tip>
+		<tip key="opti_preset_off">
+			<p>Zenvidia détecte si l'environnement est un ordinateur portable Optimus, puis exécute</p>
+			<p>des routines de base avant de configurer PRIME. Si "activé", cette option forcera la</p>
+			<p>gestion d'Optimus sur "off" et laissera le système tel quel. Dans ce cas seul le GPU</p>
+			<p>intégré sera actif.</p>
+			<p>Ceci est aussi utile lorsqu'il y a plus d'une carte Nvidia dédié au système et qu'il</p>
+			<p>peut y avoir confusion entre un PC avec plusieurs cartes et un ordinateur portable</p>
+			<p>géré par Optimus.</p>
+			<p>Ceci est une variable inverse, La valeur par défaut est "actif".</p>
+			<p>Cette option n'a aucun effet dans un environnement non Optimus ou une seule carte Nvidia.</p>
+		</tip>
+		<tip key="render">
+			<p>Fera la sélection entre PRIME: partage du rendu entre GPUs (render offload), et PRIME</p>
+			<p>Offload: Lancer des application avec l'option DRI_PRIME=1 [app], rendu explicite.</p>
+			<p>PRIME relie le GPU intégré (iGPU) et le GPU dédié (discrete ou dGPU). L'un affiche</p>
+			<p>l'écran tandis que l'autre affectue le rendu en partageant les tâches.</p>
+			<p>PRIME Offload: délégation explicite du rendu. Le dGPU reçoit toutes les requêtes de</p>
+			<p>rendu pour une applicatiion spécifique et le iGPU s'occupe de toutes les autres requêtes.</p>
+			<p>Cette option est toujours "active", la vrai variable étant celle de la colonne "extra".</p>
+			<p>Action par défaut "NONE"</p>
+		</tip>
+		<tip key="offload">
+			<p>Activera le rendu sur GPU secondaire uniquement (dGPU).</p>
+			<p>Toutes les action PRIME sont désactivées et le GPU primaire inactif (iGPU).</p>
+			<p>Si vous êtes plus soucieux des performances que de la gestion d'énergie, ceci est</p>
+			<p>l'option qu'il vous faut.</p>
+			<p>Action par défaut "off".</p>
+		</tip>
+		<tip key="opti_auto_set">
+			<p>PRIME ou le rendu direct sur GPU secondaire est activé une seule fois à la première</p>
+			<p>configuration. Ce paramètre permet de réactivé l'affichage de la configuration PRIME.</p>
+			<p>Désactivée par défaut après la première utilisation.</p>
+		</tip>
+		<tip key="gcc_mismatch">
+			<p>Nvidia-installer et les sources du pilotes peuvent rencontrer des incompatibilités GCC.</p>
+			<p>Cette option activera un contournement pour la compilation et ne contrôlera pas la</p>
+			<p>version de GCC.</p>
+			<p>Peut être ativé sans risque. Action par défaut "off".</p>
+		</tip>
+		<tip key="use_indirect">
+			<p>Activera libGLX_indirect: rendu OpenGL via réseau/X11.</p>
+			<p>Permet d’exécuter une application OpenGL sur un serveur et d’afficher la sortie sur un</p>
+			<p>client distant via X11. Utile pour remote desktop, mais peut être apporter des lenteurs</p>
+			<p>et limiter certaines extensions.</p>
+			<p>À n'utiliser que dans de très rare circonstances. Désactivé par défaut.</p>
+		</tip>
+		<tip key="use_glvnd">
+			<p>Activera libglvnd: gestion multi-vendor pour OpenGL/Mesa.</p>
+			<p>libglvnd intercepte les appels libGL côté utilisateur et redirige chaque application</p>
+			<p>vers la librairie fournie par le GPU approprié. Évite les conflits quand plusieurs
+			<p>pilotes coexistent sur le même système.</p>
+			<p>À désactiver sur les très anciens pilotes et en de rare circonstances.</p>
+			<p>Activé par défaut.</p>
+		</tip>
+		<tip key="wayland_link">
+			<p>Durant l'installation des librairies, Nvidia-isntaller ne crée pas les sous-liens de</p>
+			<p>type ".so,.so.1". Activé, cette option réparera les liens pour la librairie Wayland.</p>
+			<p>Note: Ce comportement survient sur les distributions utilisant Xorg, cela ne signifie</p>
+			<p>pas que l'installateur ne détecte pas Wayland et ne crée pas les liens nécesaires.</p>
+			<p>Activé par défaut depuis la version 2.5.24 de Zenvidia.</p>
+		</tip>
+		<tip key="backup_prev">
+			<p>Si activée, cette option opérara un sauvegarde de l'installation du pilote Nvidia</p>
+			<p>présente sur le sytème durant l'installation ou la mise à jour.</p>
+			<p>Désativé par défaut.</p>
+			<p>Note: alternativment, La sauvergarde peut être faite séparément depuis le</p>
+			<p>gestionnaire de paquets de Zenvidia.</p>
+		</tip>
+		<tip key="backup_to_user_dir">
+			<p>La fonction de sauvegarde utilise usuellement le répertoire par défaut de Zenvidia,</p>
+			<p>cette option permet de faire ce stockage dans le répertoire uttilisatteur de Zenvida.</p>
+			<p>Utilie si vous venez à manquer d'espace dans l'arborescence système.</p>
+		</tip>
+		<tip key="use_cuda">
+			<p>Si activé, cette option déclanchera la prise en charge du Cuda Toolkit.</p>
+			<p>Elle contrôlera à chaque mise à jour du pilote la présence d'une version</p>
+			<p>correspondate dans les répertoires distants du serveur Cuda.</p>
+		</tip>
+		<tip key="divider">
+			<p>Cette option paramètrera lequel en octets (1000) et bytes (1024) sera affiché durant le</p>
+			<p>contrôle des espcaces disques.</p>
+			<p>Par défautt en octet (DEFAULT) avec un multiplicateur de 1000</p>
+		</tip>
+		<tip key="cuda_install_dir">
+			<p>Par défaut, l'installateur de Cuda paramètrera le chemin d'installation à /usr/local.</p>
+			<p>Vous pouvez donner manuellement un autre chemin ici comme /opt, /home, etc.</p>
+			<p>Notez que Zenvidia demandera durant la première installation où installer les données.</p>
+			<p>Par défaut '/usr/local' (DEFAULT)</p>
+		</tip>
+		<tip key="cuda_install_warn">
+			<p>Zenvidia demande à la première installation où installer le Cuda Toolkit.</p>
+			<p>Par défaut, une fois répondue, la question ne sera plus posée.</p>
+			<p>Si activé, ce paramètre permet d'afficher à nouveau la fenêtre.</p>
+		</tip>
+		<tip key="first_open">
+			<p>Zenvidia alerte à l'installation des Pilote Ouvert sur les limitations de celui-ci.</p>
+			<p>C'est purement informatif et n'a pas besoin d'être affiché une nouvelle fois.</p>
+			<p>Si activé, l'alerte sera à nouveau affichée.</p>
+		</tip>
+		<tip key="xt_hold">
+			<p>Si activée, ce paramètre maintiendra les fenêtres de log Yad et Xterm ouverte à la</p>
+			<p>place d'un délai avant fermeture. Utile si vous voulez contrôler l'installation ou la</p>
+			<p>compilation avant la prochaine étape. Désactivé par défaut, délai uniquement.</p>
+			<p>ATTENTION: Cette option surclasse l'option "délai".</p>
+		</tip>
+		<tip key="xt_delay">
+			<p>Si changée, cette option étendra le delai d'affichage des fenêtres de log Yad et Xterm. </p>
+			<p>Par défaut à "4" paramétrable dans la colomne "extra", "0" annule l'option.</p>
+			<p>ATTENTION: Cette option dépends de la valeur de l'option "hold" (maintenir) et n'est</p>
+			<p>active que si cette dernière est paramétrée à "0".</p>
+		</tip>
+		<tip key="read_timeout">
+			<p>Affectera le temps d'affichage des messages de Zenvidia avant d'en afficher un autre.</p>
+			<p>Tout dépends des falcultés d'attention de chacun. Parfois plus, parfois moins.</p>
+			<p>Cela peut être édité sous la forme 1, 1.25, etc. Par défaut "2" dans la colonne "extra".</p>
+		</tip>
+		<tip key="hlp_txt">
+			<p>Si activée, cette option affichera les tip d'aide (ce tip d'aide) dans toutes les sections</p>
+			<p>sections où ils sont disponibles. Activé pas défaut à la première instalation.</p>
+			<p>Vous pouvez les désactivés en toute sécurté après être devenu familier avec le script</p>
+			<p>ou tout simplement parce que vous n'en avez rien à faire.</p>
+		</tip>
+		</edit_script_conf>
+		</locale>
+</tips>
