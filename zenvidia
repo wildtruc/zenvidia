@@ -424,7 +424,7 @@ die(){
 	# Display error Yad window if X is active.
 	[ $(x_check) -gt 0 ] && error "$line" "$msg" || error "$line" "$msg"; win_yad_ret "${line}" "${msg}"
 
-	[ ${ret} = 0 ] && ( $(kill_parent_pid) ; exit $ret ) || true # fatal, kill also yad parents
+	[ ${ret} = 0 ] && ( $(kill_parent_pid) ; exit 1 ) || true # fatal, kill also yad parents
 	[ ${ret} = 1 ] && exit $ret || true # fatal, plain exit
 	[ ${ret} = 2 ] && {
 		# could be fatal if exit 1/0, else back to a previous menu or just pass ''.
@@ -627,8 +627,8 @@ dep_control(){ # yad and xterm autoinstall here.
 							# while read line; do echo "# ${line}"; done
 							sleep 2
 							echo -e "# "
-							echo -e $esc_message
-							$x_sleep
+							echo -e "$esc_message"
+							[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 						}& eval lpid=$!; y_pulse; } | win_yad_progress
 						sed -i "s/resolve_dep=.*/resolve_dep=1/" $script_conf
 					else
@@ -701,14 +701,16 @@ dep_control(){ # yad and xterm autoinstall here.
 }
 connected(){
 	local site=${site:-$nvidia_base_url}
-	ping -c2 $site &>/dev/null; echo "$?"
+	# ping -c2 $site &>/dev/null; echo "$?"
+	ping -c2 ${site} &>/dev/null && echo 0 || echo "$?"
 }
 connection_check(){
 	local base=${1} ret=${2}
 	[ ${base} = 0 ] && local site="8.8.8.8"
 	[ ${base} = 1 ] && local site="$nvidia_base_url"
 	[ ${base} = 2 ] && local site="$cuda_base_url"
-	if [ $(connected) -gt 1 ]; then
+	# if [[ $(connected) -gt 1 ]]; then
+	if (( $(connected) >= 1 )); then
 		if [ ${1} = 0 ]; then
 		w_text=$"$( cat <<-MSG
 			No internet connection detected.
@@ -864,8 +866,9 @@ gcc_compil_vars(){
 	if [ $UID = 0 ]; then grub_cfg=$(find /boot -wholename "*/grub.cfg"|grep -iv "efi"); grub_def=/etc/default/grub; fi
 
 }
-xterm_display_vars(){
-	xt_options=''; x_pixel=''; x_milli=''; term_x_dsp=''
+xterm_display_vars(){ # ATTENTION à REVOIR
+	xt_options='' x_pixel='' x_milli='' term_x_dsp=''
+	x_sleep='' x_esc_message=''
 	local xt_colors='' xx_hold='' pixel=''
 	[ $xt_hold = 0 ]|| xx_hold='-hold'
 	# sets for xterm
@@ -876,8 +879,10 @@ xterm_display_vars(){
 		x_esc_message="\n${nc}*****  "$"Close window to escape"" *****"
 		x_sleep=''
 	else
-		x_esc_message="\n${nc}*****  "$"Window will auto-close in ${xt_delay} seconds"" *****"
-		x_sleep="sleep ${xt_delay}"
+		if [ ${xt_delay} -gt 0 ]; then
+			x_esc_message="\n${nc}*****  "$"Window will auto-close in ${xt_delay} seconds"" *****"
+			x_sleep="sleep ${xt_delay}"
+		fi
 	fi
 	# xt_options="$xt_colors$xx_hold -fn 8x13 -geometry 80x24+"$[ ( ($(printf "$x_pixel"| cut -d';' -f1)-660)/2) ]"+0"
 	# pixel=$[ ($(printf "$x_pixel"| cut -d';' -f1)-660)/2 ]
@@ -1125,7 +1130,7 @@ exec_initramfs(){
 	# 	m=1 ;
 	local message=${1} count=${2}
 	local IFS=$' '
-	progress "$(initramfs_tools) $KERNEL" "${message}" "${count}" || true
+	progress "$(initramfs_tools) $KERNEL" "${message}" "${count}" || true
 	return
 }
 dkms_ramfs_exec(){
@@ -1460,8 +1465,8 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 				## set diplayed license by driver type.
 				echo -e "# "
 				echo_message 1 $"Driver" "${y}$drv_on${end}" $"switch done."
-				echo -e $esc_message
-				$x_sleep
+				echo -e "$esc_message"
+				[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 				sed -Ei "s/^(use_open)=.*$/\1=$use_open/" $basic_conf
 			} & eval lpid=$!; y_pulse; } | win_yad_progress
 			warn_log_title=$"""${j}${bf}$drv_on "$"switch""${end}${end}"
@@ -1516,8 +1521,8 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 				sed -Ei "s/^(use_open)=.*$/\1=0/" $basic_conf
 				echo -e ""
 				echo_message 1 $"Reboot for change to take effect"
-				echo -e $esc_message
-				$x_sleep
+				echo -e "$esc_message"
+				[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 			} & eval lpid=$! ; y_pulse; } | win_yad_progress
 			warn_log_title=$"${j}${bf}Nvidia Driver refresh.${end}${end}"
 			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
@@ -2962,7 +2967,7 @@ build_dkms(){
 	echo -e "#${v}"$" Done""${end}"
 	echo -e "# "
 	echo -e "${esc_message}"
-	$x_sleep
+	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 }
 nv_build_dkms(){
 	local proc_msg=$"Build and install DKMS modules..."
@@ -3114,7 +3119,7 @@ build_source(){
 		else
 			echo_message 2 "*" $"No" "$(new_version) $module" $"build log found"
 		fi
-		if [ $pass = 0 ]; then
+		if [[ -n $pass && $pass = 0 ]]; then
 			echo_message 2 "*" "$module" $"control passed" "(pass=$pass)"
 			echo -e "pass=$pass" >> $tmp_vars
 		else
@@ -3168,17 +3173,16 @@ build_source(){
 		echo -e "# "
 		popd
 	done
-	# echo -e $"#${v} Done.${end}"
 	echo_message 1 $"Done"
 	sleep 2
 	echo -e "# "
 	echo -e "$esc_message"
-	$x_sleep
+	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 }
 nv_cmd_make_src(){
  	[ -f "$(find -L $(kernel_src) -name "sign-file")" ] || die 1 "${LINENO}" "sign-file kernel script not found" "" 1
-	echo -e $"# Build & install modules from source..."; sleep 1
-	## get the previous yad pd if any
+	echo_message 0 $"# Build and install modules from sources"
+	## get the previous yad pid if any
 	list_kill_parent_pids
  	local pulse=0 log=1 hold=1 hide_txt=1
  	win_log_options
@@ -3220,8 +3224,9 @@ nv_cmd_install_driver(){
 			if [ $use_dkms = 0 ]; then
 				echo_message 1 "${j}−${end}" $"Nvidia MODULES compilation from source..."
 				nv_cmd_make_src
+				. $tmp_vars
 			fi
-			if [ $pass = 0 ]; then
+			if [[ -n $pass && $pass = 0 ]]; then
 				if [ $use_open = 1 ]; then
 					if [ $(chk_family) -lt 545 ]; then
 						echo -e $"# ${v}Set ${y}$drv_on${end} kernel options.${end}"
@@ -3346,7 +3351,7 @@ nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
 	# while read -r line; do echo -e "# ${y}${sf}${line}${end}${end}"; done ;}
 	echo -e "# "
 	echo -e "$esc_message"
-	$x_sleep
+	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 	}& eval lpid=$!; y_pulse; } | win_yad_progress # || die 3 ${LINENO} "Yad librairies install window failed.\nAborting." "restore_driver \"old_kernel\"" 0
 	popd
 	## report nvidia installer log message
@@ -3402,8 +3407,8 @@ nv_cmd_install_cuda(){
 		fi
 	done
 	echo -e "# "
-	echo -e $esc_message
-	$x_sleep
+	echo -e "$esc_message"
+	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	popd
 	nv_ctrl_install_cuda
@@ -4136,7 +4141,7 @@ upgrade_kernel(){
 	fi
 }
 ## FROM A REMOTE/USER DIRECTORY
-net_version_selector(){
+net_version_selector(){ # HELP TXT
 	local menu_select LAST_PACK LAST_OFFI older_pack list_array
 	if [ $hlp_txt = 1 ]; then
 		hlp_tip=$"$( cat <<-HLP
@@ -4779,7 +4784,8 @@ download_only(){
 download_track(){
 	sleep 1
 	while [ -d /proc/${wpid} ]; do
-		file_down=$(du -h -BM $buildtmp/$local_pack | awk '{print $1}'| grep -Eo "[0-9]+")
+		# file_down=$(du -h -BM $buildtmp/$local_pack | awk '{print $1}'| grep -Eo "[0-9]+")
+		file_down=$(du -bB $((${divider}*${divider})) $buildtmp/$local_pack | awk '{print $1}')
 		echo -e $"# Downloading $file_down of $file_up $file_ex."
 		# echo_message 0 $"Downloading" "$file_down" "of" "$file_up $file_ex."
 		echo "$(( $((100*$file_down))/$file_up ))"
@@ -4793,7 +4799,8 @@ win_download_display(){
 	win_log_options
 	# in some case connection delay could break the query, create empty file first.
 	> $buildtmp/$local_pack
-	{ $p_wget -c -P $buildtmp/ $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress && return # true
+	{ $p_wget -c -P $buildtmp/ $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
+	return # true
 }
 last_driver_pack(){
 	local drv_list=()
@@ -4850,6 +4857,7 @@ last_driver_pack(){
 		file_down=0
 		file_up=$(cut -d';' -f1 <<< $file_size)
 		file_ex=$(cut -d';' -f2 <<< $file_size)
+		local divider=1024
 		local y_text="<b>"$"Downlaoding"" ${j}$LAST_PACK${end} "$"driver from"" ${y}Nvidia${end} "$"server""</b>"
 		win_download_display
 
@@ -5389,6 +5397,7 @@ package_checksum_sim(){
 	package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
 	if (( $remote_size != $package_size )); then
 		proc_msg=$"Downloaded file not of the same size than remote."
+		diff_size=$"Expected"": $(($CUDA_SIZE_O/($divider*$divider))) ,"$"received"": ""$(($package_size/($divider*$divider)))."
 		more_msg=$"Data check sum process failure"
 		if [ $from_install = 1 ]; then
 			echo_message 2 "- ""$proc_msg" "<b>"$more_msg"</b>"
@@ -5400,6 +5409,7 @@ package_checksum_sim(){
 		fi
 		warn_log=$"$(cat <<-MSG
 			${proc_msg}
+			${diff_size}
 			${more_msg}
 		MSG
 		)"
@@ -5543,10 +5553,10 @@ jq_tips(){ # TEST UNUSED
 	jq -r ".[].${locale}.${menu}.${cmd}" $help_tips
 }
 xq_tips(){
-	local menu="${1}" cmd="\"${2}\""
+	local menu="${1}" cmd="\"${2}\"" file="${3}"
 	shift
 	local locale=$(printf "%s" $LANG | cut -d'.' -f1)
-	local help_tips=${zen_docs}/help-tips.xml
+	local help_tips=${zen_docs}/${file}
 	# local help_tips=./help-tips.xml # TEST
  	[[ ${cmd} =~ $(version) ]] && cmd=$(sed -En "s/(^.*) [\(]?$(version)[\)]?/\1/g;p" <<< "${cmd}")
 	[[ $(xq -q "tips>locale[code="${locale}"]>${menu}>tip[key="${cmd}"]" $help_tips) ]] && true || locale='en_EN'
@@ -5576,20 +5586,26 @@ yad_button(){
 	return
 }
 win_log_options(){
-	x_sleep='' x_hold='' x_button=''
-	if [ $hold = 1 ]&&[ $xt_hold = 1 ]; then
-		esc_message="# ${nr}*****  "$"Close window to escape"" *****${end}"
-		x_hold=''
-		x_button=''
-		if [ ${xt_delay} -gt 0 ]; then
-			esc_message="# ${nr}*****  "$"Window will auto-close in"" ${xt_delay} "$"seconds"" *****${end}"
-			x_sleep="sleep ${xt_delay}"
-			x_hold='--auto-close'
+	# set default
+	x_sleep='' esc_message='' x_hold='--auto-close' x_button='--no-buttons'
+	# test first the function hold behaviour
+
+	if [ ${hold} = 1 ]; then
+		# then test configuration hold variable
+		if [ ${xt_hold} = 1 ]; then
+			esc_message="# ${nr}*****  "$"Close window to escape"" *****${end}"
+			x_hold=''
+			x_button=''
+			x_sleep=''
+		else
+		# if set to 0, don't use.
+			if [ ${xt_delay} -gt 0 ]; then
+				esc_message="# ${nr}*****  "$"Window will auto-close in"" ${xt_delay} "$"seconds"" *****${end}"
+				x_sleep="sleep ${xt_delay}"
+				x_hold='--auto-close'
+				x_button=''
+			fi
 		fi
-	else
-		esc_message=''
-		x_hold='--auto-close'
-		x_button='--no-buttons'
 	fi
 }
 # yad per object window maker functions
@@ -5709,7 +5725,7 @@ win_yad_progress(){
 	# hold=0/1		#> Hold window or not
 	# hide_txt=0/1	#> Hide progress bar txt or not
 	# extra options : hold options need other strings and depend of base script predefine option.
-	# >> echo -e $esc_message" (without '' arround text var) inside script string shell '{...}'
+	# >> echo -e "$esc_message"" (without '' arround text var) inside script string shell '{...}'
 	# ex : with hold >> pulse=1; log=1; hold=1 ; hide_txt=1
 	#		 autoclose with no progress bar text	>> pulse=1; log=1; hold=0 ; hide_txt=1
 	#		 autoclose with progres bar text			>> pulse=1; log=0; hold=0 ; hide_txt=0
@@ -5772,12 +5788,14 @@ win_yad_list(){
 	# 	sel_col='0'; sep=';' ;hid_col='3,5'; edit_col=0; col_tip=3; w_width='550'; w_height='400'; l_tail=0
 
 	# NOTE : si la valeur rapporte 1 ou 252, la valeur défini en aval est 0.
-	local tip_col='' col_list=() w_dim=() editable='' output=''
+	local tip_col='' editable='' output='' i
+	local -a col_list=() w_dim=()
 	local list="${1}" options=${2} int=0
 	# if (( ${3} && ${3} > 0 )); then int=1; else true; fi
 	# if [[ -n ${options} && ${options} =~ [0-9] ]]; then options=''; int=1 ; else true; fi
 	[[ -n ${options} && ${options} =~ [0-9] ]] && options='' int=1 || true
 	for ((i=0; i<=$(($columns-1)); i++)) {
+	# for ((i=1; i<=$(($columns)); i++)) {
 		if [ $w_head = 1 ]&&[ ${#col_name[*]} -gt 0 ]; then id=${col_name[$i]}; no_head=''; else id=$i; no_head='--no-headers'; fi
 		[[ "$hid_col" =~ $(($i+1)) ]] && EXTRA=':HD' || EXTRA=''
 		col_list+=("--column=$id$EXTRA");
@@ -5787,6 +5805,7 @@ win_yad_list(){
 	[ "$edit_col" != 0 ] && { edit_col='--editable-cols='$edit_col; editable='--editable'; } || edit_col=''
 	[ $col_tip -gt 0 ] && tip_col='--tooltip-column='$col_tip || col_tip=''
 	[ $sel_col -gt 0 ] && sel_col='--print-column='$sel_col || sel_col=''
+	# [[ $sel_col != '' && $sel_col != 0 ]] && sel_col='--print-column='$sel_col || sel_col=''
 	[ $l_tail -gt 0 ] && l_tail='--tail' || l_tail=''
 	[[ "$list_type" =~ "checklist" ]] && list_type=( --checklist --multiple $editable ) || list_type='--radiolist'
 	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
@@ -5927,7 +5946,7 @@ win_open_switch(){ # to set in local
 }
 
 ## PACKAGE MANAGING
-manage_pcks(){
+manage_pcks(){ # HELP TXT
 	local hlp_tip='' w_text list_array menu_packs
 	w_text=$"$( cat <<-MSG
 
@@ -6412,12 +6431,14 @@ restore_pcks(){ # to set in local
 ## EDITION TOOLS
 edit_script_conf(){
 	## building list
-	local conf_list orig_conf cnf_list conf_base conf_chg yad_warn
-	local IFS=$(echo -en "\n\b")
-	local conf_list=( $(cat $basic_conf | sed -En "s/^# (.*):.*/\1/p") )
+	local conf_base conf_chg yad_warn
+	local -a orig_conf=() cnf_list=() col_name=() conf_list=()
 	local old_conf=$(user_CF_DIR)/old_basic.conf # << COULD COME FROM AN OTHER SESSION.
-	test -s $old_conf && rm -f $old_conf
 
+	# local IFS=$(echo -en "\n\b")
+	local IFS=$'\n'
+	local conf_list=( $(cat $basic_conf | sed -En 's/^# (.*):.*/\1/p') )
+	test -s $old_conf && rm -f $old_conf
 	for conf_set in "${conf_list[@]}"; do
 		cnf_text="$conf_set"
 		setted=$(grep -A1 "$cnf_text" $basic_conf | sed -n "\$p" )
@@ -6426,7 +6447,8 @@ edit_script_conf(){
 		case $set_val in
 			[0-9]*)
 				if [ $set_val -gt 0 ]; then setted='TRUE'; else setted='FALSE'; fi
-				if [ $set_val -gt 1 ]; then set_val=$set_val; else set_val='none'; fi
+				# if [ $set_val -gt 1 ]; then set_val=$set_val; else set_val='none'; fi
+				if [ $set_val -gt 1 ]; then set_val=$set_val; else set_val='~'; fi
 			;;
 			[Aa-Zz]*|[\"]*)
 				if [[ "$set_val" =~ \" ]]; then set_val=`sed -n "s/\"//g;p" <<< $set_val`; fi
@@ -6437,14 +6459,24 @@ edit_script_conf(){
 		cnf_list+=("$cnf_text")
 		cnf_list+=("$set_id")
 		cnf_list+=("$set_val")
+		[ $hlp_txt = 1 ] && cnf_list+=("${y}$(xq_tips "edit_script_conf" "$set_id" "help-conf-tips.xml")${end}")
 		orig_conf+=("$setted;$set_id;$set_val")
 	done
 	local help_tip="${v}\n"$"Define options and functions you would like to use or change""\n${end}"
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
 
-	local ok_lbl=$"Apply"'!zen-ok' list_type='checklist'
-	local sel_col='0' sep=';' columns=4 l_tail=0 w_head=1 hid_col='3' edit_col=4 col_tip=3
-	local col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' )  w_width='860' w_height='500'
+	local ok_lbl=$"Apply"'!zen-ok' # list_type='checklist'
+	local list_type='checklist' l_tail=0 w_head=1
+	if [ $hlp_txt = 0 ]; then
+		local columns=4 sel_col=0 hid_col=3 col_tip=3 edit_col=4 sep=';'
+	else
+		local columns=5 sel_col=0 hid_col=3,5 col_tip=5 edit_col=4 sep=';'
+	fi
+	# local sel_col='0' sep=';' columns=4 l_tail=0 w_head=1 hid_col='3' edit_col=4 col_tip=3
+	# local col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' )  w_width='860' w_height='500'
+	# local sel_col='0' sep=';' columns=5 l_tail=0 w_head=1 hid_col='3,5' edit_col=4 col_tip=5
+
+	local col_name=( 'Set' 'Definition' 'Conf Set' 'Extra' 'Tip' )  w_width='860' w_height='500'
 	local l_text=$"${j}${bf}Zenvidia Configuration${end}$help_tip${end}"
 	conf_base=( $( win_yad_list "${cnf_list[*]}" "") )
 	if [[ ${#conf_base[*]} -gt 0 && "$conf_base" =~ [a-z] ]]; then
@@ -6465,7 +6497,8 @@ edit_script_conf(){
 				# below filter is not necesary, but add for better reading understanding.
 				if [[ "$value" =~ "TRUE" ]]; then value=1; else value=0; fi
 				if [[ "$bis_value" ]]; then
-					if [[ "$bis_value" != 'none' ]]; then
+					# if [[ "$bis_value" != 'none' ]]; then
+					if [[ "$bis_value" != '~' ]]; then
 						[[ "$bis_value" =~ [Aa-Zz] ]] && a='\"'
 						value=$bis_value
 					else
@@ -6491,7 +6524,8 @@ edit_script_conf(){
 			if [ $(grep -c "$value.*$set" <<< ${conf_base[@]}) -eq 0 ]; then
 				if [[ ! "$value" = "FALSE" ]]; then
 					bis_value=$(echo "$input"| cut -d';' -f3)
-					[[ -n "$bis_value" && "$bis_value" =~ [Aa-Zz] && "$bis_value" != 'none' ]] && a='\"' || a=''
+					# [[ -n "$bis_value" && "$bis_value" =~ [Aa-Zz] && "$bis_value" != 'none' ]] && a='\"' || a=''
+					[[ -n "$bis_value" && "$bis_value" =~ [Aa-Zz] && "$bis_value" != '~' ]] && a='\"' || a=''
 					value=0
 					# add special set below.
 					[[ "$set" == "render" ]] && value='NONE'
@@ -7021,7 +7055,7 @@ edit_xorg_full_text(){
 		1|2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
 }
-edit_xorg_conf(){
+edit_xorg_conf(){ # HELP TXT
 	## check and alerte of xorg.conf presence.
 	local menu_xorg hlp_tip l_text=''
 	local -a list_array=()
@@ -7303,10 +7337,12 @@ read_changelog(){
 	re_list
 }
 read_zen_changelog(){
-	local -a entry_list=() entrylog_list=()
+	local -a entry_list=() entrylog_list=() col_name=()
 	local log_list='' log_brief='' log_from_local='' entrylog=''
 	local log_end log_list log_brief entry_list
 
+	## if zenvidia update check is not enable in zen_notifyn changelog wont be updated
+	## and only core changelog is available.
 	if [[ "$notif_desk_opt" =~ 'z' ]]; then log_from_local=1; else log_from_local=0; fi
 	# check zen_version for new format starting 2.5.19
 	local version_array=$(sed -n 's/v\|\.//g;p' <<< "$(zen_version)")
@@ -7323,12 +7359,14 @@ read_zen_changelog(){
 	fi
 	local IFS=$'\n'
 	brief(){
-		local log_version=$(echo "$entrylog"| grep -E -o "v[0-9].[0-9](.[0-9]{1,2})?")
 		local read_view
-		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
-			log_brief=$"$( cat <<-BRIEF
-			Zenvidia changelog : ( $log_version )
+		local log_version=$(echo "$entry_log"| sed -En 's/^.*- (.*)$/\1/p')
+		local log_date=$(echo "$entry_log"| sed -En 's/(^.*) - .*$/\1/p')
 
+		if [ $(echo -e "$log_brief"| grep -c .) -gt 0 ]; then
+			[[ $(grep -c "^   " <<< ${log_brief}) == 0 ]] && wrap=1 || wrap=0
+			log_brief=$"$( cat <<-BRIEF
+			Changelog : <b>$log_date</b>
 			$log_brief
 			BRIEF
 			)"
@@ -7336,8 +7374,8 @@ read_zen_changelog(){
 			log_brief=$(echo -e $"Zenvidia changelog ( $log_verion ) :\n\nNothing to display here.\nLog file empty.")
 		fi
 		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!gtk-close' || local cancel_lbl=$"Back to menu"'!zen-back'
-		local log_txt=$"${v}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}"
-		local w_formatted=1 w_wrap=1 w_width='750' w_height='400' all_btn=1 colors=1 ok_lbl=$"Back to list"'!zen-undo'
+		local log_txt=$"${v}${mf}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}${end}"
+		local w_formatted=1 w_wrap=${wrap} w_width='750' w_height='400' all_btn=1 colors=1 ok_lbl=$"Back to list"'!zen-undo'
 		read_view=$(win_yad_text "$log_brief" 0 "")
 		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; else list_relist; fi
 	}
@@ -7346,32 +7384,38 @@ read_zen_changelog(){
 			ln=0
 			for log_line in ${entry_list[@]}; do
 				[ ${ln} = 0 ] && entrylog_list+=("TRUE") || entrylog_list+=("FALSE")
-				entrylog_list+=("$log_line")
+				entrylog_list+=("$(awk -F";" '{print $1}' <<< ${log_line})")
+				entrylog_list+=("$(awk -F";" '{print $2}' <<< ${log_line})")
 				ln=$(($ln+1))
 			done
 		fi
 		local l_text=$"${j}${bf}Zenvidia Change Logs list${end}${end}"
 		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
-		local col_name=( "" "Version")
-		local list_type='radiolist' ok_lbl='Read!zen-ok' columns=2 sel_col=2 sep='' l_tail=0 w_head=1 col_name=''
-		local hid_col=0 edit_col=0 col_tip=0 w_width='500' w_height='300'
+		# local col_name=( "" "Version" "" )
+		local ok_lbl='Read!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=1 col_name=()
+		local columns=3 sel_col=0 hid_col=3 col_tip=0 edit_col=0 sep=';'
+		local w_width='500' w_height='300'
+		# local col_name=( 'x' 'Version')
 		entrylog=$( win_yad_list "${entrylog_list[*]}" "")
 		if [[ "$entrylog" =~ [a-z] ]]; then
-			entrylog=$(echo -e "$entrylog"| sed -En "s/^(.*-.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
-			log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
-			if [ "$log_end" != '' ]; then
-				log_end=$(echo -e "$log_end"| sed -En "s/^(.*-.*v[0-9].[0-9](.[0-9]{1,2})?).*$/\1/p")
-			else
-				log_end='^     $'
-			fi
-			log_list=$(cat $log_pages | sed -En "/$entrylog/,/$log_end/p")
-			log_brief=$(grep -E "^[ ]{,3}-" <<< $log_list)
+			entry_log=$(awk -F";" '{print $2}' <<< ${entrylog})
+			log_end=$(awk -F";" '{print $3}' <<< ${entrylog})
+			log_end=${log_end//~/\^    \$}
+			log_brief=$(cat $log_pages | sed -En '/'$entry_log'/,/'$log_end'/{;s/^\t/\ \ \ /g;{s/^\*.*v.*$//g;p}}')
 			brief
 		else
 			if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; fi
 		fi
 	}
-	entry_list=$(grep -E -e "^\* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //g;p"| sort -Vr)
+	local initial_list=() entry_list_core=() entry entry_end log_section
+	initial_list=$(grep -E -e "^\* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //g;p"| sort -V)
+	for entry in ${initial_list[@]}; do
+		entry_end="$(grep -A1 -e "${entry}" <<< ${initial_list[@]} | sed -n '$p')"
+		[[ ${entry_end} == ${entry} ]] && entry_end='\~'
+		entry_list_core+=("${entry};${entry_end}")
+	done
+	entry_list=$(echo -e "${entry_list_core[*]}" | sort -r)
 	list_relist
 
 }
@@ -7390,7 +7434,7 @@ nv_config(){
 		die 2 ${LINENO} $"Nvidia-setting not found.\nInstall it first !" "base_menu" 0
  	fi
 }
-zen_notif_setup(){
+zen_notif_setup(){ # HELP TXT
 	local m_set c_set o_set c_set_cnf set_state c_set_list menu_notif yad_warn
 	local -a setup_list=() setup_option=()
 	setup_validation(){
@@ -7469,19 +7513,21 @@ menu_install(){
 		m_list+=("false")
 		m_list+=("$n")
 		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_install" "$m_cmd")${end}")
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_install" "$m_cmd" "help-tips.xml")${end}")
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_install" "$m_cmd")${end}") # TEST
 		n=$[ $n+1 ]
 	done
 	local l_text="${j}${bf}"$"Install new drivers"$"${end}\n${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
-		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
 	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	ui_mod=1
 	force=''
@@ -7511,18 +7557,20 @@ menu_update(){
 		m_list+=("false")
 		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
 		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd")${end}")
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd" "help-tips.xml")${end}")
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd")${end}") # TEST
 	done
 	local l_text="${j}${bf}"$"Update Drivers or kernel modules$""${end}${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
-		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	local w_width='500' w_height='300'
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	local home=/home/$(def_user)
 	force=''
@@ -7561,18 +7609,20 @@ menu_modif(){
 		m_list+=("false")
 		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
 		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd")${end}")
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd" "help-tips.xml")${end}")
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd")${end}") # TEST
 	done
 	local l_text="${j}${bf}"$"Configuration and Tools""${end}${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
-		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	local w_width='500' w_height='300'
+	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then win_open_switch; else  is_SU; base_menu; fi ;;
@@ -7601,17 +7651,20 @@ menu_manage(){
 		m_list+=("false")
 		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
 		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_manage" "$m_cmd")${end}")
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_manage" "$m_cmd" "help-tips.xml")${end}")
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_manage" "$m_cmd")${end}") # TEST
 	done
 	local l_text="${j}${bf}"$"Help and Documentation""${end}${end}"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
-		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
+	# local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	case $menu_cmd in
 		1) read_nv_help ;;
@@ -7854,15 +7907,17 @@ base_menu(){
 		m_list+=("false")
 		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
 		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd")${end}")
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd" "help-tips.xml")${end}")
 		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd")${end}") # TEST
 	done
-	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
+	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
-		local l_tail=0 w_head=0 col_name='' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
+	# local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	local w_width='580' w_height='300'
 
 	# local cancel_lbl=$"Exit"'!zen-stop' ok_lbl=$"Select"'!zen-ok'
@@ -8156,7 +8211,7 @@ if [ $(dkms_version) -ge 32 ]; then
 	CONF
 	fi
 fi
-## ctrl if kernel headers are present, then add it to autoinstall list if not.
+## ctrl if kernel headers are present, then add it to autoinstall list.
 dep_lib_check
 ## define graphic devices data.
 pci_ID
@@ -8175,12 +8230,6 @@ if [ "$(def_user)" != "root" ]; then
 	fi
 fi
 ## define global temporary folder
-# user /run/user tmp dir share tmpfs space.
-# To use to resolve rw access to temp files
-# if [ $temp_ramfs = 1 ]; then
-# 	TMPDIR=/run/user/$(def_user_id)
-# 	export TMPDIR
-# fi
 zen_tmp_dir=$(mktemp -d --tmpdir zen_temp.XXXX)
 trap_on_exit 'IFS=$ifs' # security, not necessary needed.
 trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
@@ -8271,8 +8320,8 @@ else
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
 				# -t) task_opt=0 ; from_install=1; update_cuda ;; # function direct test option. DANGEROUS
-				# -t) task_opt=1 ; menu_modif ;;
-				# -t) task_opt=1 ; menu_manage ;;
+				# -t) task_opt=1 ; read_zen_changelog ;;
+				# -t) task_opt=1 ; edit_script_conf ;;
 				# -t) task_opt=1 ; read_zen_changelog ;; # function direct test option. DANGEROUS
 				-*) die 1 ${LINENO} "Option pipe failed.\nOption "${1}" is not a valid option." "" 0 ;;
 			esac
