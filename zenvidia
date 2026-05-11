@@ -18,7 +18,10 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # DEFAULT set options
+# set -eEu
 set -eEu
+
+# xhost +si:localuser:root
 
 # set -e -E -u -o pipefail -o functrace
 # set -e -E -u -o functrace
@@ -217,18 +220,20 @@ distro_version(){
 distro_name(){
 	if [[ -r /etc/os-release ]]; then
 		echo "$(sed -En "/^NAME=/{;s/\"//g;s/^.*=(.*)?$/\1/p}" /etc/os-release )"
-	else
-		if [ -r /etc/lsb-release ]; then
-			. /etc/lsb-release
-			echo "$(sed -En "s/^NAME=[\"]?(.*)[\"]?$/\1/g;p" /etc/lsb-release )"
-		elif type lsb_release &>/dev/null; then
+	elif [ -r /etc/lsb-release ]; then
+		. /etc/lsb-release
+		echo "$(sed -En "s/^NAME=[\"]?(.*)[\"]?$/\1/g;p" /etc/lsb-release )"
+	elif type lsb_release &>/dev/null; then
 			echo "$(lsb_release -i -s)"
+	else
+		if [[ -n $distro_prompt ]]; then
+			echo "$distro_prompt"
 		fi
 	fi
 	return
 }
-set_su(){
-	local warn_text su_opts set_args su_cmd_prompt
+set_su(){ # FIELD
+	local warn_text su_opts set_args su_cmd_prompt tip_1 tip_2 distro
 	warn_text=$"$( cat <<-MSG
 		<b>Su command is not congigured</b>
 
@@ -239,22 +244,29 @@ set_su(){
 		user admin privilege.
 
 		<i>If you don't know what is talking about here, just abort.
+		But be aware that from that point, you won't be able to use Zenvidia
+		in proper condition.
 		</i>
 	MSG
 	)"
 	su_opts="sudo -u!sudo -l -U!sudo -i!su -l"
-	set_args=$($d_yad --width=400 --borders=15 --title="$WIN_TITLE" --window-icon="$img_zen_desktop" --image="zen-warning" \
-	--center --text="$warn_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!zen-ok:0' --field="":LBL '' \
-	--separator=';' \
-	--field=$"<b>Distribution name</b>"!$"Enter the name of the distribution if not displayed.":LABEL "$(distro_version)" \
-	--field=$"<b>su command line</b>"!$"Select a commande in the list or type one.":CBE "$su_opts" \
-	|| if [ $? = 252 ]; then echo 200; elif [ $? = 1 ]; then echo 100; else echo 0; fi)
+	tip_1="$(xq_tips "$FUNCNAME" "distribution_name" "help-tips.xml")"
+	tip_2="$(xq_tips "$FUNCNAME" "su_commnd_line" "help-tips.xml")"
+	[[ -n $(distro_name) ]] && distro="$(distro_name)" || distro="Unknown"
+
+	local ok_lbl=$"Set"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
+	yad_field "<b>"$"Distribution name""</b>" LABEL "${distro}" "${tip_1}"
+	yad_field "<b>"$"su command line""</b>" CBE "$su_opts" "${tip_2}"
+	set_args=$( win_yad_field "${warn_text}" 1 1 )
 	case ${set_args} in
 		100|200) exit 1;;
-		*) su_cmd_prompt=$(echo "$set_args"|cut -d';' -f3)
+		*) su_cmd_prompt=$(echo "$set_args"|cut -d'|' -f2)
+			distro=$(echo "$set_args"|cut -d'|' -f1)
 			## do not write if var already exist.
-			[ -s $script_conf ] && [ $(grep -c "su_cmd_prompt=" $script_conf ) -eq 0 ] && \
+			[ -s $script_conf ] && [ $(grep -c "su_cmd_prompt=" $script_conf ) -eq 0 ] && {
+			echo -e '## force distro name :\ndistro_prompt="'$distro'"' >> $script_conf
 			echo -e '## force admin su cmd :\nsu_cmd_prompt="'$su_cmd_prompt'"' >> $script_conf
+			}
 			. $script_conf
 		;;
 	esac
@@ -392,7 +404,9 @@ yad_css(){
 ### SU, EXIT AND ERROR TOOLS
 su_cmd(){
 	local sudo_cmd
-	if [ ${su_cmd_prompt} ]; then sudo_cmd="${su_cmd_prompt}"; else
+	if [[ -n ${su_cmd_prompt} ]]; then
+		sudo_cmd="${su_cmd_prompt}"
+	else
 		[ -e $(command -v sudo) ] && sudo_cmd="sudo -u" || sudo_cmd="su -l"
 	fi
 	if [[ -n "${@}" ]]; then
@@ -509,9 +523,11 @@ list_kill_parent_pids(){
 		## get the previous yad pid if any for die process
 		pid_ctrl=$(ps -C yad -o pid | sed -En 's/^[ ]+([0-9]+$)/\1/;$p')
 		## check if pid is already in list before adding
-		[[ "${parent[@]}" =~ $pid_ctrl ]] || parent+=( $pid_ctrl )
-		# track only ended process for pulsing window
-		trap "if [ \${#parent[@]} -gt 0 ]; then kill_parent_pid; fi" SIGINT 1 2
+		if [[ ${pid_ctrl} =~ [0-9]+ ]]; then
+			[[ "${parent[@]}" =~ $pid_ctrl ]] || parent+=( $pid_ctrl )
+			# track only ended process for pulsing window
+			trap "if [ \${#parent[@]} -gt 0 ]; then kill_parent_pid; fi" SIGINT 1 2
+		fi
 	fi
 }
 debug_failure(){ # full debug failure function, to called from command line
@@ -540,7 +556,6 @@ dep_exec_check(){
 	p_xterm=$(command -v xterm) # || deplist+=("xterm")
 	d_yad=$(command -v yad) # || deplist+=("yad")
 	## standard
-	p_wget=$(command -v wget) || deplist+=("wget")
 	p_gcc=$(command -v gcc) || deplist+=("gcc")
 	d_yad=$(command -v yad) || deplist+=("yad")
 	d_xdpy=$(command -v xdpyinfo) || deplist+=("xdpyinfo")
@@ -583,7 +598,7 @@ dep_lib_check(){
 		return
 	fi
 }
-dep_control(){ # yad and xterm autoinstall here.
+dep_control(){ # yad and xterm autoinstall here. # PULSE
 	if [ -x $(pkg_installer) ]; then
 		local yad_warn warn_log
 		[[ $p_xterm != '' || $d_yad != '' ]] || (
@@ -625,7 +640,7 @@ dep_control(){ # yad and xterm autoinstall here.
 						{ timeout=30 ;{
 							pkg_install_cmd "${deplist[*]}" | read_sequence 3 #\
 							# while read line; do echo "# ${line}"; done
-							sleep 2
+							sleep ${read_timeout}
 							echo -e "# "
 							echo -e "$esc_message"
 							[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
@@ -767,9 +782,54 @@ nv_kernel_check(){
 nv_modules_presence(){
 	stat /usr/lib/modules/$KERNEL/$(module_dest_location)/nvidia.ko* &>/dev/null && echo 1 || echo 0
 }
-version(){
-	if [ -f $(user_CF_DIR)/version.txt ]; then
-		cat $(user_CF_DIR)/version.txt
+## Versioning and remote drivers scraping
+drivers_scrap(){ # SCRAPING
+	local type=${1} remote_page='' scrap_cmd page index
+	local -a drivers_list=()
+	if [ ${type} -gt 1 ]; then
+		# for Cuda
+		remote_page=https://${cuda_base_url}/compute/cuda/redist
+		scrap_cmd=("curl" "-s" "$remote_page")
+		# page='last_update'
+		index='index.html'
+	else
+		# for nvidia
+		remote_page=https://${nvidia_ftp}-${ARCH}
+		scrap_cmd=("curl" "-s" "$remote_page")
+		page='latest.txt'
+		index='index.html'
+	fi
+	# scrap_cmd=("curl" "-s" "$remote_page")
+	# page='latest.txt'
+	# index='index.html'
+	if [ ${type} = 0 ]; then
+		LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
+		LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/\1/;$p' || echo "none" )
+		LAST_IN=$(version) # could be 0
+		LAST_AVAILABLE=$( [[ $LAST_OFFI != $LAST_BETA ]] && printf "$LAST_BETA|1" || printf "$LAST_OFFI|0" )
+	elif [ ${type} = 1 ]; then
+	# drivers_list=( $(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/false \1/p' | sort -Vr || echo 0 ) )
+		eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/false \1/p' | sort -Vr
+	elif [ ${type} = 2 ]; then
+		LAST_CUDA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/\1/;$p')
+	elif [ ${type} = 3 ]; then
+		# eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/false \1/p' | sort -Vr
+		eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/\1/p' | sort -Vr
+	elif [ ${type} = 4 ]; then
+		# per release creation date
+		eval ${scrap_cmd[*]}/$index | xq -x '//li/span[@class="file"]/a[@href="redistrib_'${cuda_release}'.json"]/following::span[@class="date"][1]'|awk '{print $1}'
+	fi
+
+}
+driver_from_distro(){
+	[ -L ${nv_root}/nvidia ] && echo 0 || echo 1
+}
+version(){ # CLEAN
+	# if [ -f $(user_CF_DIR)/version.txt ]; then
+	# 	cat $(user_CF_DIR)/version.txt
+	# if directory not found, driver is mark as from distro.
+	if [ -L ${nv_root}/nvidia ]; then
+		ls -d1 ${nv_root}/nvidia.* | cut -d'.' -f2-
 	else
 		[ $(nv_modules_presence) -gt 0 ] && /sbin/modinfo -F version nvidia || echo 0
 	fi
@@ -793,6 +853,7 @@ version_license(){
 	return
 }
 new_version(){
+	# run_pkg forn INSTALL_DRIVER only, LAST_PACK from other process until INSTALL_DRIVER
 	if [ $from_install = 1 ]; then
 			if [ "$run_pkg" ]; then
 				echo "$run_pkg" | sed -En "s/^.*-(.*)/\1/; s/.run//g;p"
@@ -897,16 +958,14 @@ nv_installer_check(){
 	fi
 }
 ## system pre config.
-nv_open_modules_set(){
+nv_open_modules_set(){ # WARN
 	# nvidia_installer give the possibility to use open driver version, but not the possibility to choose
 	# between open or proprietary version by installing both, or just test open only.
-	# let's do this.
 	if [ $open_wrn = 1 ]; then
+		local warn_log='' yad_warn
 		if [ $extract_open = 1 ]; then
 			if [ $use_open -ne 1 ]; then
-				local yad_warn
-				_title="$_zen_title"
-				_text=$"$(cat <<-MSG
+				local warn_log=$"$(cat <<-MSG
 					${jB}Nvidia Open Source Modules${end}
 					${vB}Since 515 driver series, it is possible to use nvidia open source drivers
 					By default, Zenvidia will built them alongside the main ones.
@@ -922,8 +981,7 @@ nv_open_modules_set(){
 					Do you want to built open source drivers ?${end}
 				MSG
 				)"
-				warn_log=$_text
-				ok_lbl=$"Yes, please"'!zen-ok' ; cancel_lbl=$"No thanks"'!zen-close'
+				local ok_lbl=$"Yes, please"'!zen-ok' cancel_lbl=$"No thanks"'!zen-close'
 				yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 				if [ $yad_warn -gt 1 ]; then exit 1; else
 					if [ $yad_warn = 0 ]; then
@@ -934,7 +992,7 @@ nv_open_modules_set(){
 					sed -Ei "s/^(use_open)=[0-9]$/\1=$use_open/" $basic_conf
 					sed -Ei "s/^(open_drv)=[0-9]$/\1=$open_drv/" $basic_conf
 					if [ $first_open = 1 ]; then
-						_text=$"$(cat <<-MSG
+						warn_log=$"$(cat <<-MSG
 							${jB}Nvidia Open Source Modules${end}
 
 							${j}WARNING ${end}:${vB}By default, Zenvidia send alert about open driver building,
@@ -945,8 +1003,7 @@ nv_open_modules_set(){
 							Do you want to be warn at each drivers upgrade ?${end}
 						MSG
 						)"
-						warn_log=$_text
-						ok_lbl=$"Yes, please"'!zen-ok' ; cancel_lbl=$"No thanks"'!zen-close'
+						local ok_lbl=$"Yes, please"'!zen-ok' cancel_lbl=$"No thanks"'!zen-close'
 						yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 						if [ $yad_warn -gt 1 ]; then exit 1; else
 							if [ $yad_warn = 0 ]; then
@@ -994,10 +1051,11 @@ is_RT(){
 	[[ -n $(grep "PREEMPT_RT" /boot/config-$KERNEL) && \
 	$(grep -c "CONFIG_PREEMPT_RT=y" /boot/config-$KERNEL) -gt 0 ]] && echo 1 || echo 0
 }
-rt_options(){
+rt_options(){ # WARN
 # test if kernel is realtime.
-	local yad_warn
 	if [ $(is_RT) = 1 ]; then
+		local yad_warn
+		local warn_log=''
 		## user warning
 		warn_log=$"$( cat <<-TXT
 			${rBB}REALTIME Kernel Detected${end}
@@ -1014,7 +1072,7 @@ rt_options(){
 			TXT
 		)"
 		# yes 0, no 1
-		ok_lbl=$"Proceed"'!zen-ok' ; cancel_lbl=$"Abort"'!zen-close'
+		local ok_lbl=$"Proceed"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
 		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "zen-warning")
 		if [ $yad_warn -gt 1 ]; then exit 1; else
 			if [ $yad_warn = 0 ]; then
@@ -1046,11 +1104,11 @@ test_ramfs_tool(){
 ## detect if ramfs tool exist then send to initramfs_warn if none.
 	test "$(initramfs_tools)" = 0 && echo 0 || echo 1
 }
-initramfs_warn(){
+initramfs_warn(){ # WARN
 	if [ $(test_ramfs_tool) = 0 ]; then
 		## send alert
 		## and ask to proceed with modprobe reload if initramfs tool is no detected.
-		local yad_warn
+		local yad_warn ok_lbl=$"Proceed"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
 		warn_log=$"$( cat <<-WRN
 			${j}<b>No tool were found to rebuild initramfs</b>${end}
 			Modprobe reload could work for the used kernel,
@@ -1060,7 +1118,6 @@ initramfs_warn(){
 			You have been warn !
 		WRN
 		)"
-		ok_lbl=$"Proceed"'!zen-ok' ; cancel_lbl=$"Abort"'!zen-close'
 		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "zen-warning")
 		if [ $yad_warn -gt 1 ]; then exit 0; else
 			if [ $yad_warn = 1 ]; then
@@ -1099,7 +1156,7 @@ exec_initramfs(){
 ## rebuilt initramfs if modules reload service found is uselees in the case.
 	# # from nv_cmd_update
 	# if [ $exec_mod_tool = 1 ]; then
-	# 	# echo -e $"# Exec $KERNEL modules reload "; sleep 2
+	# 	# echo -e $"# Exec $KERNEL modules reload "; sleep ${read_timeout}
 	# 	echo_message 0 $"Exec $KERNEL modules reload"
 	# 	exec_mod_load
 	# else
@@ -1111,7 +1168,7 @@ exec_initramfs(){
 	# fi
 	# # from INSTALL_DRIVER
 	# if [ $exec_mod_tool = 1 ]; then
-	# 	# echo -e $"# ${v}${j}($n%)${end} - Exec $KERNEL modules reload ${end}"; sleep 2
+	# 	# echo -e $"# ${v}${j}($n%)${end} - Exec $KERNEL modules reload ${end}"; sleep ${read_timeout}
 	# 	echo_message 1 "${j}−${end}" $"Exec" "$KERNEL" $"modules reload"
 	# 	exec_mod_load
 	# else
@@ -1125,7 +1182,7 @@ exec_initramfs(){
 	## progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; } for zenity.
 	## progress_msg(){ echo -en "\r# ($m%) - Rebuilding INITRAMFS"; } for terminal.
 	## last 'echo' is for yad progress bar only. ex:
-	# 	echo "# Updating $KERNEL initramfs."; sleep 2
+	# 	echo "# Updating $KERNEL initramfs."; sleep ${read_timeout}
 	# 	progress_msg(){ echo "# ($m%) - Rebuilding INITRAMFS"; echo "$m"; }
 	# 	m=1 ;
 	local message=${1} count=${2}
@@ -1179,7 +1236,6 @@ dkms_ramfs_exec(){
 	fi
 	return
 }
-
 nv_persistenced(){
 	## nvidia percistenced allow GPU to be pre init in some case.
 	nv_persist_ctl=/lib/systemd/system/nvidia-persistenced.service
@@ -1297,15 +1353,15 @@ dm_service_patch(){
 				echo_message 0 "${proc_msg[@]}"
 			fi
 			sed -Ei 's|^(ExecStart='${ExecStart}')$|ExecStartPre='${ExecStartPre}'\n\1|' $systemd_dir/$(dm_serv).service
-			sleep 2
+			sleep ${read_timeout}
 			n=$[ $n+2 ]; echo "$n"
 		fi
 		$d_sys daemon-reload
 	fi
 }
-restart_dm_warn(){ # WATCH
+restart_dm_warn(){ # WARN
 	# can be potentially add : gdm, sddm, lightdm, lxdm (gdm,kdm,xdm,lightdm,lxdm,slim,sddm)
-	local yad_warn reboot
+	local yad_warn reboot warn_log
 	if (( $(chk_family) <= $(chk_old_family) )); then
 		warn_log=$"$(cat <<-MSG
 			$warn_log_title
@@ -1336,7 +1392,7 @@ restart_dm_warn(){ # WATCH
 
 		MSG
 		)"
-		ok_lbl=$"Yes, reboot"'!zen-ok' ; cancel_lbl=$"No, I will reboot"'!zen-undo'
+		local ok_lbl=$"Yes, reboot"'!zen-ok' cancel_lbl=$"No, I will reboot"'!zen-undo'
 		reboot=1
 	fi
 	yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
@@ -1364,7 +1420,7 @@ nv_persistenced_conf(){
 		WantedBy=multi-user.target
 		SYS
 }
-nv_open_switch(){ # WATCH, MOVE TO echo_message
+nv_open_switch(){ # WARN
 	local probe_open=/etc/modprobe.d/open-NVIDIA.conf
 	reverse_conf(){
 		[ $open_drv -ne $old_open_drv ] && { sed -Ei "s/^(open_drv)=.*$/\1=$old_open_drv/" $basic_conf
@@ -1373,7 +1429,8 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 			eval use_open=$old_use_open ;}
 		die 2 ${LINENO} "$reverse_err_msg" "base_menu" 0
 	}
-	local yad_warn drv_on drv_off license warn_log_title
+	local yad_warn drv_on drv_off license warn_log_title m do_slp
+	local warn_log='' y_text=''
 	if [[ $open_drv -eq 1 && $use_open -ne $old_use_open ]]; then
 			if [ $use_open -eq 1 ]; then
 				drv_on='open-nvidia'
@@ -1389,7 +1446,7 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 			MSG
 			)"
 			# win_yad_warns
-			ok_lbl=$"Yes, switch to $drv_on"'!zen-ok' ; cancel_lbl=$"No, keep $drv_off"'!zen-undo'
+			local ok_lbl=$"Yes, switch to $drv_on"'!zen-ok' cancel_lbl=$"No, keep $drv_off"'!zen-undo'
 			yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
 
@@ -1398,11 +1455,11 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 			local pulse=1 log=1 hold=1 hide_txt=1
 			win_log_options
 			{	timeout=30
-			{	echo -e $"# ${v}Switching from ${y}$drv_off${end} to ${y}$drv_on.${end}${end}"
+			{	echo -e "# ${v}"$"Switching from"$" ${y}$drv_off${end} "$"to"" ${y}$drv_on.${end}${end}"
 				## 6 ops for progress.
 				if [ -d /var/lib/dkms/$drv_on/$(version)/$KERNEL/$ARCH/module ]; then
 					cp -f /var/lib/dkms/$drv_on/$(version)/$KERNEL/$ARCH/module/* $kernel_path/
-					echo -e $"# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
+					# echo -e $"# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
 					echo_message 1 $"Depmod" "${j}$KERNEL${end}" $"modules ..."
 					m=1; do_slp=1
 					progress "( exec_depmod "$KERNEL" )" "\${ge}\${sf} * "$"Depmod"" $KERNEL "$"modules"" (\$m sec.)\${end}\${end}" "$m"
@@ -1425,7 +1482,7 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 					reverse_err_msg="# ""${y}""$proc_msg"".${end}"
 					reverse_conf
 				fi
-				sleep 2
+				sleep ${read_timeout}
 				## add or remove open-driver kernel options.
 				if [ $use_open -eq 1 ]; then
 					if [ $(chk_family) -lt 545 ]; then
@@ -1450,11 +1507,10 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 					echo_message 1 $"Exec" "${j}$KERNEL${end}" $"modules initramfs update"
 					exec_initramfs $"\${ge}\${sf} * Exec $KERNEL modules iniramfs (\$m sec.)\${end}\${end}" "$m"
 					echo_message 1 $"Restore" "${j}$KERNEL${end}" $"modules selinux connection"
-					sleep 2
 					## systemctl restart systemd-modules-load.service
 					exec_mod_load
 				fi
-				sleep 2
+				sleep ${read_timeout}
 				## add no-autoinstall blank file
 				if [ $(dkms_version) -lt 31 ]; then touch /etc/dkms/no-autoinstall; fi
 				## set DKMS AUTOINSTALL values for each driver type.
@@ -1470,7 +1526,7 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 				sed -Ei "s/^(use_open)=.*$/\1=$use_open/" $basic_conf
 			} & eval lpid=$!; y_pulse; } | win_yad_progress
 			warn_log_title=$"""${j}${bf}$drv_on "$"switch""${end}${end}"
-			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
+			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn || true
 	else
 		if [ $open_drv -ne $old_open_drv ]; then
 			warn_log=$"$( cat <<-MSG
@@ -1480,7 +1536,7 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 			MSG
 			)"
 			# win_yad_warns
-			ok_lbl=$"Yes, remove"'!zen-ok' ; cancel_lbl=$"No, preserve"'!zen-undo'
+			local ok_lbl=$"Yes, remove"'!zen-ok' cancel_lbl=$"No, preserve"'!zen-undo'
 			yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
 
@@ -1525,7 +1581,7 @@ nv_open_switch(){ # WATCH, MOVE TO echo_message
 				[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 			} & eval lpid=$! ; y_pulse; } | win_yad_progress
 			warn_log_title=$"${j}${bf}Nvidia Driver refresh.${end}${end}"
-			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn
+			[ -e $systemd_dir/$(dm_serv).service ] && restart_dm_warn || true
 		fi
 	fi
 }
@@ -1554,7 +1610,6 @@ blacklist_and_grub_set(){
 	fi
 	if [ $(grep -c "GRUB_CMD.*nouveau" $grub_def) -gt 0 ]; then
 		if [ $(cat $grub_def| grep -E -c "^GRUB_CMD.*$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev $grub_orig.*$") -eq 0 ]; then
-# 			if [ "$timeout" != '' ];then
 			proc_msg=( $"GRUB conf options update." )
 			if [ $from_install = 0 ]; then
 				echo_message 0 "${proc_msg[*]}"
@@ -1564,13 +1619,6 @@ blacklist_and_grub_set(){
 			## then, replace default env grub with new vars and update grub.cfg.
 			sed -Ei "s/^(GRUB_CMD.*)=\"(.*) ($grub_orig.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \3\"/" $grub_def
 			$d_grub-mkconfig -o $grub_cfg 2>&1 | read_sequence 3
-			# while read -r line; do
-			# 	if [ $from_install = 0 ]; then
-			# 		echo_message 0 "${line}"
-			# 	else
-			# 		echo_message 4 "*" "${line}"
-			# 	fi
-			# done
 		else
 			proc_msg=( $"GRUB conf already set." )
 			if [ $from_install = 0 ]; then
@@ -1589,13 +1637,6 @@ blacklist_and_grub_set(){
 		sed -En "s/^GRUB_CMD.*=\"(.*)\"$/grub_orig='\1'/p" $grub_def > $(user_CF_DIR)/grub-orig
 		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)\"$/\1=\"$blacklist nvidia-drm.modeset=$drm_modset$drm_fbdev \2\"/" $grub_def
 		$d_grub-mkconfig -o $grub_cfg 2>&1 | read_sequence 3
-		# while read -r line; do
-		# 	if [ $from_install = 0 ]; then
-		# 		echo_message 0 "${line}"
-		# 	else
-		# 		echo_message 4 "*" "${line}"
-		# 	fi
-		# done
 	fi
 	## blacklist nouveau
 	[ -e /etc/modprobe.d/blacklist-nouveau.conf ] || echo "blacklist nouveau" > /etc/modprobe.d/blacklist-nouveau.conf
@@ -1615,8 +1656,6 @@ blacklist_and_grub_set(){
 		conf_file=/etc/modprobe.d/nvidia-${short}.conf
 		if [ $(chk_family) -ge ${serie} ]; then
 			if [[ ! -f $conf_file || $(grep -c "${option}" $conf_file) -eq 0 ]]; then
-			# grep "${option}" $conf_file &>/dev/null || true
-			# if [ $? -gt 0 ]; then
 				proc_msg=( $"Update modprobe" "${message}" $"option for" )
 				if [ $from_install = 0 ]; then
 					echo_message 0 "${proc_msg[*]}" "${drm_msg}."
@@ -1635,8 +1674,6 @@ blacklist_and_grub_set(){
 		else
 			## remove GSP or modset config in case of driver regression.
 			if [[ ! -f $conf_file || $(grep -c "${option}" $conf_file) -eq 0 ]]; then
-			# grep "${option}" $conf_file &>/dev/null
-			# if [ $? -eq 0 ]; then
 				proc_msg=( $"Remove modprobe" "${message}" $"option for" )
 				if [ $from_install = 0 ]; then
 					echo_message 0 "${proc_msg[*]}" "${drm_msg}."
@@ -1786,24 +1823,16 @@ prime_setup(){
 	## if program is not launch from install process, go back section menu or exit if task bar cmd.
 	[ $from_install = 0 ] && { [ $task_opt = 1 ] && exit 0 || menu_modif ;}
 }
-prime_setup_window(){
+prime_setup_window(){ # FIELD
+	# local xorg_version=$(cat /var/log/Xorg.0.log| sed -En "/Build ID:/{;s/^.*\ ([1\.]?[0-9]*[.].*)-.*$/\1/p}") # TEST
 	local applicable_list opti_set offload_set select_render_sets
 	[ $(chk_family) -ge 390 ] && applicable_list+="PRIME!"
 	[ $(chk_family) -ge 435 ] && applicable_list+="PRIME render offload!"
 	[ $opti_preset = 0 ] && opti_set='FALSE' || opti_set='TRUE'
 	[ $offload = 0 ] && offload_set='FALSE' || offload_set='TRUE'
-	tip_1=$"$(
-		cat <<-TIPS
-			If set, GPU renderer choice will be set to PRIME by default
-			You can changed this set in : > Configuration and Tools > Edit Zenvidia config.
-		TIPS
-	)"
-	tip_2=$"$(
-		cat <<-TIPS
-			If set, this window wont be displayed at the next installation or update and recorded sets applicable.
-			You can changed this set in : > Configuration and Tools > Edit Zenvidia config.
-		TIPS
-	)"
+	local m_tips="help-tips.xml"
+	tip_1="${y}$(xq_tips "$FUNCNAME" "opti_set" "$m_tips")${end}"
+	tip_2="${y}$(xq_tips "$FUNCNAME" "offload_set" "$m_tips")${end}"
 	w_text=$"$(
 		cat <<-INFO
 			${j}<b>PRIME Display GPU configuration</b>${end}
@@ -1816,7 +1845,7 @@ prime_setup_window(){
 			<b>PRIME Render</b> is applicable for all version since 390 serie.
 			<b>PRIME Render Offload</b> is applicable from 435 serie and X version 1.20.7
 
-			<b>You're actually running the ${y}$xorg_version${end} Xorg version. ${j}Only applicables will be listed${end}</b>.
+			<b>You're actually running the ${y}${xorg_version}${end} Xorg version. ${j}Only applicables will be listed${end}</b>.
 
 			${j}Notice${end} : <b>run_offload</b> script will be created during proces.
 			It contains default ENV variables for <b>PRIME render offload</b>. This, is necessary to run any
@@ -1830,15 +1859,15 @@ prime_setup_window(){
 			${end}
 		INFO
 	)"
+	[ $task_opt -gt 0 ] && w_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
 	local select_render_sets
-	select_render_sets=$($d_yad --width=400 --borders=15 --title="$WIN_TITLE" --window-icon="$img_zen_desktop" --wrap --center \
-	--text="$w_text" --form --button=$"Abort"'!gtk-close:1' --button=$"Set"'!gtk-ok:0' --separator=';' \
-	--field="":LBL '' \
-	--field=$"Select the default NVIDIA dGPU behaviour"!$"Select in the list.":CB "${applicable_list[*]}NONE" \
-	--field="":LBL '' \
-	--field=$"Set Prime instead of Offload by default"!"$tip_1":CHK "$offload_set" \
-	--field=$"Set Optimus Render config auto"!"$tip_2":CHK "$opti_auto_set" || \
-	if [ $? = 252 ]; then echo 200; elif [ $? = 1 ]; then echo 100; else echo 0; fi )
+	local ok_lbl=$"Set"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
+	yad_field "" "LBL" '' ''
+	yad_field $"Select the default NVIDIA dGPU behaviour" CB "${applicable_list[*]}NONE" $"Select in the list."
+	yad_field "" "LBL" '' ''
+	yad_field $"Set Prime instead of Offload by default" CHK "$offload_set" "${y}${sf}$(echo -en ${tip_1})${end}${end}"
+	yad_field $"Set Optimus Render config auto" CHK "$opti_set" "${y}${sf}$(echo -e ${tip_2})${end}${end}"
+	select_render_sets=$(win_yad_field "$w_text" 1 1)
 	case $select_render_sets in
 		100)	if [ $from_install = 1 ]; then
 					render='NONE'; offload=0; opti_auto_set=0
@@ -1848,9 +1877,9 @@ prime_setup_window(){
 			;;
 		200)	[ $task_opt = 1 ] && exit 1 || base_menu ;;
 		0|*) ## cut output to be sent to prime_setup here.
-				render=$(echo $select_render_sets| cut -d';' -f2)
-				offload=$([ "$(echo $select_render_sets| cut -d';' -f4)" = "TRUE" ] && echo 1 || echo 0 ;)
-				opti_auto_set=$([ "$(echo $select_render_sets| cut -d';' -f5)" = "TRUE" ] && echo 1 || echo 0 ;)
+				render=$(echo $select_render_sets| cut -d'|' -f2)
+				offload=$([ "$(echo $select_render_sets| cut -d'|' -f4)" = "TRUE" ] && echo 1 || echo 0 ;)
+				opti_auto_set=$([ "$(echo $select_render_sets| cut -d'|' -f5)" = "TRUE" ] && echo 1 || echo 0 ;)
 			;;
 	esac
 }
@@ -2501,7 +2530,6 @@ nv_build_options(){
 	uncompatible_kernel=${uncompatible_kernel:-0}
 	compatible_kernel=${compatible_kernel:-0}
 
-
 	## list has to be set to 4 digit with inserted 0 if needed.
 	# format 'xxxx|xxxx|xxxx' etc
 	# 	uncompatible_list='061805'
@@ -2762,7 +2790,6 @@ nv_dkms_cmd_line(){
  	# [ ${4} = 4 ] && opts=( -k $kernel --verbose --modprobe-on-install $force --force-version-override )
  	[ ${4} = 4 ] && opts=( -k $kernel --verbose --force --force-version-override )
  	[ ${4} = 5 ] && opts=( -k $kernel --verbose --modprobe-on-install --force --force-version-override )
-	# { local IFS=' '; $p_dkms ${cmd} -m ${module} ${opts[@]}; } || { echo -e "\n${r}"$"DKMS didn't succeed to execute command. Not fatal, hopefuly.""${end}"; }
 	local IFS=' '
 	$p_dkms ${cmd} -m ${module} ${opts[@]} || echo -e "\n${r}""DKMS "$"didn't succeed to execute command""${end}${y}"$". Maybe not fatal, hopefuly.""${end}"
 	return
@@ -2792,7 +2819,7 @@ build_dkms(){
 				else
 					echo_message 4 $"NO MODULE FOUND, nothing to do."
 				fi
-				sleep 2
+				sleep ${read_timeout}
 			}
 			add_seq(){
 				echo_message 1 $"Add" "${j}$(new_version)${end} ${y}$_dkms${end}" $"modules to DKMS tree."
@@ -2800,7 +2827,7 @@ build_dkms(){
 				nv_dkms_cmd_line "add" "$_dkms/$(new_version)" "$KERNEL" 3 | read_sequence 0
 				# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 				echo -e "# "
-				sleep 2
+				sleep ${read_timeout}
 			}
 			## remove previous known and unknown version if any before installing new one.
 			if [ $(nv_old) -gt 0 ] && [ $(nv_old) -ne $(nv_new) ]; then
@@ -2824,7 +2851,7 @@ build_dkms(){
 							progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" "$m"
 						fi
 						echo -e $"# ${ge}* Done.${end}"
-						sleep 2
+						sleep ${read_timeout}
 
 					fi
 				else
@@ -2838,7 +2865,7 @@ build_dkms(){
 		build_seq(){
 			build_seq_1(){
 				echo_message 1 $"Building" "${j}$(new_version)${end} ${y}$_dkms${end}" $"DKMS modules for" "$KERNEL"
-				sleep 2
+				sleep ${read_timeout}
 				if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.ko* ]; then
 					# echo -e $"#${y} * Nothing to do for $(new_version) $_dkms already build.${end}"
 					echo_message 3 "*" "Nothing to do for" "$(new_version) $_dkms" $"already build."
@@ -2872,7 +2899,7 @@ build_dkms(){
 				nv_dkms_cmd_line "install" "$_dkms/$(new_version)" "$KERNEL" 4 | read_sequence 0 ## TEST FIX compilation forced because initramfs issue
 				# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 				echo -e "# "
-				sleep 2
+				sleep ${read_timeout}
 				echo_message 1 $"Checking" "${j}$(new_version)${end} ${y}$_dkms${end}" "modules in" "$kernel_path"
 				if [[ $(nv_modules_presence) -gt 0 && $(/sbin/modinfo -F version nvidia -k $KERNEL | grep -c "$(new_version)") -gt 0 ]]; then
 					pass=0
@@ -2885,7 +2912,7 @@ build_dkms(){
 					pass=1
 					compilation_error=( "$_dkms" )
 					echo -e $"# ${ge}* Check unvalidated (pass=$pass)${end}"
-					sleep 2
+					sleep ${read_timeout}
 
 				fi
 				echo -e "pass=$pass" >> $tmp_vars
@@ -2934,7 +2961,7 @@ build_dkms(){
 				fi
 			fi
 			echo -e "n=$n" >> $tmp_vars
-			sleep 2
+			sleep ${read_timeout}
 		}
 	## known bug : it appears on unknown reason that DKMS script do not install modules.
 	## some solutions is tried here, but not sure of their complete behaviour.
@@ -2969,7 +2996,7 @@ build_dkms(){
 	echo -e "${esc_message}"
 	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 }
-nv_build_dkms(){
+nv_build_dkms(){ # PULSE
 	local proc_msg=$"Build and install DKMS modules..."
  	if [ $from_install = 1 ]; then
 		echo_message 1 "${j}−${end}" "$proc_msg"
@@ -3029,7 +3056,7 @@ build_source(){
 		make_cmd | fmt -w 120 | read_sequence 1
 		# while read -r line; do echo -e "#${ge}${sf} ${line}${end}${end}\n"| grep -v "CONFTEST"; echo "${line}" &>> make.log; done
 		$opts_355
-		sleep 2
+		sleep ${read_timeout}
 		mod_check
 	}
 	copy_mods(){
@@ -3050,7 +3077,6 @@ build_source(){
 		fi
 		echo_message 1 "$msg_type" "${j}$(new_version)${end}" "${y}$module${end}" $"in" "$install_path"
 		echo_message 2 "*" $"Compressing" "$module" "modules"
-		# compress_cmd "$(compress_type)" | while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 		compress_cmd "$(compress_type)" | read_sequence 0
 		# message is send through move_modules function
 		if [ "$(compress_type)" != '' ]; then mod_suffix='.'$(compress_type); else mod_suffix=''; fi
@@ -3071,8 +3097,6 @@ build_source(){
 		fi
 		# save new compiled driver in case of nvidia_installer lib install remove them.
 		if [[ ${from_install} = 1 && ${seq_type} = 1 ]]; then
-		# if [ ${from_install} = 1 ]; then
-		# 	if [ ${seq_type} = 1 ]; then
 			if [ -f $kernel_path/nvidia.ko* ]; then
 				echo_message 3 "*" $"Backup new drivers in case of nvidia-isntaller libs insttall remove them"
 				mkdir -p $nvtmp/new_kernel/dkms/${module}
@@ -3137,7 +3161,7 @@ build_source(){
 			fi
 			restore_driver "old_kernel"
 		fi
-		sleep 2
+		sleep ${read_timeout}
 	}
 	if [ $open_drv = 1 ]; then
 		drv_src=( open-nvidia nvidia )
@@ -3161,7 +3185,7 @@ build_source(){
 			echo_message 2 "*" $"Compilation" "$module"
 			# nv_make_mods ### LEGACY : UNUSED
  			make_mods
-			# sleep 2
+			# sleep ${read_timeout}
 			post_treatment
 		else
 			echo_message 1 $"Source" "${j}$(new_version)${end}" "${y}$module${end}" $"unaviable"
@@ -3174,12 +3198,12 @@ build_source(){
 		popd
 	done
 	echo_message 1 $"Done"
-	sleep 2
+	sleep ${read_timeout}
 	echo -e "# "
 	echo -e "$esc_message"
 	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 }
-nv_cmd_make_src(){
+nv_cmd_make_src(){ # PULSE
  	[ -f "$(find -L $(kernel_src) -name "sign-file")" ] || die 1 "${LINENO}" "sign-file kernel script not found" "" 1
 	echo_message 0 $"# Build and install modules from sources"
 	## get the previous yad pid if any
@@ -3293,7 +3317,7 @@ nv_cmd_update(){
  	## service file patch.
  	dm_service_patch
 }
-nv_cmd_install_libs(){ # TODO CHECK REGULARY AT DRIVER UPGRADE
+nv_cmd_install_libs(){ # ATTENTION CHECK REGULARY AT DRIVER UPGRADE
 ## INFOS ABOUT NVIDIA-INSTALLER OPTIONS :
 #  --opengl-prefix=OPENGL-PREFIX
 #      The prefix under which the OpenGL components of the NVIDIA driver will be installed; the default is:
@@ -3373,7 +3397,7 @@ nv_remove_old_install(){
 		if (( ${cuda_new_dir_main} > ${cuda_old_dir_main} )); then rm -Rf ${cuda_install_dir}/cuda-$(cuda_version); fi
 	fi
 }
-nv_cmd_install_cuda(){
+nv_cmd_install_cuda(){ # PULSE
 	# model : cuda_12.9.1_575.57.08_linux.run
 	local cuda_install_dir=${cuda_install_dir:-/usr/local}
 
@@ -3450,9 +3474,9 @@ cuda_checksum_alarm(){
 		die 2 ${LINENO} "$warn_log" "base_menu" 0
 	fi
 }
-### INSTALL MODULE AND LIBRARIES PROCESS ###
-## ### MAIN SECTION ###
-## LOGS ###
+## INSTALL MODULE AND LIBRARIES PROCESS ##
+## MAIN SECTION ##
+## LOGS ##
 install_log_messages(){
 	local yad_warn
 	lib_overwrite=0
@@ -3504,7 +3528,7 @@ install_log_messages(){
 		fi
 		if [ $pass = 2 ]; then
 			if [ $from_install = 0 ];then
-				echo $"# Modules already build and present in $kernel_path."; sleep 2
+				echo $"# Modules already build and present in $kernel_path."; sleep ${read_timeout}
 				echo_message 0 $"Modules already build and present in" "$kernel_path""."
 			else
 				echo_message 1 "${j}−${end}" $"Modules already build and present in" "$kernel_path""."
@@ -3558,9 +3582,9 @@ install_report_log(){
 		fi
 	fi
 }
-xorg_check(){
+xorg_check(){ # WARN
 	## prevent user xorg config overwrite.
-	local yad_warn is_nv
+	local yad_warn is_nv warn_log=''
 	if [ -e /etc/X11/xorg.conf ]; then
 		[ -f /etc/X11/xorg.conf.nvidia ] && is_nv=$" for Nvidia drivers" || is_nv=""
 		warn_log=$"$( cat <<-WARN
@@ -3573,7 +3597,7 @@ xorg_check(){
 				Do you want to overwrite ?
 			WARN
 		)"
-		ok_lbl=$"Overwrite"'!zen-ok' ; cancel_lbl=$"Keep"'!zen-close'
+		local ok_lbl=$"Overwrite"'!zen-ok' cancel_lbl=$"Keep"'!zen-close'
 		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 		# if yes overwrite, if no pass.
 		if [ $yad_warn = 0 ]; then
@@ -3583,7 +3607,7 @@ xorg_check(){
 	fi
 }
 ## INITIAL OR UPGRADE INSTALL PROCESS
-INSTALL_DRIVER(){
+INSTALL_DRIVER(){ # PULSE ###
 	local warn_log yad_warn report_log n init_ramfs
 	local compiled_driver='' final_installed_mod_version='' dkms_stat='' update_status=1
 	## tell script that all POST_INSTALL process came from global install. Needed in many cases.
@@ -3624,6 +3648,10 @@ INSTALL_DRIVER(){
 		done
 		# CUDA REMOTE CHEKC HERE
 		if [ $use_cuda = 1 ]; then
+			cuda_last_version=${LAST_CUDA}
+			cuda_last_serie=$(cut -d'.' -f1 <<< "${cuda_last_version}")
+			local cuda_remote_versions=()
+
 			echo_message 1 "${j}−${end}" $"Checking Cuda update"
 			BUILDS=("$(new_version)")
 			# 	BUILDS+=("590.48.01") # TEST
@@ -3633,11 +3661,11 @@ INSTALL_DRIVER(){
 			{ local timeout=30 ;{
 				local update_status
 				echo -e "# "$"Initialize remote server exchange."
-				sleep 2
+				sleep ${read_timeout}
 				update_cuda_list
 				# ( $(update_cuda) && return )
 				echo -e "# "$"Building extracted remote data list."
-				sleep 2
+				sleep ${read_timeout}
 				cuda_sel_pack
 			}& eval lpid=$!; y_pulse; } | win_yad_progress
 			. $tmp_vars
@@ -3778,9 +3806,9 @@ INSTALL_DRIVER(){
 			win_log_options
 			{ local timeout=30 ;{
 				echo -e "# "$"Building extracted remote data list."
-				sleep 2
+				sleep ${read_timeout}
 				cuda_pre_install_check
-				# sleep 2
+				# sleep ${read_timeout}
 			}& eval lpid=$!; y_pulse; } | win_yad_progress
 			. $tmp_vars
 			if [ ${cuda_cancel} = 0 ]; then
@@ -3791,7 +3819,7 @@ INSTALL_DRIVER(){
 				report_log+=($"${vB}Cuda install:\t\t\t${end}${gB} cuda-$CUDA_VERSION\t${end}> ${y}install aborted${end}.\n")
 			fi
 		fi
-		echo "99"; sleep 2
+		echo "99"; sleep ${read_timeout}
 		echo "100"
 		## Install report display.
 		if [ "$pass" != '' ]; then
@@ -3890,7 +3918,7 @@ extract_build(){
 			cp -f $nvtmp/$extracted_release/nvidia-installer .
  			echo -e "$(new_version)" > $nvdir/new_version.txt
 		else
-			warn_log="${j}${bf}"$"Nvidia repository not found$""{end}${end}.${v} "$"Extraction failure.""${end}"
+			warn_log="${j}${bf}"$"Nvidia repository not found""${end}${end}.${v} "$"Extraction failure.""${end}"
 			die 2 ${LINENO} "$warn_log" "base_menu" 1
 		fi
 	fi
@@ -4091,7 +4119,7 @@ backup_old_version(){
 
 }
 ## UPDATE DRIVER SECTION
-upgrade_new_kernel(){
+upgrade_new_kernel(){ # LIST
 	local kern_list NEW_KERNEL up_version=$(version)
 	ls_kern=$(ls -1 /boot| grep -v "rescue\|$(uname -r)"| grep "vmlinuz"| sed -n 's/^[[:alpha:]]*-//p')
 	for linuz in ${ls_kern}; do
@@ -4106,9 +4134,8 @@ upgrade_new_kernel(){
 	MSG
 	)"
 	local l_text="${v}""$w_text""${end}"
-	local cancel_lbl=$"Back"'!zen-back'; ok_lbl=$"Select"'!zen-ok'
+	local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' columns=2 sel_col=2 sep='' hid_col=0 edit_col=0 col_tip=0 w_width='450' w_height='0'
-	# local IFS=$(echo -en "\n\b")
 	local IFS=$'\n'
 	NEW_KERNEL=( $(win_yad_list "${kern_list[*]}" "") )
 	if [[ "$NEW_KERNEL"  =~ \. ]]; then
@@ -4120,7 +4147,7 @@ upgrade_new_kernel(){
 	fi
 # 	}
 }
-upgrade_kernel(){
+upgrade_kernel(){ # PULSE
  	local yad_warn
 	# warn_log=$"${j}<b>Kernel driver update</b>${end}\n${y}$KERNEL${end} drivers will be update."
 	local warn_log="${v}""${j}<b>"$"Kernel driver update""</b>${end}"$"\n""${y}$KERNEL${end} "$"drivers will be update.""${end}"
@@ -4141,30 +4168,25 @@ upgrade_kernel(){
 	fi
 }
 ## FROM A REMOTE/USER DIRECTORY
-net_version_selector(){ # HELP TXT
-	local menu_select LAST_PACK LAST_OFFI older_pack list_array
-	if [ $hlp_txt = 1 ]; then
-		hlp_tip=$"$( cat <<-HLP
+net_version_selector(){ # LIST
+	# local menu_cmd n m_cmd hlp_tip='' LAST_PACK LAST_OFFI older_pack
+	local menu_cmd n m_cmd hlp_tip='' older_pack #LAST_PACK=''
+	local -a m_list=() cmd_list=()
+	local IFS=$'\n'
+	local cmd_list=( $"Looking for latest version""|1" $"Looking for older version""|2" )
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-		${v}<b>Select the driver version type to install</b>${end}
-		${sf}
-		   - <b>Look up for latest</b>:
-		   Look for the last available packges from Nvidia repos site.
-		   - <b>Look up for older version</b>:
-		   Look for a previous packages available in Nvidia repos site.
-		${end}
-		HLP
-		)"
+	local l_text="${j}${bf}"$"Driver version type to install""${end}\n${end}"
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
 	else
-		hlp_tip=$"\n${v}<b>Select the driver version type to install</b>${end}"
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	local IFS=$(echo -en "\n\b")
-	local list_array=( true 1 $"Look for latest version" false 2 $"Look for older version" )
-	local l_text=$"${j}${bf}Driver version type to install${end}\n${end}$hlp_tip"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' l_tail=0 w_head=0 col_name=''
-	local list_type='radiolist' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0 w_width='400' w_height='0'
-	menu_select=( $( win_yad_list "${list_array[*]}" "") )
-	case $menu_select in
+	local w_width='400' w_height='300'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
 		1) check_for_newer ;;
 		2) check_for_older ;;
 		200) exit 1 ;;
@@ -4172,446 +4194,272 @@ net_version_selector(){ # HELP TXT
 	esac
 	if [ "$LAST_DRV" != '' ]; then check_update; fi
 }
-check_dl_command(){
-	local y_text=$"NVIDIA Download center data check"
-	local pulse=1 log=0 hold=0 hide_txt=1
-	win_log_options
-	{	timeout=30
-	{	$p_wget -q -O $upt_compat_dir/last_update https://$nvidia_ftp-$ARCH/latest.txt
-	}& eval lpid=$! ; y_pulse ;} | win_yad_progress
-}
-check_for_older(){ # to set to local
-	check_dl_command
-	local older_pack rem_packages_list old_pack_list=()
-	local rem_packages_list=( $(sort -Vr $(remote_drv_list)| sed -n 's/ /*/g;p') )
-	LAST_OFFI=$(cat $upt_compat_dir/last_update | awk '{ print $1 }')
-	ln=0
-	# cat $(remote_drv_list)| sort -Vr | nl -n ln| sed -En "s/[\ |\t]/#/g;s/^([0-9]{0,3})[#]{1,6}(.*$)/false \1 \2/g;p" > $(user_CF_DIR)/notify/drv_remote_list
+check_for_older(){ # LIST
+	local older_pack rem_packages_list hlp_tip=''
+	local IFS=$ifs
+	drivers_list=( $(drivers_scrap 1) )
 
-	for pack_list in "${rem_packages_list[@]}"; do
-		[ ${ln} = 0 ] && old_pack_list+=("true") || old_pack_list+=("false")
-		old_pack_list+=("$pack_list")
-		ln=$(($ln+1))
-	done
 	local IFS=$'\n'
-	# local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local l_text="${j}${bf}"$"Driver version to install""${end}\n${end}${v}$hlp_tip${end}"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
 	# local list_type='radiolist'
 	local l_tail=0 w_head=0 col_name='' columns=2 sel_col=2 sep='' hid_col=0 edit_col=0 col_tip=0
 	local w_width='400' w_height='300'
-	older_pack=$( win_yad_list "${old_pack_list[*]}" "" )
+	older_pack=$( win_yad_list "${drivers_list[*]}" "" )
 	evac $older_pack "base_menu" 1
 	LAST_DRV=$older_pack
-	legacy_drv=1
 }
 check_for_newer(){
-	check_dl_command
-	LAST_DRV=$(cat $upt_compat_dir/last_update | awk '{ print $1 }')
-	legacy_drv=0
+	LAST_DRV=$( [[ $LAST_OFFI != $LAST_BETA ]] && printf "$LAST_BETA" || printf "$LAST_OFFI" )
 }
 ## UPDATED RELEASE & CUDA CHECK
 hardware_compat(){
-	local upt_compat_list upt_local_conf  drv_class line drv_end comp_reg pci_device pci_dev_id
-	local family_last='' family='' legacy_drv='' family_compat=0
-	local -a COMPAT=() legacy_list=() class_list=()
-	## check remote site file if netwok connection is available.
-	if [ $(connected) = 0 ]; then
-		local y_text=$"NVIDIA Download center compatibility check ""(${j}$DRV${end})"
-		local pulse=1 log=0 hold=0 hide_txt=1
-		win_log_options
-		{	timeout=30
-		{	$p_wget -q -O $upt_compat_dir/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
-		}& eval lpid=$!; y_pulse; } | win_yad_progress
-		local regex='Below are the legacy'
-		local sed_cmd=$( cat <<-SED
-			/<h3>/,/${regex}/{
-			H; /<\/tr>/{
-				x; s/^\n//; s/\n/\ /g
-				s/ <[\/]?tr[^>]*[ ]?>//g
-				s/<\/td> <td>/,/g
-				s/<[^>]*>[ ]?//g
-			p}}
-		SED
-		)
-		cat $upt_compat_dir/upt_compat | sed -En -e "$sed_cmd" > $nv_compat_dir/compat.$DRV
-		## built a genaral compatibility list for series drivers classes.
-		upt_compat_list=$(user_CF_DIR)/updates/upt_compat_list
-		upt_local_conf=$(remote_drv_list)
-		local sed_cmd=$( cat <<-SED
-			/<h3>/,/name=\"subsys/{
-			H; /<\/tr>/{
-				x;s/^\n//;s/\n/ /g
-				s/ <[\/]?tr[^>]*>[ ]?//g
-				s/<\/td> <td>/,/g;s/<[^>]*>[ ]?//g
-				s/^(.*\.)?The (.*) driver.*$/* \2/g
-			p}}
-		SED
-		)
-		cat $upt_compat_dir/upt_compat | sed -En -e "$sed_cmd" > $upt_compat_list
-		## add a separator at the end.
-		echo -e "------" >> $upt_compat_list
-
-		## here start the compatibility tool.
-		[ -d $nv_compat_dir ]|| mkdir -p $nv_compat_dir/series
-		local IFS=$'\n'
-		(( $(echo "$DRV"| cut -d. -f1) > 334 )) && comp_reg='Current' || comp_reg='NVIDIA Ge'
-		COMPAT+=("$(grep -E "^${comp_reg}" $upt_compat_list | awk '{print $1" "$2}')")
-		legacy_list=("$(cat $upt_compat_list| grep -E "\* .*\.xx")")
-		for section in ${legacy_list[*]}; do COMPAT+=("$section");	done
-		if [ $(ls -1 $nv_compat_dir/series/ | grep -E -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
-			rm -f $nv_compat_dir/series/* | grep -E "^[0-9]*\.[0-9]*\.[0-9]*$"
-		fi
-		for line in ${COMPAT[@]}; do
-			if [[ $line =~ ".xx" ]]; then
-				drv_class=$(echo -e "$line"| sed -En 's/\* (.*).xx$/\1/p')
-				line=$(cut -d' ' -f2 <<< $line)
-			else
-				drv_class=$(echo "$DRV"| cut -d. -f1)
-			fi
-			drv_end=$(cat <<< ${COMPAT[*]}| grep -A1 "$line"| sed -En "s/^\* (.*).xx$/\1/g;\$p")
-			[[ $drv_end == $drv_class ]] && drv_end='-----'
-			sed -En "/$line/,/$drv_end.xx/{/^(.*|0x),.*/p}" $upt_compat_list > $nv_compat_dir/series/$drv_class
-		done
-	fi
-
-	## build compat file list from created.
-	class_list=("$(ls -1 $nv_compat_dir/series/| sort -V)")
-	## check compat.
-	## dig for device id and usual name.
+	stock(){
+		test -f $(user_CF_DIR)/release/nv-update-${@} && echo 1 || echo 0
+	}
+	installed(){
+		test -d $nv_root/nvidia.${@} && echo 1 || echo 0
+	}
 	pci_device=${dev[$e]}
 	pci_dev_id=${slot_id[$e]}
-	# if match, proceed to install.
-	if [ $(grep -Ec ",[0x]?${pci_dev_id}," $nv_compat_dir/series/$(echo "$DRV"| cut -d. -f1)) -gt 0 ]; then
-		## send message for the INSTALL_DRIVER section.
+	[ ${#dev_n[*]} -gt 0 ] && pci_name="${y}${pci_device}${v}: ${end}${end}" || pci_name=''
+	compat_query=$(xq_x_query 0 "${pci_dev_id}|${DRV}")
+	# final form : name|id|Vd|driver|serie|stock|installed|beta|compat
+	compat_serie=$(cut -d'.' -f 1 <<< "$DRV")
+	if [[ ${compat_query} != '' ]]; then
+		# compatible
+		compat+=("${compat_query}${DRV}|${compat_serie}|$(stock "$DRV")|$(installed "$DRV")|${is_beta}|1")
 		if [ $from_install = 1 ]; then
-			match_drv="$(echo "$DRV"| cut -d. -f1)"
+			hardware_msg+=("${pci_name}"$"Compatibility found in"" ${j}${compat_serie}${end} "$"serie.")
 		fi
+		main_compat=1
+		# echo -e "# COMPAT +++ " # TEST
 	else
-	## UNCOMPATIBLE HARDWARE OR DRIVER
-	# if not match, check in driver series files if there is a compâttible one.
-		for comp_file in ${class_list[@]}; do
-			if [ $(grep -Ec "^[0x]?${pci_dev_id}," $nv_compat_dir/series/$comp_file) -gt 0 ]; then
-				## message for INSTALL_DRIVER section.
-				if [ $from_install = 1 ]; then
-					warn_log=$"$(cat <<-ERR
-						${rB}${bf}<i>UNCOMPATIBLE DRIVER</i>${end}${end}
-						${v}The ${j}${pci_device}${end} is not compatible with ${j}$DRV${end} driver.
-						Check in ${j}${comp_file}${end} serie or greater instead.
-						Abort.${end}
-					ERR
-					)"
-					# if met during insttallation process, warn, then go back to main menu.
-					die 2 ${LINENO} "$warn_log" "base_menu" 0
-				fi
-				## serie driver class for the update/install section.
-				# if met during the update process, set serie to family var and continue until win_update section.
-				family=$comp_file
-			fi
-		done
-		## define vars for the update/install section.
-		if [[ $family ]]; then
-			# family is constantly greater that 0
-			if (( $(chk_family) == 0 || $family <= $(chk_family) )); then
-				# if not (no driver installed) or at least lower or equal to installed version (if any),
-				# looks for compatible driver in drv list.
-				family_last=$(cat $upt_local_conf | grep "$family" | sed -n '$p')
-				legacy_drv=1
-				legacy_display_indicator=$((legacy_display_indicator+1))
-			else
-				# in other case driver is not legacy anymore, proceed as usual.
-				legacy_drv=0
-			fi
-			# mark compatible family as found.
-			family_compat=1
-		else
-			## send fatal if no driver support.
+		# uncompatible
+		set_uncompat=1
+		compat+=("${pci_device}|||${DRV}|${compat_serie}|$(stock "$DRV")|$(installed "$DRV")|${is_beta}|0")
+		if [ $from_install = 1 ]; then
+			hardware_msg+=("${pci_name}"$"Driver is not compatible with"" ${j}${compat_serie}${end} "$"serie.")
+			die_message+=($"${j}${pci_device}${end}"" is not compatible with"" ${j}$DRV${end}"$" driver.")
+		fi
+	fi
+	# echo -e "${compat[*]} A" # TEST
+}
+hardware_uncompat(){
+	# uncompatible
+	local legacy_list=( $(xq_x_query 1 "") )
+	local compat_test=0
+	echo -e "${legacy_list[@]}"
+	for line in ${legacy_list[*]}; do
+		compat_query=$(xq_x_query 2 "${slot_id[$e]}")
+		if [[ ${compat_query} != '' ]] ; then
+			compat_serie=$(cut -d'.' -f 1 <<< "$line")
+			compat_driver=$(grep -m1 "${compat_serie}.*$" <<< "${drivers_list[*]}")
+			compat+=("${compat_query}${compat_driver}|${compat_serie}|$(stock "$compat_driver")|$(installed "$compat_driver")|0|1")
 			if [ $from_install = 1 ]; then
-				warn_log=$"$(cat <<-ERR
-					${rB}${bf}<i>UNCOMPATIBILITY ISSUE</i>${end}${end}
-					${v}The ${j}${pci_device}${end} is not supported by ${j}NIVDIA${end} driver
-					and there's no solution here except reverse to ${j}Nouveau${end} driver.
-					Abort.${end}
-				ERR
-				)"
-				die 2 ${LINENO} "$warn_log" "base_menu" 0
+				hardware_msg+=("${pci_name}"$"Compatibility found in"" ${j}${compat_serie}${end} "$"serie.")
+				die_message+=("However, compatibility has been found in"" ${j}${compat_serie}${end} "$"serie.")
+				die_message+=("Restart the installer from"" <b>></b> ${j}"$"Install drivers""${end} <b>></b> ${j}"$"From NVIDIA server""${end}")
+				die_message+=("and select"" <b>${y}${compat_driver}${end}</b> ""in the list.")
+			fi
+			compat_test=$((compat_test+1))
+			# echo -e "# UNCOMPAT +++ " # TEST
+		fi
+		# echo -e "# UNCOMPAT --- " # TEST
+		# compat_driver=$(grep -m1 "${compat_serie}.*$" <<< "${drivers_list[*]}") # TEST
+	done
+	if [ ${compat_test} = 0 ]; then
+		if [ ${main_compat} = 0 ]; then
+			# form : ||||||||0
+			compat+=("${pci_device}||||||||2")
+			if [ $from_install = 1 ]; then
+				hardware_msg+=("${pci_name}"$"is not supported anymore. Check Nouveau driver instead")
+				die_message+=("${y}${pci_device}${end} "$"is not supported anymore by Nvidia drivers.")
+				die_message+=("The only clue is going back to ${y}Nouveau driver${end} for this device")
 			fi
 		fi
-		echo -e "family_last=$family_last" >> $upt_comp_tmp # use by legacy check.
-		echo -e "family=$family" >> $upt_comp_tmp # use by legacy check.
-		echo -e "legacy_result=$legacy_drv" >> $upt_comp_tmp
-		echo -e "family_compat=$family_compat" >> $upt_comp_tmp # use by legacy check.
-		echo -e "legacy_display_indicator=$legacy_display_indicator" >> $upt_comp_tmp
 	fi
 }
-check_update(){ # REVOIR EN PLUS CONCIS
+check_update(){
 	## set local vars to default
-	local DIFF_list LOCAL_DRV legacy_result=''
-	local DEV_filter='' dev_compat='' VDPAU_class=''
-	local -a LOCAL_DRV=()
+	local -a compat=() legacy_list=() DIFF_list=() hardware_msg=() die_message=()
+	local compat_query compat_serie compat_driver is_beta #e row
+	local set_uncompat=0 compat_test=0 #main_compat=0
 
-	LAST_IN=$(version)
-	LAST_BETA=$(tac $(remote_drv_list) | sed -n 1p)
-	upt_comp_tmp=$(mktemp $zen_tmp_dir/zn_vars.XXXX )
-	## COMPATIBILTY SECTION
-	# first chack if alpha = beta or not.
+	LAST_DRV=${LAST_DRV:-$LAST_OFFI}
 	if [[ $LAST_DRV == $LAST_BETA ]] ; then
-			DIFF_list+=("$LAST_DRV")
+			DIFF_list+=("$LAST_AVAILABLE")
 			LAST_UPT=$LAST_DRV
 	else
-			DIFF_list+=("$LAST_DRV")
-			DIFF_list+=("$LAST_BETA")
+			DIFF_list+=("$LAST_DRV|0")
+			DIFF_list+=("$LAST_BETA|1")
 			LAST_UPT=$LAST_BETA
 	fi
-	local family_check=0 legacy=0 family_compat=0 legacy_display_indicator=0
-
-	## desktop could have more than one device managed. So check.
+	echo -e "${DIFF_list[*]}"
 	for e in ${dev_n[@]}; do # ALERT TODO CHECK
 		if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
-			for DRV in ${DIFF_list[@]}; do
-				## test existence of the new driver version in remote tree and compatibilities.
+			for row in ${DIFF_list[@]}; do
+				DRV=$(cut -d'|' -f1 <<< "$row")
+				is_beta=$(cut -d'|' -f2 <<< "$row")
+				local main_compat=0
+				local IFS=$'\n'
 				hardware_compat
-				. $upt_comp_tmp
-				## and prepare optional messages to display.
-				if [ $(cat $(remote_drv_list)| grep -c $DRV) -gt 0 ]; then
-					dl_allow=1
-				else
-					dl_allow=0
-				fi
-				# mark driver stocked in local repos.
-				local in_pack=$(ls -1 $nvdl/ | grep -c "$DRV")
-				test "$DRV" == "$LAST_IN" && _installed=1 || _installed=0
-				if [ "$LAST_BETA" ]&&[ "$LAST_BETA" != "$LAST_DRV" ]; then
-					if [ $legacy_drv = 1 ]; then
-						test "$DRV" == "$LAST_BETA" && _is_beta=0 || _is_beta=1
-					else
-						test "$DRV" == "$LAST_BETA" && _is_beta=1 || _is_beta=0
-					fi
-					test $legacy_drv -gt 0 && _is_beta=0
-				else
-					_is_beta=0
-				fi
-				if [ $(grep -Ec ",[0x]?${slot_id[$e]}" $nv_compat_dir/compat.$DRV) -gt 0 ]; then
-				# comp_result in upt_comp_tmp
-					DEV_filter=$(sed -En '/^.*,([0x]?'${slot_id[$e]}'),.*$/p' $nv_compat_dir/compat.$DRV)
-					dev_compat=1
-					VDPAU_class=$(printf "$DEV_filter"|cut -d"," -f3) # J
-				else
-					dev_compat=0
-				fi
-				LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow,$legacy_result")
+				eval main_compat=$main_compat
 			done
+			[ ${set_uncompat} = 0 ] || hardware_uncompat
 		fi
 	done
-	## write it in default script directory for further use.
-	echo -e "${COMP_I[@]}" > $nv_compat_dir/compat.update
-	sed -i "/^[[:space:]]*$/d;s/^\ //g" $nv_compat_dir/compat.update
+	# echo -e "${compat[*]} B" # TEST
 	win_update
 }
-win_update(){
-	# reset list and messages
-	local COMP_L main_msg more_msg compat_msg ui_mod in_repos
-	local reroute=0 sel_cmd=0
-	local in_installed=0 in_compat_list=0 in_local_repos=0 in_dl_repos=0 un_compat_list=0 DOWN_list=()
+win_update(){ # YAD
+	local -a yad_table_arrays=() txt_render=() DOWN_list=() more_render=() info_render=()
+	local suf line name drive serie installed beta stock
+	local w_text='' compatibilty='' not='' compat_name='' previous_name=''
+	local compat_tag=1 unsupported=0 stock_count=0
 
-	## get driver list from check_update to define local presence and what to display.
-	# LOCAL_DRV+=("$DRV,$in_pack,$_installed,$_is_beta,$dev_compat,${dev[$e]},$VDPAU_class,$dl_allow,legacy_result")
-	# '364.12,0,0,0,"0",GeForce RTX 2060,,1'
-	# '525.85.05,1,0,0,"1",GeForce RTX 2060,J,1'
-	local IFS=$(echo -en "\n\b")
-	for local_drv in ${LOCAL_DRV[@]}; do
-		_drive=$(echo "$local_drv"|cut -d',' -f1)
-		_exist=$(echo "$local_drv"|cut -d',' -f2)
-		_insta=$(echo "$local_drv"|cut -d',' -f3)
-		_beta=$(echo "$local_drv"|cut -d',' -f4)
-		_dev_comp=$(echo "$local_drv"|cut -d',' -f5)
-		_name=$(echo "$local_drv"|cut -d',' -f6)
-		_vclass=$(echo "$local_drv"|cut -d',' -f7)
-		_dl_ok=$(echo "$local_drv"|cut -d',' -f8)
-		end_msg=$"What do you want to do ?"
-		case $_insta in
-			0) set_in='' ;;
-			1) set_in=$" (installed)"; in_installed=$((in_installed+1)) ;;
+	local spaces=0 tab=0
+	kokoro="${y}$(echo -e '\u2764')${end}"
+	# headers
+	[[ ${#DIFF_list} -gt 1 ]] && suf=$"s" || true
+	txt_render+=( "${jB}"$"Available Driver""${suf}\n""${end}")
+	[[ ${LAST_IN} != 0 ]] && last_in="${LAST_IN}" || last_in="none"
+	[ $(driver_from_distro) = 1 ] && local_driver=$"From distribution" || local_driver=$"Installed driver"
+	local IFS=$'\n'
+	yad_table_list "$local_driver "$"version :" "${last_in}"
+	yad_table_list $"Official version :" "${LAST_OFFI}"
+	yad_table_list $"Beta version :" "${LAST_BETA}"
+	yad_table ${FUNCNAME}
+	# form : name|id|vclass|driver|serie|stock|installed|beta|compatible
+	for line in ${compat[*]}; do
+		# id=$(cut -d'|' -f2 <<< "${line}")
+		name=$(cut -d'|' -f1 <<< "${line}")
+		drive=$(cut -d'|' -f4 <<< "${line}")
+		compatible=$(cut -d'|' -f9 <<< "${line}")
+		[[ ${info_render[*]} =~ ${name} ]] || info_render+=(${vB}$"Driver available for"" ${name}"${end})
+		# scraping
+		case ${compatible} in
+			0|2) is_compat=$"is not"; bling=''; compat_tag=$((compat_tag+1)) ;;
+			1) is_compat=$"is"; compat_tag=1; compat_name=${name}; bling="${kokoro}";; # do
 		esac
-		if [ "$_vclass" ]; then comp_v=$"(VDPAU class $_vclass)"; fi # depracated
-		case $_dl_ok in
-			0) dl_warn=$"\n${y}but is not downloadable yet (wont be list)${end}" ;;
-			1) dl_warn='' ;;
-		esac
-
-		case $_dev_comp in
-			0) comp_a=$"${vB}uncompatible${end}"
-				comp_b=$"${y}$_drive${end} ${rB} driver doesn't manage your hardware${end}\n"
-				un_compat_list=$((un_compat_list+1))
-			;;
-			1) comp_a=$"compatible"
-				comp_b=$"${j}$_drive${end} ${v} driver fit your hardware${end} ${y}$(echo -e '\u2764')${end}\n" # or 2714
-				in_compat_list=$((in_compat_list+1))
-			;;
-		esac
-		case $_beta in
-			0)
-			if [ $legacy_drv = 0 ]; then
-				set_beta=$"official"; _drv_title=$"official"; tab=''
-			else
-				if [ "$_drive" == "$LAST_BETA" ]; then
-					if [ $LAST_OFFI != '' ]; then
-					set_beta=$"beta"; _drv_title=$"beta"; tab='- -'
-					else
-					set_beta=$"official"; _drv_title=$"last release"; tab=''
-					fi
-				else
-					set_beta=$"legacy" ; _drv_title=$"legacy"; tab=''
-				fi
+		if [[ ${compatible} != 2 ]]; then
+			info_render+=("- ${y}${drive} ${end}${is_compat} "$"compatible with your hardware""."" ${bling}")
+		else
+			if [ $unsupported = 0 ]; then
+				info_render+=("${y}${name} ${end}"$"is not longer supported by Nvidia drivers"".")
+				info_render+=("${y}"$"You may consider to use Nouveau driver instead"".${end}")
+				unsupported=1
+				# shift 0
 			fi
-			;;
-			1) set_beta=$"beta"; _drv_title=$"beta"; tab='- -';;
-		esac
-		case $_exist in
-			0) in_repos=$"is not in your repository"
-				DOWN_list+=("false"); DOWN_list+=("$_drive"); DOWN_list+=("($_drv_title)"); in_dl_repos=$((in_dl_repos+1))
-			;;
-			1) in_repos=$"is in your repository"; in_local_repos=$((in_local_repos+1))
-			;;
-		esac
-
-		COMP_L+=($"${j}$_name${end} ${v}($_drive), $comp_a${end}")
-		COMP_L+=("$comp_b")
-		main_msg+=("\n${v}"$"The $set_beta version is :""${end}${ge} ${tab} - - - - - - ${end}${y}$_drive${end}")
-		more_msg+=("\n${j}$_drive${end}${vB} $in_repos.${end}${v}$set_in${end}$dl_warn")
-		## define the appropriate UI.
-		case $in_local_repos in
-			0|1) ui_mod=1		# dl/inst selector
-				start_msg="${more_msg[@]}"
-				case $_dev_comp in
-					0) ui_mod=0; end_msg=$"Nothing to do." ;;
-					1) if [ $un_compat_list -ge 1 ]; then
-							ui_mod=2
-						elif [ $in_dl_repos -eq 0 ]; then
-								ui_mod=2
-						fi
-						if [ $in_installed -eq 1 ]&&[ ${#DOWN_list[*]} -eq 0 ]; then
-							ui_mod=0; end_msg=$"Nothing to do."
-						fi
-					;;
-				esac
-			;;
-			2|3) ui_mod=2		# inst local selector
-				start_msg="${more_msg[@]}"
-				case $_dev_comp in
-					0) ui_mod=0; end_msg=$"Nothing to do." ;;
-					1) if [ $in_dl_repos -gt 0 ]; then
-							ui_mod=1
-						fi
-					;;
-				esac
-			;;
-		esac
-	done
-	## this section is for lagacy driver part and has to be display only once.
-	if [ $legacy_display_indicator -ge 1 ]; then
-		if [ $family_compat -gt 0 ]; then
-			case $family_compat in
-				0) comp_c="${y}"$"this driver is not supported anymore""${end}"
-					test $legacy_result -gt 0 && comp_d='\n'
-				;;
-				1) # be sure that driver is not already downloaded.
-					if [ $family_last != $(new_version) ]; then
-						# if exist in path, do nothing.
-						if [ $(ls -1 $nvdl/ | grep -c "$family_last") = 1 ]; then
-							in_repos=$"is in your repository"
-							ui_mod=2
-							comp_d=''
-						else
-							# if doesn't exist in path add it to the download list.
-							in_repos=$"is not in your repository"
-							DOWN_list+=("false")
-							DOWN_list+=("$family_last")
-							DOWN_list+=($"(last legacy)")
-							comp_d="\n${v}"$"Last"" ${y}$family_last${end} "$"will be list.""${end}"
-						fi
-						comp_c="\n${v}"$"Devices compatibility found in"" ${y}$family${end} "$"serie""${end}$comp_d"
-					else
-						comp_c="\n${v}"$"Compatible driver for"" ${y}$family${end} "$"serie already installed.""${end}"
-						in_repos=$"is in your repository"
-						ui_mod=2
-					fi
-					more_msg+=("\n${j}$family_last${end}${vB} $in_repos.${end}")
-					end_msg=$"What do you want to do ?"
-			esac
-			COMP_L+=("$comp_c")
 		fi
-	fi
-	compat_msg=$(cat <<< ${COMP_L[*]})
-	IFS=$ifs
-	extra_msg="\n${more_msg[@]}\n\n${v}$end_msg${end}"
-	ok_lbl=$"Select"; cancel_lbl=$"Abort"
+	# done
+	# for line in ${compat[*]}; do
+	# 	drive=$(cut -d'|' -f4 <<< "${line}")
+		# stock=$(cut -d'|' -f6 <<< "${line}")
+		stock+=( $(cut -d'|' -f6 <<< "${line}") )
+		stock_count=$([ $stock -gt 0 ] && printf $((stock_count+1)) || printf 0)
+		installed=$(cut -d'|' -f7 <<< "${line}")
+		case ${installed} in
+			0) is_installed="";; # do
+			1) is_installed=$"(installed)";;
+		esac
+		case ${stock} in
+			0) is_in_repos=$"is not";; # do
+			1) is_in_repos=$"is";;
+		esac
+		[[ ${more_render[*]} =~ ${drive} ]] || more_render+=("${j}${drive}${end} ${is_in_repos} "$"in your repos."" ${is_installed}")
+		previous_name=${name}
+		[[ ${compatible} = 1 && ${installed} = 0 && ${stock} = 0 ]] && DOWN_list+=("${drive}") || true
+	done
+	[[ ${#DOWN_list[*]} -gt 0 ]] && ui_mod=1 || ui_mod=0
+	[[ ${installed} = 1 && ${stock_count} = 1 ]] && ui_mod=0 || true
+	[[ ${installed} = 1 && ${stock_count} -gt 1 ]] && ui_mod=2 || true
+	# [[ ${installed} = 0 && ${stock} = 1 ]] && ui_mod=2 || true
+
+	local ok_lbl=$"Select" cancel_lbl=$"Abort" option=''
+	local -a zen_opts=() table_opts=() list_opts=()
 	case $ui_mod in
-		0)	zen_opts="--image=zen-warning --borders=15 --button=$cancel_lbl!zen-back:1"
-			table_opts=''
-			list_opts=''
+		0)	# nothing to do
+			zen_opts=("--image=zen-warning" "--borders=15" "--button=${cancel_lbl}!zen-back:1")
+			# table_opts=''
+			# list_opts=''
+			extra_msg="\n"$"Nothing to do."
 			;;
-		1)	zen_opts="--list --radiolist --no-headers --borders=15 --button=$cancel_lbl!zen-back:1 --button=$ok_lbl!zen-ok:0"
-			table_opts='--column set --column 2 --column action --separator= --hide-column=2 --print-column=2'
-			list_opts="true 1 Install false 2 Download ";;
-		2)	zen_opts="--image=zen-question --borders=15 --button=$cancel_lbl!zen-back:1 --button=$ok_lbl!zen-ok:0"
-			table_opts=''
-			list_opts=''
+		1)	# list dl/install
+			# zen_opts=("--list" "--radiolist" "--no-headers" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=$ok_lbl!zen-ok:0")
+			# table_opts=("--column" "set" "--column" "2" "--column" "action" "--separator=" "--hide-column=2" "--print-column=2")
+			# list_opts=("true" 1 "Install" "false" 2 "Download ")
+			ok_lbl=$"Install" cancel_lbl=$"Abort" option=$"Download"
+			zen_opts=("--image=zen-question" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=${option}!gtk-save:2" "--button=${ok_lbl}!gtk-redo-ltr:3")
+			extra_msg="\n"$"What do you want to do ?"
+			;;
+		2)	# other or redo
+			ok_lbl=$"Replay Install"
+			zen_opts=("--image=zen-question" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=${ok_lbl}!zen-ok:4")
+			# table_opts=''
+			# list_opts=''
+			extra_msg="\n"$"Nothing to do.\nYou may optionaly select to replay install."
 			;;
 	esac
-	case $ui_mod in
-		0|2) w_height='--height=100' ;;
-		1)   w_height='--height=200' ;;
-	esac
-	w_text=$"$(cat <<-MSG
-		${jB}${bf}Available drivers${end}${end}
+	w_text=$(cat <<-MSG
+		$(echo -e "${txt_render[*]}")
 
-		${v}Driver version installed :${end}${ge} - - - - - ${end}${j}$(drv_installed)${end}
-		$(cat <<< ${main_msg[@]})
+		$(echo -en "${v}${nf}""${info_render[*]}""${end}${end}")
 
-		$compat_msg
-		$extra_msg
+		$(echo -e "${v}${nf}""${more_render[*]}""${end}${end}")
+		${vB}${extra_msg}${end}
 	MSG
-	)"
-	# we don't use yad window function for this.
-	sel_cmd=$($d_yad --width=300 $w_height --window-icon=$img_zen_desktop --title="$WIN_TITLE" --center \
-	$zen_opts --text="$w_text" $table_opts $list_opts || if [ $? = 252 ]; then echo 200; else echo 100; fi)
+	)
+	[ $task_opt -gt 0 ] && w_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
+	# echo -e "${DOWN_list[*]}" # TEST
+	local w_height='--height=100'
+	# local _exit
+	sel_cmd=$(
+	$d_yad --width=400 $w_height --window-icon=$img_zen_desktop --title="$WIN_TITLE" --center --css="$(yad_css)" \
+	${zen_opts[*]} --text="$w_text" ${table_opts[*]} ${list_opts[*]}
+	_exit=$?
+	if [ $_exit = 2 ]; then echo 2
+	elif [ $_exit = 3 ]; then echo 1
+	elif [ $_exit = 4 ]; then echo 3
+	elif [ $_exit = 1 ]; then echo 100
+	elif [ $_exit = 252 ]; then echo 200
+	else echo 0; fi
+	)
 	case ${sel_cmd} in
-		200) exit 1;;
+		200) exit 1 ;;
 		100) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
-		*) case $ui_mod in
-			0) [ $task_opt -gt 0 ] && exit 0 || base_menu ;; # sel_cmd echo 0, ici.
-			1) case $sel_cmd in
-					"1") ok_label=$"install"; from_net ;;
-					"2") ok_label=$"download"; download_only ;;
-				esac ;;
-			2) win_update_reroute ;;
-		esac ;;
+		3) win_update_reroute ;;
+		2) ok_label=$"download"; download_only ;;
+		1) ok_label=$"install"; from_net ;;
+		0) ;;
 	esac
 }
-win_update_reroute(){
-	local n help_tip reroute_list ins_list menu_reroute
-	reroute_list=($"Install last $LAST_UPT" $"Check again Nvidia server" $"Check for a local package")
-	n=1
-	for ins_cmd in "${reroute_list[@]}"; do
-		ins_list+=("false")
-		ins_list+=("$n")
-		ins_list+=("$ins_cmd")
-		n=$[ $n+1 ]
-	done
-	IFS=$(echo -en "\n\b")
-	# l_text="${j}${bf}"$"Select an operation in the list""${end}\n${end}"
+win_update_reroute(){ # LIST # MENU
+	local menu_cmd m_cmd m_row m_name hlp_tip=''
+	local -a m_list=() cmd_list=()
+
 	l_text=$"$(cat <<-LOG
-		${j}${bf}Select a function in the list${end}${end}"
-		${v}This is here re-do fucntions.
-		$(version) driver wont be fully re-install for system stability reasons.
+		${j}${bf}Select a function in the list${end}${end}
+		${y}Be aware this is re-do function until you select a different driver.${end}
+		${v}If replay is $(version) driver, it wont be fully re-install for system stability reasons.
+		Only librairies installation will be replayed.
 		${end}
 	LOG
 	)"
-	cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
-	list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='300'
-	menu_reroute=$( win_yad_list "${ins_list[*]}" "")
-	case ${menu_reroute} in
+	local IFS=$'\n'
+	cmd_list=( $"Install last $LAST_UPT""|1" $"Check again Nvidia server""|2" $"Check for a local package""|3")
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
+	local cancel_lbl=$"Back to menu"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+	fi
+	local w_width='400' w_height='300'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
+	# case ${menu_reroute} in
 		1) menu_msg=$"${vB}Direct Driver Upgrade.${end}"; LAST_PACK=$LAST_UPT; reroute=1; from_net;;
 		2) menu_msg=$"${vB}NVIDIA package update from NVIDIA server.${end}"; net_version_selector ;;
 		3) menu_msg=$"${vB}NVIDIA package update from local dir.${end}"; from_directory ;;
@@ -4619,9 +4467,10 @@ win_update_reroute(){
 		100|*) menu_update ;;
 	esac
 }
-from_directory(){
+from_directory(){ # LIST # MENU
 	nv_dir(){
-		local list_drv drv_pick
+		local list_drv=()
+		local drv_pick l_text local_drv
 		cd $nvdl; n=1
 		for local_drv in ${nvdl_list[@]}; do
 			list_drv+=("false")
@@ -4636,16 +4485,19 @@ from_directory(){
 			$loaded
 		INFO
 		)"
-		local IFS=$(echo -en "\n\b")
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Previous"'!zen-back'
-		ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
-		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='220'
+		local IFS=$'\n'
+		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Previous"'!zen-back'
+		local ok_lbl=$"Select"'!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+		local columns=2 sel_col=2 hid_col=0 col_tip=0 edit_col=0 sep=''
+		local w_width='400'; w_height='220'
 		drv_pick=( $( win_yad_list "${list_drv[*]}" "") )
 		evac "$drv_pick" "menu_install" "base_menu"
 		eval run_pkg=$nvdl/$drv_pick
 	}
 	home_dir(){
-		local list_drv drv_pick
+		local -a list_drv=()
+		local drv_pick l_text
 		for local_drv in ${home_list[@]}; do
 			list_drv+=("false")
 			list_drv+=("$local_drv")
@@ -4660,21 +4512,46 @@ from_directory(){
 			$loaded
 		INFO
 		)"
-		local IFS=$(echo -en "\n\b")
-		cancel_lbl=$"Back"'!zen-back'; ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
-		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
+		local IFS=$'\n'
+		local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+		local w_width='400'; w_height='220'
 		drv_pick=( $( win_yad_list "${list_drv[*]}" "") )
 		evac "$drv_pick" "menu_install" "base_menu"
 		eval run_pkg=$drv_pick
 	}
-	local nvdl_list home_list list_array list_type from_cmd
-	local drv_pick=''
+	local -a nvdl_list=() home_list=() # list_array=()
+	# local list_array list_type from_cmd
+	# local drv_pick=''
 
 	test $(version) && loaded="${v}<i>${y}$(version)${end} "$"actually installed and loaded"".</i>${end}"
-	nvdl_list=( $(ls -1 $nvdl| grep -v ".sum"| sort -Vr) )
+	# nvdl_list=( $(ls -1 $nvdl| grep -v ".sum"| sort -Vr) )
+	nvdl_list=( $(ls $nvdl| grep -v ".sum"| sort -Vr) )
 	home_list=( $(find $(user_DL_DIR)/ -regextype sed -regex "^.*NVIDIA-Linux-.*\.run"| sort -Vr) )
+	# home_list=( $(find $(user_CF_DIR)/ -regextype sed -regex "^.*nv-update-.*"| sort -Vr) ) # TEST
 	if [ $ui_mod = 1 ]; then
-		list_array=( false 1 $"Use Zenvidia stock directory" false 2 $"Use a user local directory" )
+		# list_array=( false 1 $"Use Zenvidia stock directory" false 2 $"Use a user local directory" )
+		# l_text=$"$(
+		# cat <<-INFO
+		# 	${j}<b>Local NVIDIA drivers STOCK</b>${end}
+  #
+		# 	Zenvidia release stock :	${j}<b>${#nvdl_list[*]}</b>${end} object(s) found.
+		# 	User home directory :		${j}<b>${#home_list[*]}</b>${end} object(s) found.
+  #
+		# 	${v}<b>Select the directory to install from.</b>${end}
+		# INFO
+		# )"
+  #
+		# IFS=$(echo -en "\n\b")
+		# [ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back"'!zen-back'
+		# ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
+		# list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
+		# from_cmd=$( win_yad_list "${list_array[*]}" "")
+
+		local menu_cmd n m_cmd m_row m_name
+		local hlp_tip='' l_text=''
+		local -a m_list=() cmd_list=()
 		l_text=$"$(
 		cat <<-INFO
 			${j}<b>Local NVIDIA drivers STOCK</b>${end}
@@ -4685,13 +4562,23 @@ from_directory(){
 			${v}<b>Select the directory to install from.</b>${end}
 		INFO
 		)"
+		# local IFS=$(echo -en "\n\b")
+		local IFS=$'\n'
+		cmd_list=( $"Use Zenvidia stock directory""|1" $"Use a user local directory""|2" )
+		yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-		IFS=$(echo -en "\n\b")
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back"'!zen-back'
-		ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
-		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='400'; w_height='220'
-		from_cmd=$( win_yad_list "${list_array[*]}" "")
-		case ${from_cmd} in
+		[ $task_opt -gt 0 ] &&  local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back"'!zen-back'
+		local ok_lbl=$"Select"'!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+		if [ $hlp_txt = 0 ]; then
+			local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+		else
+			local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+		fi
+		local w_width='400' w_height='220'
+		menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+		case $menu_cmd in
+		# case ${from_cmd} in
 			1) [ ${#nvdl_list[@]} -gt 0 ] && nv_dir ;;
 			2) [ ${#home_list[@]} -gt 0 ] && home_dir ;;
 			200) base_menu ;;
@@ -4702,7 +4589,7 @@ from_directory(){
 	fi
 	[[ -n $run_pkg ]] && INSTALL_DRIVER || die 2 ${LINENO} $"No imput driver selected." "base_menu" 0
 }
-from_net(){
+from_net(){ # WARN
 # download functions
 		local yad_warn
 		pushd $buildtmp
@@ -4710,8 +4597,8 @@ from_net(){
 		[ ${reroute} -gt 0 ] && last_driver_pack || download_menu
 		run_pkg=$nvdl/nv-update-$LAST_PACK
 		if [ -f $buildtmp/$run_pack ]; then
-			warn_log="${v}"$"Driver download"" ${j}$LAST_PACK${end} "$"ended"".${end}"
-			ok_lbl=''; cancel_lbl=$"Close"'!gtk-close'
+			local warn_log="${v}"$"Driver download"" ${j}$LAST_PACK${end} "$"ended"".${end}"
+			local ok_lbl='' cancel_lbl=$"Close"'!gtk-close'
 			yad_warn=$(win_yad_warns "${warn_log}" 0 "${ok_lbl}" "${cancel_lbl}" 0 "zen-emblem")
 			if [ $yad_warn -ge 1 ]; then base_menu; else
 				mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
@@ -4720,65 +4607,71 @@ from_net(){
 		fi
 		popd
 		if [ ${from_cmd} -gt 0 ]; then
-			new_version=$(printf "$run_pkg"| sed -n "s/^.*-//g;p")
-			# local from_install=1
 			INSTALL_DRIVER
 		fi || die 1 ${LINENO} "Remote package check/install failed." "" 1
 }
 ## DOWNLOADERS
-download_menu(){
+download_menu(){ # LIST # WARN
 	local dl_cmd yad_warn
-	l_text=$"$( cat <<-INFO
+	l_text="${y}"$"$( cat <<-INFO
 		${jB}${bf}Downloads${end}${end}
 		Select the drivers version you wish to $ok_label.
 		in the list below
 	INFO
-	)"
-	output_type=1
-	if [ ${#DOWN_list[*]} -gt 3 ]; then
-		local IFS=$(echo -en "\n\b")
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
-		ok_lbl=$"Select"'!zen-ok' ; l_tail=0; w_head=0 ; col_name=''
-		list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='300'; w_height='0'
-		dl_cmd=( $( win_yad_list "${DOWN_list[*]}" "") )
-		evac ${dl_cmd} "base_menu" 1
+	)""${end}"
+	local IFS=$'\n'
+
+	if [ ${#DOWN_list[*]} -gt 1 ]; then
+		yad_make_list ${FUNCNAME} "${DOWN_list[*]}" "" 0
+		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to main"'!zen-back'
+		local ok_lbl=$"Select"'!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+		if [ $hlp_txt = 0 ]; then
+			local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+		else
+			local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+		fi
+		local w_width='400' w_height='300'
+		menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+		evac ${menu_cmd} "base_menu" 1
 	else
-		dl_cmd=${DOWN_list[1]}
+		[ ${#DOWN_list[*]} -gt 0 ] && menu_cmd=${DOWN_list[*]} || menu_cmd=${m_list[1]}
 		warn_log=$"$( cat <<-MSG
 			${jB}${bf}Downloads${end}${end}
-			NVIDIA ${y}$dl_cmd${end} driver is going to be $ok_label.
+			NVIDIA ${y}${menu_cmd}${end} driver is going to be $ok_label.
 
-			${v}Are you sure ?${end}
+			${vB}Are you sure ?${end}
 		MSG
 		)"
 		ok_lbl=$"Ok"'!zen-ok'; cancel_lbl=$"Back to main"'!zen-back'
-		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
+		yad_warn=$(win_yad_warns "${y}${warn_log}${end}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 		if  [ ${yad_warn} = 1 ]; then base_menu; elif [ ${yad_warn} = 2 ]; then return 1; fi
 	fi
-	if [ "$dl_cmd" ]&&[[ "${dl_cmd}" =~ \. ]]; then
-		LAST_PACK=$dl_cmd
+	if [[ -n "$menu_cmd" && "${menu_cmd}" =~ \. ]]; then
+		LAST_PACK=$menu_cmd
 	else
-		warn_log="${r}"$"Driver download failure""${end}\n"$"Output is empty""."
+		warn_log="${r}"$"Driver pre-download failure""${end}\n"$"Output is empty""."
 		die 2 ${LINENO} "$warn_log" "base_menu" 1
 	fi
 	last_driver_pack
+	eval run_pack=$run_pack
 }
-download_only(){
-	cd $buildtmp
+download_only(){ # WARN
+	local yad_warn run_pack
+	pushd $buildtmp &>/dev/null
 	download_menu
-	local yad_warn
 	if [ -f $buildtmp/$run_pack ]; then
 		warn_log=$"${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
 		ok_lbl='';cancel_lbl=$"Close"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 0 "${ok_lbl}" "${cancel_lbl}" 0 "zen-emblem" && return 0 )
-
-# 		[ $rem_extract = 0 ] || test -f $buildtmp/$run_pack.sha256sum && rm -f $buildtmp/$run_pack.sha256sum
 		mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
 		chmod 755 $nvdl/nv-update-$LAST_PACK
+		popd &>/dev/null
 		[ $task_opt -gt 0 ] && exit 0 || base_menu
 	else
 		warn_log="${v}"$"Driver download"" ${j}$LAST_PACK${end} "$"failure"".\n "$"The package"" ${j}$run_pack${end} "$"doesn't exist"".${end}"
 		die 2 ${LINENO} "$warn_log" "base_menu" 1
+		popd &>/dev/null
 	fi
 }
 download_track(){
@@ -4793,99 +4686,85 @@ download_track(){
 	done
 	return
 }
-win_download_display(){
+win_download_display(){ # PULSE
 	# local file_down file_up file_ex > to be set in previous function
 	local pulse=0 log=0 hold=0 hide_txt=0
 	win_log_options
 	# in some case connection delay could break the query, create empty file first.
 	> $buildtmp/$local_pack
-	{ $p_wget -c -P $buildtmp/ $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
+	# { $p_wget -c -P $buildtmp/ $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
+	{ curl -s --output-dir $buildtmp/ -O $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
 	return # true
 }
-last_driver_pack(){
-	local drv_list=()
-	run_pack=() # run_pack is not a local var
-	# download downloadable list
-	y_text="${v}"$"Remote content control""${end}"
-	local pulse=1 log=0 hold=0 hide_txt=1
-	win_log_options
-	{ timeout=30
-	{	$p_wget -q -O $nvtmp/dl_list https://$nvidia_ftp-$ARCH/$LAST_PACK/
-		cat $nvtmp/dl_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| sed -En "s/^.*'(.*)'/\1/p" > $nvtmp/dl_selector
-	} & eval lpid=$!; y_pulse; } | win_yad_progress
+last_driver_pack(){ # PULSE # LIST
+	local l_text # run_pack
+	local -a RUN_PACK=() m_list=() scrap_list=() warn_log=()
 
-	if [ -s $nvtmp/dl_list ]; then
-		## check if driver pack is really in the DL list (empty happens).
-		if [ $(cat $nvtmp/dl_selector| grep -cv "[0-9]sum") -gt 0 ] ; then
-			if [ $(cat $nvtmp/dl_selector | grep -c "$LAST_PACK") -gt 0 ] ; then
-				RUN_PACK=$(cat $nvtmp/dl_selector| grep -v "[0-9]sum")
-			fi
+	scrap_list=( $(xq_x_query 3 ".run$") )
+	for line in ${scrap_list[@]}; do
+		pack_key=$(grep -c "compat32" <<< "${line}"||true)
+		RUN_PACK+=( "${line}|$(grep -c "compat32" <<<"${line}"||true )" )
+	done
+	list_plugin(){
+		# tag key : -no-compat32
+		if [ ${m_row} = 0 ]; then
+			m_list+=("true")
+			m_key='compat'
 		else
-			warn_log="${j}<b>"$"Remote directory empty""</b>${end}\n${v}"$"Remote directory has not been update with"" ${LAST_PACK} "$"data files"".\n"$"Transaction aborted"".${end}"
-			die 2 ${LINENO} "$warn_log" "base_menu" 0
+			m_list+=("false")
+			m_key='no_compat'
 		fi
-		for line in $RUN_PACK; do
-			drv_list+=("false")
-			drv_list+=("$line")
-		done
-		run_pack=() # run_pack is not a local var
-		local IFS=$(echo -en "\n\b")
-		l_text="${v}"$"Choose the version to install""${end}"
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
-		ok_lbl=$"Select"'!zen-ok'; l_tail=0; w_head=0 ; col_name=''
-		list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='500'; w_height='100'
-		run_pack=( $(win_yad_list "${drv_list[*]}" "") )
-		evac "$run_pack" "base_menu" 1
+		m_list+=("$m_row")
+		m_list+=("$m_cmd")
+	}
+	yad_make_list ${FUNCNAME} "${RUN_PACK[*]}" "help-tips.xml" 1
 
-		# get file details from local dl_list
-		file_size=$(cat $nvtmp/dl_list | grep -A1 -E "NVIDIA-Linux-x86_64-$LAST_PACK.run" | sed -En "s/^.*>(.*)<.*$/\1/;s/^([0-9]+)([A-Z]*)$/\1;\2/p")
-		## from there, look into 'selector' file for sha256sum file.
-		if [ -e $nvtmp/dl_selector ]; then
-			if [ $(cat $nvtmp/dl_selector| grep -c "sha256sum") -gt 0 ]; then
-				run_pack_sha=$run_pack.sha256sum
-			fi
-		fi
-		# download remote sha256sum file.
-		test $run_pack_sha && $p_wget -c -P $buildtmp/ https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack_sha &>/dev/null
-		[ $? = 1 ] && {
-			warn_log="${j}<b>"$"Download Checksum download error""</b>${end}.\n"$"Transaction aborted""\n"$"Try to restart driver download from"" <b>"$"Update menu""</b>"
-			die 2 ${LINENO} "$warn_log" "base_menu" 0
-		}
-		# download command options
-		remote_pack=https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack
-		local_pack=$run_pack
-		file_down=0
-		file_up=$(cut -d';' -f1 <<< $file_size)
-		file_ex=$(cut -d';' -f2 <<< $file_size)
-		local divider=1024
-		local y_text="<b>"$"Downlaoding"" ${j}$LAST_PACK${end} "$"driver from"" ${y}Nvidia${end} "$"server""</b>"
-		win_download_display
+	local IFS=$'\n'
+	l_text="${v}"$"Choose the version to install""${end}"
+	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to main"'!zen-back'
+	local ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=3 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=3 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+	fi
+	local w_width='500' w_height='100'
+	run_pack=( $( win_yad_list "${m_list[*]}" "") )
+	evac "$run_pack" "base_menu" 1
 
-		# get size of the pack in ko and check file integriy
-		_local=$(du -h $buildtmp/$run_pack | awk '{print $1}'| grep -o "[0-9]*")
-		_remote=$(cat $nvtmp/dl_list | grep -A1 "$run_pack<"|sed -En "s/^.*>(.*)<\/.*>.*$/\1/g;2p"| grep -o "[0-9]*")
-		if [ -f $buildtmp/$run_pack.sha256sum ]; then
-			pushd $buildtmp &>/dev/null
-			sha256sum $run_pack
-			sha256sum --status -c $run_pack.sha256sum
+	file_size=$(xq_x_query 4 "${run_pack}|size" | sed -En 's/^([0-9]+)([A-Z]*)$/\1|\2/p')
+	run_pack_sha=$(xq_x_query 4 "${run_pack}.sha256sum|file")
+	# download command options
+	remote_pack=https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack
+	local_pack=$run_pack
+	file_down=0
+	file_up=$(cut -d'|' -f1 <<< $file_size)
+	file_ex=$(cut -d'|' -f2 <<< $file_size)
+	local divider=1024
+	local y_text="<b>"$"Downlaoding"" ${j}$LAST_PACK${end} "$"driver from"" ${y}Nvidia${end} "$"server""</b>"
+	win_download_display
+
+	if [ -f $buildtmp/$run_pack ]; then
+		pushd $buildtmp &>/dev/null
+		curl -s https://${nvidia_ftp}-$ARCH/${LAST_PACK}/${run_pack_sha} -o ${run_pack_sha}
+		if [ -f $run_pack.sha256sum ]; then
+			sha256sum ${run_pack}
+			sha256sum --status -c ${run_pack_sha}
 			if [ $? = 1 ]; then
-				warn_log="${j}<b>"$"Download check sum error""</b>${end}.\n"$"Transaction aborted""\n"$"Try to restart driver download from"" <b>"$"Update menu""</b>"
-				die 2 ${LINENO} "$warn_log" "base_menu" 0
+					warn_log+="${j}<b>"$"Download check sum error""</b>${end}.\n"
+					warn_log+=$"Transaction aborted""\n"
+					warn_log+=$"Try to restart driver download from"" <b>"$"Update menu""</b>"
+					die 2 ${LINENO} "${warn_log[@]}" "base_menu" 0
 			fi
 			popd &>/dev/null
 		fi
-		if [ $_remote -ne $_local ]; then
-			warn_log="${j}<b>"$"Download unexpected end""</b>${end}.\n"$"Please restart driver download from"" <b>"$"Update menu""</b>"
-			die 2 ${LINENO} "$warn_log" "base_menu" 0
-		fi
-   else
-		warn_log=$"$( cat <<-WRN
-			${r}<b>Remote directory is empty.</b>${end}
-			Nvidia devs have probably forgoten to upload data.
-			Feel free to try at a later time.
-		WRN
-		)"
-		die 2 ${LINENO} "$warn_log" "base_menu" 0
+	else
+		warn_log+="${j}""<b>"$"Download failure""</b>${end}\n"
+		warn_log+="${run_pack} "$"pack is missing"".\n"
+		warn_log+=$"Cancelling all children preocesses.""\n"
+		warn_log+=$"Try to restart driver download from"" <b>"$"Update menu""</b>"
+		die 2 ${LINENO} "${warn_log[@]}" "base_menu" 0
 	fi
 }
 ## CUDA PART
@@ -4942,7 +4821,7 @@ check_cuda_storage(){
 	done
 	echo -e "${path_info[@]}"| sed -n 's/\!$//p' > $nvtmp/path_info_list
 }
-cuda_storage_warn(){
+cuda_storage_warn(){ # FIELD
 	local info_text su_opts set_args su_cmd_prompt storage_warn
 	p_root_dir=$(df -H / | awk '{print $5}'|sed -n '$p')
 	g_root_dir=$(df -H / | awk '{print $4}'|sed -n '$p')
@@ -4995,8 +4874,11 @@ check_cuda_versions(){
 	local available_build cuda_url eval_size release_date
 	local CUDA='' BUILD='' cuda_release=''
 	for CUDA in ${cuda_remote_versions[@]}; do
-		cuda_release="$(awk -F"|" '{print $1}' <<< "${CUDA}")"
-		release_date="$(awk -F"|" '{print $2}' <<< "${CUDA}")"
+		# cuda_release="$(awk -F"|" '{print $1}' <<< "${CUDA}")"
+		# release_date="$(awk -F"|" '{print $2}' <<< "${CUDA}")"
+		cuda_release="${CUDA}"
+		release_date="$(drivers_scrap 4)"
+
 		for BUILD in "${BUILDS[@]}"; do
 			local available_build=()
 			echo -e $"# Testing Cuda ${cuda_release} version data :"" ${BUILD}"
@@ -5021,47 +4903,52 @@ check_cuda_versions(){
 	return
 }
 check_remote_cuda(){
-	local cuda_last_serie cuda_remote_versions
+	# local cuda_last_serie cuda_remote_versions
+	# local cuda_remote_versions
 	## download remote version page list
-	wget -O $json_log "https://${cuda_base_url}/compute/cuda/redist/index.html" 2>/dev/null
+	# wget -O $json_log "https://${cuda_base_url}/compute/cuda/redist/index.html" 2>/dev/null
+	# curl -s -o $json_log "https://${cuda_base_url}/compute/cuda/redist/index.html"
 	## cuda list doesn't exit
 	test -f $cuda_log || touch $cuda_log
 	if [ -s $cuda_log ]; then
 		## cuda list exist and is not empty
 		## check for last data
 		echo -e $"# Updating data from CUDA remote server"
-		sleep $read_timeout
-		cuda_last_serie=$(cat $cuda_log | cut -d'.' -f1 | sed -n '$p')
-		# build list with release date
-		cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log| grep -E "^$cuda_last_serie.")")
+		sleep ${read_timeout}
+		cuda_remote_versions=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
+		# cuda_last_serie=$(cat $cuda_log | cut -d'.' -f1 | sed -n '$p')
+		# # build list with release date
+		# cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log| grep -E "^$cuda_last_serie.")")
 	else
 		## cuda list exist and is empty
 		## populate file first
 		# retrieve version data from version page
 		echo -e $"# Get initial data from CUDA remote server (could be long)"
-		sleep $read_timeout
-		cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log)")
+		sleep ${read_timeout}
+		cuda_remote_versions=( "$(drivers_scrap 3)" )
+		# cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log)")
 	fi
-	for release in ${cuda_version_list}; do
-		cuda_remote_versions+=("${release}|$(grep -A2 "href='redistrib_${release}.json'" $json_log|sed -En "/date/{;s/^.*date'>(.*)\ .*$/\1/p}")")
-	done
+	# for release in ${cuda_version_list}; do
+	# 	cuda_remote_versions+=("${release}|$(grep -A2 "href='redistrib_${release}.json'" $json_log|sed -En "/date/{;s/^.*date'>(.*)\ .*$/\1/p}")")
+	# done
 	# ## check
-	check_cuda_versions
+	# check_cuda_versions
 }
-update_cuda_list(){ # Cuda start process
-	json_log=$nvtmp/jsonpage.html # to temp
+update_cuda_list(){ # PULSE # Cuda start process
+	# json_log=$nvtmp/jsonpage.html # to temp
 	cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user)
 	y_text="${v}"$"Remote CUDA version page check ...""${end}"
 	local pulse=1 log=0 hold=0 hide_txt=0
 	win_log_options
 	{ local timeout=30 ;{
 		echo -e $"# Retrieving data from Nvidia server."
-		sleep $read_timeout
+		sleep ${read_timeout}
 		check_remote_cuda
+		check_cuda_versions
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 }
 # Check if sys have enough tmpfs space.
-cuda_tmpfs_warn(){
+cuda_tmpfs_warn(){ # FIELD
 	local CUDA_size tempfs_dir home_dir total_tmp total_cuda swap_space war_log set_tmp
 	local ok_lbl='' cancel_lbl='' selector swap_fs home_alternative alt_storage alt_msg
  	local alt_btn chk_btn_tmp=FALSE chk_btn_save=FALSE media_storage media_line
@@ -5223,7 +5110,7 @@ cuda_tmpfs_warn(){
 	fi
 }
 # Main function : read list, check mem, then download
-cuda_sel_pack(){
+cuda_sel_pack(){ # LIST # WARN
 	local cuda_list LOCAL_BUILDS_LIST=() list_text=()
 	local CUDA_VERSION CUDA_BUILD CUDA_SIZE_M CUDA_SIZE_O CUDA_FAIL_S=0
 	local file_down file_up file_ex local_pack
@@ -5277,20 +5164,23 @@ cuda_sel_pack(){
 			LOCAL_BUILDS_LIST+=("release date : $(cut -d' ' -f5 <<< $BUILD)") # tip (empty)
 			LOCAL_BUILDS_LIST+=("0")
 		done
-		local list_titl="${j}${bf}"$"Available CUDA builds""${end}${end}"
+		local list_title="${j}${bf}"$"Available CUDA builds""${end}${end}"
 		list_text+=$"Note that the previous release before last one\nis automaticaly remove from Nvidia server."
+		list_text+="\n"$"Last cuda  Toolkit version:"" ${j}${LAST_CUDA}${end}"
 		[[ $(cuda_version) != FALSE ]] && {
 			list_text+="\n\n"$"WARNING : Installer doesn't automaticaly remove older version.\n"
 			list_text+="To preserve system storage space ""${j}"$(cuda_version)"${end}"$" version will be remove."
 			}
 		local l_text="$(cat <<-INFO
-			$list_titl
+			$list_title
 			${v}${list_text[@]}${end}
 			${y}$more_text${end}
 		INFO
 		)"
-		local cancel_lbl=$"Back to menu"'!zen-back' ok_lbl=$"Select"'!zen-ok' l_tail=0 w_head=0 col_name=''
-		local list_type='radiolist' columns=8 sel_col=0 sep=';' hid_col='4,5,6,7,8' edit_col=0 col_tip=7 w_width='400' w_height='300'
+		local cancel_lbl=$"Back to menu"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+		local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+		local columns=8 sel_col=0 hid_col='4,5,6,7,8' col_tip=7 edit_col=0 sep=';'
+		local w_width='400' w_height='300'
 		local menu_cuda=$( win_yad_list "${LOCAL_BUILDS_LIST[*]}" "")
 		case ${menu_cuda} in
 			200|100) return 1 ;;
@@ -5417,7 +5307,7 @@ package_checksum_sim(){
 	fi
 }
 # warn before doing anything.
-cuda_install_info(){
+cuda_install_info(){ # WARN
 	local more_msg='' selector validator=0
 	# trap pulse pid if needed
 	list_kill_parent_pids
@@ -5462,7 +5352,13 @@ cuda_install_info(){
 	# then, go to install functions.
 }
 # everything start from here.
-update_cuda(){
+update_cuda(){ # PULSE
+	cuda_last_version=${LAST_CUDA}
+	cuda_last_serie=$(cut -d'.' -f1 <<< "${cuda_last_version}")
+	# cuda_remote_versions=( "$(drivers_scrap 3)" )
+	# cuda_remote_versions=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
+	local cuda_remote_versions=()
+
 	# json_log=$nvtmp/jsonpage.html # to temp # TEST
 	# cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user) # TEST
 	BUILDS=( $(ls -1 $(user_CF_DIR)/release/ | sed -n "s/^.*-//g;p" | sort -V) )
@@ -5492,8 +5388,8 @@ update_cuda(){
 # 	zen-undo			yellow ltr arrow	|	zen-refresh			driver update			|	zen-docs			gtk-Documentation
 #	zen-stop			gtk-quit				|	zen-question		nvidia docs				|	zen-restore		gtk-restore
 # 	zen-warning		dialog-warning		|	zen-info				nvidia changelog		|	zen-settings	nvidia-settings
-#  zen-question	dialog-question	|	zen-warning			zenvidia changelog
-#	zen-error		gtk-error			|	zen-stop				menu quit
+#  zen-question	dialog-question	|	zen-warning			zenvidia changelog	|	zen-download	gtk-save
+#	zen-error		gtk-error			|	zen-stop				menu quit				|	zen-install		gtk-redo-ltr
 # 	zen-info			gtk-info				|	zen-color			yad color config
 
 # message display for all yad window type
@@ -5521,7 +5417,7 @@ echo_message(){ # Display formatted messages
 		(( ${txt_quote_type} == 7 )) && screen_msg="${sf}${y}${process_msg[*]}${end}${end}" # internal info
 	# 	(( ${txt_quote_type} == 0 ))[[ ${txt_quote} == 4 ]] && screen_msg=""
 	fi
-	echo -e "# $screen_msg"; sleep $read_timeout ; return
+	echo -e "# $screen_msg"; sleep ${read_timeout} ; return
 }
 read_sequence(){ # Display in line log formated messages
 	local sequence=${1}
@@ -5563,13 +5459,127 @@ xq_tips(){
 	# [ "$(sed -n "/<locale code=\"${locale}\"/,/\/locale>/{;/<${menu}/,/\/${menu}>/{;/key=${cmd}/p}}" $help_tips)" ] && true || locale='en_EN'
 	echo -e "$(xq -q "tips>locale[code="${locale}"]>${menu}>tip[key="${cmd}"]>p" $help_tips)\c" | tr '\n' '\r'
 }
+xq_x_query(){
+	# 0 = current, 1 = legacy list, 2 = legacy, 3 = .run pack query, 4 = .run name/size
+	# local type=${1} dev_query="${2}" dev_id='' DEV_REMOTE_PATH='' remote_page=''
+	local type=${1} dev_query="${2}" dev_id DEV_REMOTE_PATH remote_page
+
+	if [[ ${dev_query} =~ '|' ]]; then
+		# cut the dev_query form
+		dev_id=$(cut -d'|' -f1 <<< "${dev_query}")
+		DEV_REMOTE_PATH=$(cut -d'|' -f2 <<< "${dev_query}")
+	else
+		# cut the var's form "xxxx|(0/1)".
+		dev_id=${dev_query}
+		DEV_REMOTE_PATH=$(cut -d'|' -f1 <<< "${LAST_AVAILABLE}")
+	fi
+	# remote page version ou new_version
+	if (( ${type} >= 3 )); then
+		# global
+		remote_page=https://${nvidia_ftp}-$ARCH
+	else
+		# per driver
+		remote_page=https://${nvidia_ftp}-$ARCH/${DEV_REMOTE_PATH}/README/supportedchips.html
+		# remote_page=https://${nvidia_ftp}-$ARCH/$(new_version)/README/supportedchips.html # TEST
+	fi
+	## query from .run file README
+	# first sed cmd clean up remote page of wrong utf letters.
+	reg_fix_utf='/<p>For an explanation/,/<\/i><\/a>.<\/p>/d;p'
+	# current output form : name|id|vdpau|compat
+	if [[ ${type} = 0 && ${dev_id} != '' ]]; then
+		curl -s $remote_page | sed -n "${reg_fix_utf}" | \
+		xq -x '//p[a[@name="Current"]]/following::div[@class][1]/table[1]/tbody[1]/tr[id="0x'${dev_id}'" or @id="devid'${dev_id}'"]'|tr '\n' '|' #|| true
+	fi
+	# serie legacy list
+	if [ ${type} = 1 ]; then
+		curl -s $remote_page | sed -n "${reg_fix_utf}" | \
+		xq -n -x '//p[a[@name]]/a'| sed -En 's/^.*id="legacy_(.*)".*$/\1/p' #|| true
+	fi
+	# legacy query
+	if [[ ${type} = 2 && ${dev_id} != '' ]]; then
+		curl -s $remote_page | sed -n "${reg_fix_utf}" | \
+		xq -x '//p[a[@name="legacy_'${line}'"]]/following::div[@class][1]/table[1]/tbody[1]/tr[@id="0x'${dev_id}'" or @id="devid'${dev_id}'"]'|tr '\n' '|'  #|| true
+	fi
+	## query from index page
+	# last run packages list
+	if [ ${type} = 3 ]; then
+		# dev_id here is the the end of file type query.
+		curl -s $remote_page/$LAST_PACK/index.html | \
+		xq -x '//li/span[@class="file"]/a[@href=.]' | grep "${dev_id}" || true
+		# '//li[span[@class]]/span[@class="'${dev_id}'"]/a[@href=.]'
+	fi
+	# in .run file rep query (file/size)
+	if [ ${type} = 4 ]; then
+		pack=$(cut -d'|' -f1 <<< "${dev_query}")
+		class=$(cut -d'|' -f2 <<< "${dev_query}")
+		curl -s $remote_page/$LAST_PACK/index.html | \
+		xq -x '//li[span[@class]/a[@href="'${pack}'"]]/span[@class="'${class}'"]' || true
+	fi
+	# unused
+	if [ ${type} = 5 ]; then
+		curl -s $remote_page/$LAST_PACK/index.html | \
+		xq -x '//li[span[@class]/a[@href="'$run_pack'"]]/span[@class="'${dev_id}'"]' || true
+	fi
+
+}
 # command & options for yad window maker
+yad_table(){
+	# syntax : yad_table ${FUNCNAME}
+	local funcname="${1}"
+	local table_line name cara inline_tabs object tabs='' # tab and spaces are fucntion wide.
+	local max_spaces=''
+	# get max number of caracters
+	for table_line in ${yad_table_arrays[@]}; do
+		name=$(cut -d'|' -f1 <<< $table_line)
+		cara=${name%%#*}
+		(( ${#cara} > max_spaces )) && max_spaces=${#cara}
+	done
+	# build the table with max caracters setted and filter by function.
+	for table_line in ${yad_table_arrays[@]}; do
+		local tabs=()
+		name=$(cut -d'|' -f1 <<< $table_line | sed -n 's/#//g;p')
+		cara=${name%%#*}
+		inline_space=$((${max_spaces} - ${#cara}))
+		object=$(cut -d'|' -f2 <<< $table_line)
+		tabs+='\t'
+		if (( ${inline_space} > 4 && ${inline_space} < 8 )); then
+			tabs=()
+			inline_space=$(($inline_space+($inline_space-4)))
+		fi
+		# tabulation displaying heavely depends of used police and style.
+		# per function patch could be neccasry in some case.
+		if  [[ ${name} =~ \* ]]; then # add blank line
+			txt_render+=( $(printf "\    \n"))
+		elif [[ ${funcname} == base_menu && ${name} =~ Last ]]; then # per function plugin
+			offi=$(cut -d':' -f1 <<< $name) ;
+			offi_ver=$(cut -d':' -f2 <<< $name)
+			beta=$(cut -d':' -f1 <<< $object)
+			beta_ver=$(cut -d':' -f2 <<< $object)
+			txt_render+=( $(printf "\    ${vB}%s :${end} ${j}%s${end}%*s${vB}%s :${end} ${j}%s${end}\n" "$offi" "$offi_ver" "$inline_space" "" "$beta" "$beta_ver") )
+		elif [[ ${funcname} == win_update ]]; then
+			if (( ${inline_space} >= 8 && ${inline_space} < 16 )); then
+				tabs+='\t'
+				inline_space=$(($inline_space+($inline_space-8)))
+			fi
+			txt_render+=( $(printf "${vB}%s${end}%*s${tabs}${j}%s${end}\n" "${name}" "${inline_space}" "" "${object}") )
+		# elif [[ ${funcname} == "xxxx" ]]; then
+		else # default behaviour
+			txt_render+=( $(printf "\    ${vB}%s${end}%*s${tabs[*]}${j}%s${end}\n" "${name}" "${inline_space}" "" "${object}") )
+		fi
+	done
+}
+yad_table_list(){
+	# syntax : yad_table_list "text" "${var}"
+	local name="${1}" object="${2}"
+	yad_table_arrays+=("${name}#|${object}")
+	return
+}
 yad_field(){
 	# syntax : yad_field "name" "type" "object" "tip"
 	# syntax for text LBL line : the '.' is mandatory for one field after LBL
 	# none, if more (don't ask with I have no clue).
 	# [if text] yad_field "name" "LBL" "." ""
-	local field_name="${1}" field_tip="${4}" field_type=${2} field_object="${3}"
+	local field_name="${1}" field_type=${2} field_object="${3}" field_tip="${4}"
 	shift
 	[[ -n ${field_tip} ]] && field_tip='!'$field_tip'' || field_tip=''
 	[[ -n ${field_object} ]] && field_object="$(echo "$field_object")" || field_object=' '
@@ -5583,6 +5593,26 @@ yad_button(){
 	local btn_name="${1}" btn_icon="${2}" btn_tip="${4}" btn_signal="${3}"
 	# shift
 	btn_list+=("$(echo "--button="$btn_name"!"$btn_icon"!$btn_tip"):$(echo "$btn_signal")")
+	return
+}
+yad_make_list(){
+	# yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
+	m_fnc=${1} cmd_list=(${2}) m_tips="${3}" m_opt=${4}
+	for l_cmd in "${cmd_list[@]}"; do
+		m_cmd="$(cut -d'|' -f1 <<< "$l_cmd")"
+		m_row=$(cut -d'|' -f2 <<< "$l_cmd")
+		# [ ${m_row} = 1 ] && m_list+=("true") || m_list+=("false")
+		if [[ ${m_opt} -gt 0 ]]; then
+			list_plugin
+		else
+			[ ${m_row} = 0 ] && m_list+=("true") || m_list+=("false")
+			m_key=${m_cmd}
+			m_list+=("$m_row")
+			m_list+=("$m_cmd")
+		fi
+		[[ ${m_tips} != '' ]] || hlp_txt=0
+		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "$m_fnc" "$m_key" "$m_tips")${end}") || true
+	done
 	return
 }
 win_log_options(){
@@ -5610,8 +5640,9 @@ win_log_options(){
 }
 # yad per object window maker functions
 win_yad_field(){
-# cmd to feed before win_yad_field : yad_field "name" "type" "object" "tip"
-# syntax : win_yad_field [0/1] (one button/two button) [0/1] (separator/no separator)
+# local ok_lbl=$"Set"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
+# cmd to feed before, yad_field : yad_field "name" "type" "object" "tip"
+# syntax : win_yad_field "$text" [0/1] (one button/two button) [0/1] (separator/no separator)
 # original yad syntax per field : --field=$"<b>$field_name</b>"!$"$field_tip":$field_type $"$field_object"
 	local buttons btn_lbl sig info_text="${1}"
 	local IFS=$'\n'
@@ -5747,9 +5778,9 @@ win_yad_progress(){
 	elif (( $_exit == 143 )); then exit 1 ;
 	fi
 	if [ $_exit -ge 1 ]; then
-		if [ $(pgrep wget) ]; then
-			kill -9 -p $(pgrep wget) &>/dev/null
-			die 2 ${LINENO} $"User aborted download\nKilling wget and parent processes (if any)." "" 0
+		if [ $(pgrep curl) ]; then
+			kill -9 -p $(pgrep curl) &>/dev/null
+			die 2 ${LINENO} $"User aborted download\nKilling Curl and parent processes (if any)." "" 0
 		fi
 	fi
  	return
@@ -5825,7 +5856,7 @@ win_yad_list(){
 	if (( $_exit == 143 )); then exit 1; fi
 
 }
-win_yad_text(){ # to set in local
+win_yad_text(){
 	## NOTE: if yad text output is send in a variable, the EXIT value stay in this variable and cant be check by next test.
 	## It is needed in this case to test the content of variable output : empty/full.
 	## Here 'wc' is the helper: [ $(wc -l <<< $var_output) -gt 1 ] # wc will count 1 if data doesn't come from a file.
@@ -5876,9 +5907,12 @@ win_yad_text(){ # to set in local
 }
 
 # dedicated per script's function yad windows
-win_open_switch(){ # to set in local
+win_open_switch(){ # WARN # LIST
 	if [ $open_drv -gt 0 ]; then
-		local list_array driver_swt drv_swt_message yad_warn
+		local driver_swt m_cmd m_row m_name
+		local -a m_list=() cmd_list=()
+		local drv_swt_message yad_warn warn_log
+
 		if [[ $task_opt = 1 && -s $(user_CF_DIR)/old_basic.conf ]]; then
 			## if the driver switch come from a modification of the script basic.conf
 			## which do not have privileges to perform switch by itself, but prepare
@@ -5920,20 +5954,41 @@ win_open_switch(){ # to set in local
 			## Executte swith in a classic way.
 			old_open_drv=$open_drv
 			old_use_open=$use_open
-			if [ $use_open -gt 0 ]; then OPEN='TRUE'; PROP='FALSE'; else OPEN='FALSE'; PROP='TRUE'; fi
-			l_text=$"$( cat <<-MSG
+			# if [ $use_open -gt 0 ]; then OPEN='TRUE'; PROP='FALSE'; else OPEN='FALSE'; PROP='TRUE'; fi
+			local l_text=$"$( cat <<-MSG
 				${v}${j}${bf}Driver switch${end}${end}
-
-				<b>Driver type selection (open source / proprietary)</b>.
+				<b>Driver type selection (proprietary/open source)</b>.
 
 				<i>( ${y}driver with license $(/sbin/modinfo -F license nvidia -k $KERNEL) actualy loaded${end} )</i>${end}
 			MSG
 			)"
-			list_array=( $PROP "0" $"Load proprietary drivers" $OPEN "1" $"Load Open Source Drivers" )
-			cancel_lbl=$"Cancel"'!zen-back'; ok_lbl=$"Select"'!zen-ok'; l_tail=0; w_head=0 ; col_name=''
-			list_type='radiolist'; columns=3; sel_col=2; sep=''; hid_col=2; edit_col=0; col_tip=0; w_width='500'; w_height='0'
-			IFS=$(echo -en "\n\b")
-			driver_swt=( $(win_yad_list "${list_array[*]}" "") )
+			[ $task_opt -gt 0 ] && l_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
+			list_plugin(){
+				if [ $use_open -gt 0 ]; then
+					# OPEN='TRUE'; PROP='FALSE'
+					[ ${m_row} = 0 ] && m_list+=("false") || m_list+=("true")
+				else
+					# OPEN='FALSE'; PROP='TRUE'
+					[ ${m_row} = 0 ] && m_list+=("true") || m_list+=("false")
+				fi
+				m_key=${m_cmd}
+				m_list+=("$m_row")
+				m_list+=("$m_cmd")
+			}
+			local IFS=$'\n'
+			cmd_list=( $"Load proprietary drivers""|0" $"Load Open Source Drivers""|1" )
+			yad_make_list ${FUNCNAME} "${cmd_list[*]}" "" 1
+
+			[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back"'!zen-back'
+			local ok_lbl=$"Select"'!zen-ok'
+			local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+			if [ $hlp_txt = 0 ]; then
+				local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+			else
+				local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+			fi
+			local w_width='400' w_height='0'
+			driver_swt=( $( win_yad_list "${m_list[*]}" "") )
 			if [ ${driver_swt} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; else
 				use_open=$driver_swt
 				if [ $use_open -ne $old_use_open ]; then
@@ -5946,8 +6001,9 @@ win_open_switch(){ # to set in local
 }
 
 ## PACKAGE MANAGING
-manage_pcks(){ # HELP TXT
-	local hlp_tip='' w_text list_array menu_packs
+manage_pcks(){ # LIST
+	local menu_cmd n m_cmd m_row m_name w_text='' hlp_tip=''
+	local -a m_list=() cmd_list=()
 	w_text=$"$( cat <<-MSG
 
 		${v}<u>Note</u>${end} : <i>In case of issue after restoration (ex: driver not loading),
@@ -5960,30 +6016,21 @@ manage_pcks(){ # HELP TXT
 		"zenvidia rebuild [version]" command line or dkms</i>.
 		MSG
 	)"
-	if [ $hlp_txt = 1 ]; then
-		hlp_tip=$"$(cat <<-HLP
+	local IFS=$'\n'
+	cmd_list=( $"Remove downloaded packages""|1" $"Backup tools""|2" $"Restore a backup""|3" $"Remove Nvidia and restore to default""|4" )
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-		${sf}
-		- <b>Remove downloaded packages</b>:
-			Manage downloaded packages in Zenvidia directory.
-		- <b>Backup tools</b>:
-			Make a drivers and libraries backup of the current version.
-		- <b>Restore tool</b>:
-			Make a restoration of previously backed up drivers installation.
-		- <b>Remove Nvidia and restore to default</b>:
-			Remove completly Nvidia Drivers installation and restore default Nouveau drivers.
-		${end}
-		HLP
-		)"
+	local l_text=$"${j}${bf}"$"Manage drivers packages""${end}${end}${y}${nf}$w_text${end}${end}"
+	local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	l_text=$"${j}${bf}"$"Manage drivers packages""${end}${end}${y}${nf}$w_text$hlp_tip${end}${end}"
-	list_array=( false 1 $"Remove downloaded package" false 2 $"Backup tools" false 3 $"Restore a backup" false 4 $"Remove Nvidia and restore to default" )
-	local cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=$"Select"'!zen-ok' list_type='radiolist'
-	local columns=3 sel_col=2 sep='' l_tail=0 w_head=0  col_name='' hid_col=2 edit_col=0 col_tip=0
-	local w_width='450'; w_height='0'
-	local IFS=$(echo -en "\n\b")
-	menu_packs=$(win_yad_list "${list_array[*]}" "")
-	case $menu_packs in
+	local w_width='450' w_height='300'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
 		1) remove_pcks ;;
 		2) backup_tools ;;
 		3) restore_pcks ;;
@@ -5992,7 +6039,7 @@ manage_pcks(){ # HELP TXT
 		100|*) menu_modif ;;
 	esac
 }
-remove_pcks(){
+remove_pcks(){ # LIST # WARN
 	# list package in release directory
 	local nv_packs_list=$(ls -1 $nvdl| sort -V)
 	local rm_packs packs_list yad_warn
@@ -6083,7 +6130,7 @@ remove_pcks(){
 		if [ ${rm_packs} = 200 ]; then base_menu; else manage_pcks; fi
 	fi
 }
-remove_baks(){
+remove_baks(){ # LIST # WARN
 	# list package in release directory
 	local rm_bak yad_warn
 	local -a bak_list=()
@@ -6165,7 +6212,7 @@ remove_nvidia_cmd(){
 	rm -Rf /var/lib/nvidia*
 	rm -f $nvdir/version.txt
 }
-remove_nvidia(){
+remove_nvidia(){ # WARN # PULSE
 ## clean remove of nvidia packeges and nouveau restoration.
 	local yad_warn warn_log=''
 	## display warn before process. Zenity hare.
@@ -6205,7 +6252,7 @@ remove_nvidia(){
 		test -f $(user_CF_DIR)/grub-orig && . $(user_CF_DIR)/grub-orig || grub_orig='rhgb quiet'
 		sed -Ei "s/^(GRUB_CMD.*)=\"(.*)\"$/\1=\"$grub_orig\"/" $grub_def
 		$d_grub-mkconfig -o $grub_cfg
-		echo -e $"# Perform modules dependencies and initramfs update."; sleep 2
+		echo -e $"# Perform modules dependencies and initramfs update."; sleep ${read_timeout}
 		## restore kernel sys link to default.
 		m=0; do_slp=1
 		progress "( exec_depmod "$KERNEL" )" $"Depmod $KERNEL modules (\$m sec.)" "$m"
@@ -6224,43 +6271,37 @@ remove_nvidia(){
 		if [ $yad_warn -ge 1 ]; then base_menu; fi
 	fi
 }
-backup_tools(){
-	local hlp_tip=''
-	local w_text menu_backup l_text
-	local list_array=()
-	w_text=$"$( cat <<-MSG
+backup_tools(){ # LIST
+	local menu_cmd n m_cmd m_row m_name hlp_tip=''
+	local -a m_list=() cmd_list=() l_text=()
 
-		${v}Select the driver tool to use.${end}
-	MSG
-	)"
-	if [ $hlp_txt = 1 ]; then
-		hlp_tip=$"$( cat <<-INFO
+	local IFS=$'\n'
+	cmd_list=( $"Make a backup""|1" $"Remove a backup""|2" )
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-			${sf}
-			<b>Make a backup</b> :
-			- Back up the current isntalled driver installation.
-			<b>Remove a backup</b> :
-			- Remove archived installation driver packages.
-			${end}
-		INFO
-		)"
+
+	l_text+="${j}${bf}"$"Backup manager""${end}${end}\n"
+	l_text+="${v}"$"Select the driver tool to use"".${end}"
+	local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	l_text=$"${j}${bf}Backup manager${end}${end}$hlp_tip$w_text"
-	list_array=( false 1 $"Make a backup" false 2 $"Remove a backup" )
-	local cancel_lbl=$"Back to menu"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-	local list_type='radiolist' columns=3 sel_col=2 sep='' l_tail=0 w_head=0 col_name=''
-	local hid_col=2 edit_col=0 col_tip=0 w_width='450' w_height='0'
-	local IFS=$(echo -en "\n\b")
-	menu_backup=$(win_yad_list "${list_array[*]}" "")
-		case ${menu_backup} in
-			1) backup_pcks ;;
-			2) remove_baks ;;
-			200) base_menu ;;
-			100|*) manage_pcks ;;
-		esac
+	local w_width='450' w_height='100'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
+		1) backup_pcks ;;
+		2) remove_baks ;;
+		200) base_menu ;;
+		100|*) manage_pcks ;;
+	esac
 }
-backup_pcks(){
-	local yad_warn bak_version pgrs_out
+backup_pcks(){ # WARN # PULSE
+	local yad_warn bak_version menu_cmd
+	local warn_log='' y_text=''
 	bak_version=$(version)
 	if [ -f $nv_backup_dir/nvidia.$bak_version.tar$zip_ex ]; then
 		warn_log=$"$(cat <<-MSG
@@ -6270,7 +6311,7 @@ backup_pcks(){
 			Do you want to overwrite ?
 		MSG
 		)"
-		ok_lbl=$"Overwrite"'!zen-ok' ; cancel_lbl=$"No"'!zen-close'
+		local ok_lbl=$"Overwrite"'!zen-ok' cancel_lbl=$"No"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
 		if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then base_menu; fi
 	else
@@ -6280,7 +6321,7 @@ backup_pcks(){
 			Please, confirm.
 		WRN
 		)"
-		ok_lbl=$"Ok"'!zen-ok' ; cancel_lbl=$"Close"'!zen-close'
+		local ok_lbl=$"Ok"'!zen-ok' cancel_lbl=$"Close"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
 		if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then base_menu; fi
 	fi
@@ -6288,8 +6329,8 @@ backup_pcks(){
 		y_text=$"Backup"" : ${j}$bak_version${end} "$"backup archive creation"
 		local pulse=1 log=0 hold=0 hide_txt=0
 		win_log_options
-		pgrs_out=$( { timeout=30; { backup_old_version; } & eval lpid=$!; y_pulse; } | win_yad_progress )
-		case $pgrs_out in
+		menu_cmd=$( { timeout=30; { backup_old_version; } & eval lpid=$!; y_pulse; } | win_yad_progress )
+		case $menu_cmd in
 			2) base_menu ;;
 			*) manage_pcks ;;
 		esac
@@ -6297,7 +6338,7 @@ backup_pcks(){
 		manage_pcks
 	fi
 }
-restore_pcks(){ # to set in local
+restore_pcks(){ # WARN # LIST # PULSE
 	alert_message(){
 	# current version overwrite ALERT message
 		warn_log=$"$( cat <<-WRN
@@ -6317,14 +6358,16 @@ restore_pcks(){ # to set in local
 			(<i>Desktop Manager, ex: systemctl disable $(dm_serv).service</i>)${end}
 		WRN
 		)"
-		ok_lbl='' ; cancel_lbl=$"Close"'!zen-close'
+		local ok_lbl='' cancel_lbl=$"Close"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 0 "${ok_lbl}" "${cancel_lbl}" 0 "" )
 		if [ $yad_warn -ge 1 ]; then base_menu; fi
 	}
 	nv_build_options
 	# list package in release directory
 	from_install=0
-	local drive_list drive_packs yad_warn res_version res_suffix
+	local -a drive_list=()
+	local yad_warn='' l_text='' warn_log=''
+	local drive_packs res_version res_suffix
 
 	[ -d $nv_backup_dir ]|| mkdir -p $nv_backup_dir
 	nv_root_repo=$(ls -1 $nv_backup_dir | grep ".tar.*$"| sort -rV)
@@ -6340,8 +6383,11 @@ restore_pcks(){ # to set in local
 		${v}Select the driver you want to restore.${end}
 	MSG
 	)"
-	cancel_lbl=$"Back to main"'!zen-back'; ok_lbl=$"Select"'!zen-ok'
-	list_type='radiolist'; columns=2; sel_col=2; sep=''; hid_col=0; edit_col=0; col_tip=0; w_width='400'; w_height='300'
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	local columns=2 sel_col=2 hid_col=0 col_tip=0 edit_col=0 sep=''
+	local w_width='400' w_height='300'
+
 	local IFS=$(echo -en "\n\b")
 	drive_packs=( $(win_yad_list "${drive_list[*]}" "") )
 	if [[ "$drive_packs"  =~ [a-z] ]]; then
@@ -6362,7 +6408,7 @@ restore_pcks(){ # to set in local
 					win_log_options
 					## win_yad_progress
 					{ timeout=30 ;{
-					echo -e $"# Restoring from nvidia.$res_version.tar$zip_ex..."; sleep 2
+					echo -e $"# Restoring from nvidia.$res_version.tar$zip_ex..."; sleep ${read_timeout}
 					if [ "$res_version" != "$(version)" ]; then
 						## many libs are not overwriten, then remove previous before restore.
 						rm -f /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so.$(version)
@@ -6376,7 +6422,7 @@ restore_pcks(){ # to set in local
 					[ $(nv_modules_presence) -gt 0 ] && /sbin/modinfo -F version nvidia -k $KERNEL | grep "$res_version" &>/dev/null || false # return 1
 					if [ $? -eq 1 ]; then
 						echo -e $"# Rebuilding missing $res_version drivers for $KERNEL kernel.."
-						sleep 2
+						sleep ${read_timeout}
 						rt_options
 						if [ -d /usr/src/nvidia-$res_version ]||[ -d /usr/src/open-nvidia-$res_version ]; then
 							driver_logfile=$nvlog/$(version)-$KERNEL.log
@@ -6395,13 +6441,13 @@ restore_pcks(){ # to set in local
 						exec_initramfs $"(\$m sec.) - Rebuilding INITRAMFS" "$m"
 					else
 						echo -e $"# Clear : $res_version modules checked in $KERNEL kernel."
-						sleep 2
+						sleep ${read_timeout}
 						echo -e $"# Restore $res_version modules system symlinks."
 						# exec_mod_load seems to work here when archive modules are already build for active kernel.
 						exec_mod_load
 					fi
 					## validate grub
-					echo $"# Create GRUB conf for nouveau driver blacklisting and other options."; sleep 2
+					echo $"# Create GRUB conf for nouveau driver blacklisting and other options."; sleep ${read_timeout}
 					# $d_grub-mkconfig -o $grub_cfg 2>&1 | while read -r line; do echo "# * ${line}"; done
 					$d_grub-mkconfig -o $grub_cfg 2>&1 | read_sequence 0
 
@@ -6429,7 +6475,7 @@ restore_pcks(){ # to set in local
 }
 
 ## EDITION TOOLS
-edit_script_conf(){
+edit_script_conf(){ # LIST # WARN # (PULSE)
 	## building list
 	local conf_base conf_chg yad_warn
 	local -a orig_conf=() cnf_list=() col_name=() conf_list=()
@@ -6607,7 +6653,7 @@ edit_script_conf(){
 	## then go back to Section Menu.
 	[ $task_opt -gt 0 ] && exit 0 || menu_modif
 }
-edit_color_conf(){
+edit_color_conf(){ # YAD
 	## color tmep file test preview and vars reset
 	local TMP_conf input_colors output_colors font_button output_conf
 	local TMP_gui=$(mktemp $zen_tmp_dir/nv_color_set.XXXX)
@@ -6749,10 +6795,11 @@ x_check_man(){
 	fi
 }
 x_yad_extract(){
- 	local DEVICE device_D section_D DEVICE_section_orig=() DEVICE_section_file #device_section_list
-	local xorg_cfg_mod=$xorg_cfg
- 	local INPUT_options I_option_def I_setted I_option_type I_option I_value \
- 	OUTPUT_line O_option_type O_option O_value O_option_line_ log_on log_prefix prefix
+	local -a DEVICE_section_orig=()
+ 	local DEVICE device_D section_D DEVICE_section_file #device_section_list
+ 	local INPUT_options I_option_def I_setted I_option_type I_option I_value
+ 	local OUTPUT_line O_option_type O_option O_value O_option_line_ log_on log_prefix prefix
+ 	local xorg_cfg_mod=$xorg_cfg
 
 	cp -f $xorg_cfg $xorg_cfg~
 	[ -f $xorg_conf_log ] || touch $xorg_conf_log && echo '' > $xorg_conf_log
@@ -6859,13 +6906,14 @@ x_yad_extract(){
 		done
 	done
 }
-x_yad_tab(){
-	local section section_names track section_block \
-	vendor_id section_line option_line option_type option_reg screen_reg option_bis_reg \
-	option value option_line section_line o_tip
+x_yad_tab(){ # TAB
+	local section section_names track section_block
+	local vendor_id section_line option_line option_type
+	local option_reg screen_reg option_bis_reg
+	local option value option_line section_line o_tip
 	## tab window
 	for para in ${device_options[@]}; do
- 		local section_list=() options_list=()
+ 		local -a section_list=() options_list=()
 
 		section=$(cut -d';' -f1 <<< $para)
 		section_names=$(cut -d';' -f2 <<< $para)
@@ -6964,9 +7012,9 @@ x_yad_tab(){
 				fi
 			done
 			if [ ${#options_list[*]} -gt 0 ]; then
-				t=$n
-				tab_text=$"<b>${3} :</b> ${c}${2}${end} - Section \"$section\""
-				tab_names+=(--tab="${sf}${c}$(echo -e "${2}\n$section")${end}${end}")
+				local t=$n
+				local tab_text=$"<b>${3} :</b> ${c}${2}${end} - Section \"$section\""
+				local tab_names+=(--tab="${sf}${c}$(echo -e "${2}\n$section")${end}${end}")
 				## create tab.
 				$d_yad --plug=${1} --tabnum="$t" --list --checklist --editable --editable-cols=4 --text="$tab_text" \
 				--column=1 --column=2 --column=3 --column=4 --column=5 --no-headers \
@@ -6976,10 +7024,13 @@ x_yad_tab(){
 		fi
 	done
 }
-x_yad_block(){ # to set in local
+x_yad_block(){ # YAD
 	xorg_cfg=/etc/X11/xorg.conf.nvidia ### DEV to remove
-	local tab_names KEY n device_options options_orig device mn_cmd DEVICE_section_list
-	local xorg_tmp_dir server_sections device_sections xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
+	local -a device_options=() DEVICE_section_list=()
+	local tab_names KEY n device_options options_orig device mn_cmd
+	local xorg_tmp_dir server_sections device_sections
+	local w_text=''
+	local xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	nv_doc=$zen_docs/nv-tips
 	x_doc=$zen_docs/x-tips
 
@@ -7021,8 +7072,8 @@ x_yad_block(){ # to set in local
 		x_yad_tab "$KEY" "${dev_name[$e]}" "${vnd[$e]}" "${vnd_id[$e]}"
 		echo -en "*** ${grn}${tab_names[*]}${nc} ***"
 	done
-	cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
-	buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
+	local cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
+	local buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
 	{ mn_cmd=$( $d_yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="$WIN_TITLE" --window-icon=$img_zen_desktop \
 	"${tab_names[@]}" --center --borders=15 --text="$w_text" ${buttons[*]} \
 	|| if [ $? = 252 ]; then echo 200; else echo 100; fi && return ); }
@@ -7033,10 +7084,10 @@ x_yad_block(){ # to set in local
 	esac
 }
 # Here simple xorg editor and menu.
-edit_xorg_full_text(){
+edit_xorg_full_text(){ # TEXT
 	local cara_count edit_xorg log_txt log_brief
 	local IFS=$(echo -en "\n\b")
-	log_txt="${j}"$"Edit Xorg config file$""{end}\n"$"The <b>Save</b> button will overwrite the existing file."
+	log_txt="${j}${bf}"$"Edit raw Xorg config file""${end}${end}\n"${v}$"The <b>Save</b> button will overwrite the existing file.""${end}"
 	log_brief=$xorg_cfg
 	## count number of caracter before edit
 	cara_count=$(wc -c $log_brief| awk '{print $1}')
@@ -7055,10 +7106,11 @@ edit_xorg_full_text(){
 		1|2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
 }
-edit_xorg_conf(){ # HELP TXT
-	## check and alerte of xorg.conf presence.
-	local menu_xorg hlp_tip l_text=''
-	local -a list_array=()
+edit_xorg_conf(){ # LIST
+	local -a m_list=() cmd_list=()
+	local menu_cmd n m_cmd m_row m_name
+	local l_text=''
+
 	if [ ! -e /etc/X11/xorg.conf ]; then
 		warn_log=$"$(cat <<-WARN
 			${j}<b>Xorg config file missing</b>${end}
@@ -7069,32 +7121,27 @@ edit_xorg_conf(){ # HELP TXT
 		)"
 		die 2 ${LINENO} "$warn_log" "base_menu" 0
 	fi
-	if [ $hlp_txt = 1 ]; then
-		hlp_tip=$"$( cat <<-HLP
-		${sf}
-		- <b>Edit full Xorg (GUI)</b>
-			Edit all non sensitives Xorg option and sets in tabed GUI.
-		- <b>Edit full Xorg (text)</b>
-			Edit Xorg configuration file in a text editor.
-		- <b>Execute Xorg auto config</b>
-			Re-create Zenvidia Xorg configuration file creation automation.
-		${end}
-
-		HLP
-		)"
-	else
-		hlp_tip=''
-	fi
 	xorg_cfg=/etc/X11/xorg.conf.nvidia
+	local IFS=$'\n'
+	cmd_list=( $"Edit full Xorg (GUI)""|1" $"Edit full Xorg (text)""|2" $"Execute Xorg auto config""|3" )
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-	list_array=( TRUE 1 $"Edit full Xorg (GUI)" FALSE 2 $"Edit full Xorg (text)" FALSE 3 $"Execute Xorg auto config" )
-	l_text=$"${j}${bf}Edit Xorg Config File${end}${end}\n${v}Edit or manage Xorg config and options.${end}\n$hlp_tip"
+	# l_text="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n${v}"$"Edit or manage Xorg config and options.""${end}"
+	l_text+="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n"
+	l_text+="${v}"$"Edit or manage Xorg configuration and options.""${end}"
+	[ $task_opt -gt 0 ] && l_text+="${y}\n\n""Attention"": ""Admin privileges granted"".${end}" || true
+
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
-	local ok_lbl=$"Select"'!zen-ok' l_tail=0 w_head=0 col_name=''
-	local list_type='radiolist' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0 w_width='450' w_height='0'
-	local IFS=$(echo -en "\n\b")
-	menu_xorg=$(win_yad_list "${list_array[*]}" "")
-		case $menu_xorg in
+	local ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+	fi
+	local w_width='450' w_height='0'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
 			1) x_yad_block ;;
 			2) edit_xorg_full_text;;
 			3) xorg_conf; xorg_check; edit_xorg_conf ;;
@@ -7102,7 +7149,7 @@ edit_xorg_conf(){ # HELP TXT
 			100|*) [ $task_opt -gt 0 ] && exit 0 || ( [ $from_install = 0 ] && base_menu ) ;;
 		esac
 }
-edit_distro_conf(){
+edit_distro_conf(){ # WARN # TEXT
 	warn_log=$"$(cat <<-WRN
 	${j}<b>You are going to modify $(distro_version) configuration file</b>${end}
 
@@ -7140,7 +7187,7 @@ edit_distro_conf(){
 		1|2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
 }
-read_help(){
+read_help(){ # TEXT
 	local read_view log_brief='' log_txt=''
 	## set translation path.
 	local TEXTDOMAIN="zenvidia-help"
@@ -7152,7 +7199,7 @@ read_help(){
 	read_view=$(win_yad_text "$log_brief" 0 "")
 	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_manage; fi
 }
-read_about(){
+read_about(){ # TEXT
 	local read_view log_brief='' log_txt
 	## set translation path.
 	local TEXTDOMAIN="zenvidia-about"
@@ -7175,7 +7222,7 @@ read_about(){
 	read_view=$(win_yad_text "$log_brief" 0 "--image=zen-emblem")
 	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_manage; fi
 }
-read_nv_help(){
+read_nv_help(){ # LIST # TEXT
 	local index read_view chapter_index chapters_list help_tip=''
 	local IFS=$(echo -en "\n\b")
 		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
@@ -7215,7 +7262,7 @@ read_nv_help(){
 		200) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
 }
-read_changelog(){
+read_changelog(){ # LIST # TEXT
 	local -a entrylog_list=() entrylog=() entry_list=()
 	local entry_catch
 	local relist_title='' catch_title='' log_list='' txt_val=0 log_brief=''
@@ -7336,7 +7383,7 @@ read_changelog(){
 	# fi
 	re_list
 }
-read_zen_changelog(){
+read_zen_changelog(){ # LIST # TEXT
 	local -a entry_list=() entrylog_list=() col_name=()
 	local log_list='' log_brief='' log_from_local='' entrylog=''
 	local log_end log_list log_brief entry_list
@@ -7434,7 +7481,7 @@ nv_config(){
 		die 2 ${LINENO} $"Nvidia-setting not found.\nInstall it first !" "base_menu" 0
  	fi
 }
-zen_notif_setup(){ # HELP TXT
+zen_notif_setup(){ # WARN # LIST
 	local m_set c_set o_set c_set_cnf set_state c_set_list menu_notif yad_warn
 	local -a setup_list=() setup_option=()
 	setup_validation(){
@@ -7448,50 +7495,47 @@ zen_notif_setup(){ # HELP TXT
 			2) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
 		esac
 	}
-	setup_option=(
-	$"Check driver update only;driver check only;n"
-	$"Check zenvidia and driver update;driver and zenvidia check;z"
-	)
-	if [ $hlp_txt = 1 ]; then
-		hlp_tip=$"$( cat <<-HLP
-
-		<i>You can leave it as it is or choose between
-		one of the sets below</i>.
-		HLP
-		)"
-	else
-		hlp_tip=''
-	fi
-	st=1
-	for n_set in "${setup_option[@]}"; do
-		m_set=$(printf "$n_set"|cut -d';' -f1)
-		c_set=$(printf "$n_set"|cut -d';' -f2)
-		o_set=$(printf "$n_set"|cut -d';' -f3)
-		if [[ $o_set == $notif_desk_opt ]]; then
-			c_set_cnf=$c_set
-			set_state='true'
+	list_plugin(){
+		# set specific options addition in a local function.
+		option_set=$(cut -d'|' -f4 <<< "$l_cmd")
+		if [[ $option_set == $notif_desk_opt ]]; then
+			c_set_cnf=$(printf "$l_cmd"|cut -d'|' -f3)
+			m_list+=("true")
 		else
-			set_state='false'
+			m_list=("false")
 		fi
-		setup_list+=("$set_state")
-		setup_list+=("$st")
-		setup_list+=("$m_set")
-		st=$((st+1))
-	done
+		m_key=${m_cmd}
+		m_list+=("$m_row")
+		m_list+=("$m_cmd")
+	}
+	local menu_cmd n m_cmd m_row m_name hlp_tip=''
+	local -a m_list=() cmd_list=()
+
+	cmd_list=(
+	$"Check driver update only|1|driver check only|n"
+	$"Check zenvidia and driver update|2|driver and zenvidia check|z"
+	)
+	local IFS=$'\n'
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 1
+
 	local l_text=$"$(cat <<-MSG
 		${j}${bf}Notifications config${end}${end}
-
+		${v}<i>You can leave it as it is or choose between
+		one of the sets below</i>.${end}
 		Notification is currently set to: ${y}$c_set_cnf${end}
-
 	MSG
 	)"
-
-	local IFS=$(echo -en "\n\b")
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Previous"'!zen-back'
-	local ok_lbl='Select!zen-ok' l_tail=0; w_head=0 col_name=''
-	local list_type='radiolist' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0 w_width='400' w_height='0'
-	menu_notif=$( win_yad_list "${setup_list[*]}" "")
-	case $menu_notif in
+	local ok_lbl='Select!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	if [ $hlp_txt = 0 ]; then
+		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
+	else
+		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
+	fi
+	local w_width='400' w_height='300'
+	menu_cmd=( $( win_yad_list "${m_list[*]}" "") )
+	case $menu_cmd in
 		1) _set='-n'; _notif=$"driver check only" ;;
 		2) _set='-z'; _notif=$"driver and zenvidia check" ;;
 		200) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
@@ -7501,22 +7545,15 @@ zen_notif_setup(){ # HELP TXT
 }
 
 ## SUB MENU
-menu_install(){
+menu_install(){ # LIST
 	local menu_cmd n m_cmd hlp_tip='' # menu_inst
 	local -a m_list=() cmd_list=()
 
 	hlp_tip="\n${v}"$"Select here the install type""${end}"
 	local IFS=$'\n'
-	cmd_list=($"From a local package" $"From NVIDIA server")
+	cmd_list=($"From a local package""|1" $"From NVIDIA server""|2")
 	n=1
-	for m_cmd in "${cmd_list[@]}"; do
-		m_list+=("false")
-		m_list+=("$n")
-		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_install" "$m_cmd" "help-tips.xml")${end}")
-		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_install" "$m_cmd")${end}") # TEST
-		n=$[ $n+1 ]
-	done
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 	local l_text="${j}${bf}"$"Install new drivers"$"${end}\n${end}$hlp_tip"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
@@ -7526,8 +7563,6 @@ menu_install(){
 		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	ui_mod=1
 	force=''
@@ -7538,12 +7573,14 @@ menu_install(){
 		2) connection_check 1 "base_menu" && \
 			( local menu_msg="${vB}"$"NVIDIA package update from NVIDIA server"".${end}" from_install=1; net_version_selector )
 		;; # base_menu ;;
-		100|200|*) base_menu ;;
+		# 100|200|*) base_menu ;;
+		200) exit 1 ;;
+		100|*) base_menu ;;
 	esac
 }
-menu_update(){
+menu_update(){ # LIST
 	check_version
-	local menu_cmd m_cmd l_cmd hlp_tip='' # menu_upd
+	local menu_cmd m_cmd l_cmd hlp_tip=''
 	local -a m_list=() cmd_list=()
 	hlp_tip=$"\n${v}Select here the element to update or install${end}"
 	local IFS=$'\n'
@@ -7552,15 +7589,9 @@ menu_update(){
 	else
 		cmd_list=($"Driver upgrade""|1" $"Update driver only""|2" $"Update driver for an other kernel""|4" $"Update Cuda Toolkit""|5")
 	fi
-	for l_cmd in "${cmd_list[@]}"; do
-		m_cmd="$(cut -d'|' -f1 <<< "$l_cmd")"
-		m_list+=("false")
-		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
-		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd" "help-tips.xml")${end}")
-		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_update" "$m_cmd")${end}") # TEST
-	done
-	local l_text="${j}${bf}"$"Update Drivers or kernel modules$""${end}${end}$hlp_tip"
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
+
+	local l_text="${j}${bf}"$"Update Drivers or kernel modules""${end}${end}$hlp_tip"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
@@ -7569,25 +7600,27 @@ menu_update(){
 		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	local home=/home/$(def_user)
 	force=''
 	case $menu_cmd in
+		# 1)	connection_check 1 "base_menu" && \
+		# 	( local use_dkms=${use_dkms:-1} force='' legacy_drv=0 menu_msg="${v}"$"Check driver updates list""${end}"; check_for_newer; check_update; base_menu; )
+		# ;;
 		1)	connection_check 1 "base_menu" && \
-			( local use_dkms=${use_dkms:-1} force='' legacy_drv=0 menu_msg="${v}"$"Check driver updates list""${end}"; check_for_newer; check_update; base_menu; )
+			( local use_dkms=${use_dkms:-1} force='' legacy_drv=0 menu_msg="${v}"$"Check driver updates list""${end}"; check_update; base_menu; )
 		;;
 		2)	local use_dkms=${use_dkms:-1} upgrade_other=0 force='--force' menu_msg="${v}"$"Build module for current kernel""${end}"; upgrade_kernel ;;
 		3)	local upgrade_other=0 use_dkms=0 force='' menu_msg="${v}"$"Build module for current kernel (force)""${end}"; upgrade_kernel ;;
 		4)	local use_dkms=${use_dkms:-1} upgrade_other=1 force='' menu_msg="${mf}"$"Build module for the selected kernel (dkms)""${end}"; upgrade_new_kernel ;;
 		5) if [ $use_cuda = 1 ]; then connection_check 2 "base_menu" && ( update_cuda ); else unset_value "menu_update"; fi ;;
-		100|200|*) base_menu ;;
+		200) exit 1 ;;
+		100|*) base_menu ;;
 	esac
 }
-menu_modif(){
+menu_modif(){ # LIST
 	check_version
-	local menu_cmd n m_cmd l_cmd hlp_tip='' # menu_upd
+	local menu_cmd n m_cmd l_cmd hlp_tip=''
 	local -a m_list=() cmd_list=()
 	local hlp_tip=$"\n${v}Select here the element to modify or edit${end}"
 
@@ -7604,14 +7637,7 @@ menu_modif(){
 	cmd_list+=( $"Manage drivers packages""|8" )
 	cmd_list+=( $"Zenvidia notification config""|9" )
 
-	for l_cmd in "${cmd_list[@]}" ; do
-		m_cmd="$(cut -d'|' -f1 <<< "$l_cmd")"
-		m_list+=("false")
-		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
-		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd" "help-tips.xml")${end}")
-		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_modif" "$m_cmd")${end}") # TEST
-	done
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 	local l_text="${j}${bf}"$"Configuration and Tools""${end}${end}$hlp_tip"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
@@ -7621,8 +7647,6 @@ menu_modif(){
 		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
-	# local list_type='radiolist' l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "") || die 1 ${LINENO} "Menu listing failure" "" 1
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then win_open_switch; else  is_SU; base_menu; fi ;;
@@ -7636,24 +7660,18 @@ menu_modif(){
 		9) zen_notif_setup ;;
 		# 10)  ;;
 		# 11)  ;;
-		100|200|*) base_menu ;;
+		# 100|200|*) base_menu ;;
+		200) exit 1 ;;
+		100|*) base_menu ;;
 	esac
 }
-menu_manage(){
+menu_manage(){ # LIST
 	local menu_cmd m_cmd l_cmd hlp_tip w_height # menu_mng
 	local -a cmd_list=() m_list=()
 
 	local IFS=$'\n'
-	# cmd_list=( $"Documentation manual ($(version))" $"Change Logs ($(version))" $"Zenvidia Logs" $"Zenvidia Help and documentation" $"About Zenvidia" )
 	cmd_list=( $"Documentation manual ($(version))""|1" $"Change Logs ($(version))""|2" $"Zenvidia Logs""|3" $"Zenvidia Help and documentation""|4" $"About Zenvidia""|5" )
-	for l_cmd in ${cmd_list[@]}; do
-		m_cmd="$(cut -d'|' -f1 <<< "$l_cmd")"
-		m_list+=("false")
-		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
-		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "menu_manage" "$m_cmd" "help-tips.xml")${end}")
-		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "menu_manage" "$m_cmd")${end}") # TEST
-	done
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 	local l_text="${j}${bf}"$"Help and Documentation""${end}${end}"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
@@ -7663,8 +7681,6 @@ menu_manage(){
 		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
 	local w_width='500' w_height='300'
-	# local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
-	# local w_width='400' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	case $menu_cmd in
 		1) read_nv_help ;;
@@ -7672,12 +7688,14 @@ menu_manage(){
 		3) read_zen_changelog ;;
 		4) read_help ;;
 		5) read_about ;;
-		100|200|*) base_menu ;;
+		# 100|200|*) base_menu ;;
+		200) exit 1 ;;
+		100|*) base_menu ;;
 	esac
 }
 
 ### RESCUE COMMAND LINE ###
-dm_serv_restore(){
+dm_serv_restore(){ # CMDL # TODO
 	if [ $no_mod=0 ]; then
 		if [ "$dkms_ins" == "$cmd_ver" ]; then
 			for drv in {nvidia_uvm,nvidia_drm,nvidia_modeset,nvidia}; do
@@ -7687,22 +7705,22 @@ dm_serv_restore(){
 				fi
 			done
 			test $echec = 0 && ( echo -e "${nc}# ${yel}DM and $dkms_ins drivers re-init :${nc}" )
-			echo -e "${nc}# ${yel}Unload $dkms_ins drivers if any${nc}."; sleep 2
+			echo -e "${nc}# ${yel}Unload $dkms_ins drivers if any${nc}."; sleep ${read_timeout}
 			/sbin/modprobe -r -a ${drv_list[*]}
-			echo -e "${nc}# ${yel}Load $cmd_ver drivers${nc}."; sleep 2
+			echo -e "${nc}# ${yel}Load $cmd_ver drivers${nc}."; sleep ${read_timeout}
 			command -v restorecon &>/dev/null || /sbin/modprobe -a ${drv_list[*]}
-			echo -e "${nc}# ${yel}Exec $KERNEL modules reload."; sleep 2
+			echo -e "${nc}# ${yel}Exec $KERNEL modules reload."; sleep ${read_timeout}
 			exec_mod_load
-			echo -e "${nc}# ${yel}Exec $KERNEL modules init."; sleep 2
+			echo -e "${nc}# ${yel}Exec $KERNEL modules init."; sleep ${read_timeout}
 			exec_initramfs "\\r\${nc}#\${cya} (\$m sec.) Exec $KERNEL modules initramfs." "$m"
 			echo -e "\n${nc}# ${yel}Done.${nc}"
 			echo -e "# ${yel}License is $license ${nc}."
 			## catch console pid here
 			if [ "$(dm_serv)" != "" ]; then
 				test $($d_sys status $(dm_serv) | grep -c "disabled") -gt 0 && (
-				echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep 2; )
+				echo -e "${nc}# ${yel}Restore $(dm_serv) service to 'enable'${nc}."; sleep ${read_timeout}; )
 				$d_sys enable $(dm_serv).service
-				echo -e "${nc}# ${yel}Start $(dm_serv) service${nc}."; sleep 2
+				echo -e "${nc}# ${yel}Start $(dm_serv) service${nc}."; sleep ${read_timeout}
 				echo -e "${cya}(Press ENTER to start, CTRL-C to cancel)${nc}"; read
 				$d_sys start $(dm_serv).service
 			else
@@ -7720,15 +7738,15 @@ dm_serv_restore(){
 		echo -e "${nc}# ${red} WARNING${yel}: No modules found for $KERNEL, install $cmd_ver first with <rebuild> option.\nAbort.${nc}."
 	fi
 }
-restore_cmdline(){
+restore_cmdline(){ # CMDL # TODO
 	echec=0
 	echo -e "# ${yel}Restoring $cmd_ver driver for $KERNEL${nc} :\n"
-	sleep 2
+	sleep ${read_timeout}
 	## clean old libraries
 	if [ "$dkms_ins" != "" ]; then
 		if [[ $cmd_ver != $dkms_ins ]]; then
 			echo -e "# ${cya}Cleaning $dkms_ins old installation${nc} ..."
-			sleep 2
+			sleep ${read_timeout}
 			rm -f /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so.$dkms_ins
 			rm -f $install_dir/$master$ELF_32/libnvidia-*.so.$dkms_ins
 			rm -f $install_dir/$master$ELF_64/libnvidia-*.so.$dkms_ins
@@ -7736,7 +7754,7 @@ restore_cmdline(){
 			test -d /var/lib/dkms/open-nvidia/$dkms_ins && $p_dkms remove open-nvidia/$dkms_ins --all
 			rm -Rf /usr/src/nvidia-$dkms_ins
 			test -d /usr/src/open-nvidia-$dkms_ins && rm -Rf /usr/src/open-nvidia-$dkms_ins
-			sleep 2
+			sleep ${read_timeout}
 		fi
 	fi
 	restore_pcks_cmd
@@ -7758,18 +7776,18 @@ restore_cmdline(){
 	fi
 # 	test $vermagic && echo -e "# ${yel}Initramfs update${nc}." || \
 # 	( echo -e "# ${red}Test failed${nc}."; echec=1; rebuild_cmdline )
-	sleep 2
+	sleep ${read_timeout}
 	if [ $echec = 0 ]; then
 		echo -e "\n${nc}# ${yel}Done.${nc}"
 		echo -e "# ${yel}License is $license ${nc}.\n"
 		dm_serv_restore
 	fi
 }
-rebuild_cmdline(){
+rebuild_cmdline(){ # CMDL # TODO
 	if [ $echec = 1 ]; then
-		echo -e "# ${red}WARNING ${yel}: No $cmd_ver modules set in the backup${nc}.\n"; sleep 2
+		echo -e "# ${red}WARNING ${yel}: No $cmd_ver modules set in the backup${nc}.\n"; sleep ${read_timeout}
 	fi
-	echo -e "# ${yel}Build & Install $cmd_ver DKMS $KERNEL modules ($license) :${cya}"; sleep 2
+	echo -e "# ${yel}Build & Install $cmd_ver DKMS $KERNEL modules ($license) :${cya}"; sleep ${read_timeout}
 	if [ $($p_dkms status -m $module/$cmd_ver -k $KERNEL| grep -cv "added") -gt 0 ]; then
 		$p_dkms remove -m "$module/$cmd_ver" -k $KERNEL
 		$p_dkms add -m "$module/$cmd_ver" -k $KERNEL
@@ -7781,16 +7799,16 @@ rebuild_cmdline(){
 	vermagic=$(/sbin/modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
 	license=$(/sbin/modinfo -F license nvidia -k $KERNEL)
 	if [[ "$vermagic" =~ "$(uname -r)" ]]; then
-		echo -e "\n${nc}# ${yel}Initramfs update and other routines.${cya}"; sleep 2
+		echo -e "\n${nc}# ${yel}Initramfs update and other routines.${cya}"; sleep ${read_timeout}
 		dm_serv_restore
 	else
 		echo -e "\n# ${red}Failed${nc}."
 	fi
 }
-rescue_cmdline(){
+rescue_cmdline(){ # CMDL # TODO
 	## modinfo will display error if modules is not found, just add comments.
 	clear
-	echo -e "# ${yel}Compling $module $cmd_ver sources${nc} :\n" ; sleep 2
+	echo -e "# ${yel}Compling $module $cmd_ver sources${nc} :\n" ; sleep ${read_timeout}
 	kernel_module_src=/usr/src/$module-$cmd_ver
 	cd $kernel_module_src; make -j12
 	## check again
@@ -7801,7 +7819,7 @@ rescue_cmdline(){
 			cp -f *.ko $libmod/
 			## compress modules.
 			clear
-			echo -e "# ${cya}- Compressing modules if needed${nc}."; sleep 2
+			echo -e "# ${cya}- Compressing modules if needed${nc}."; sleep ${read_timeout}
 # 			is_RT=$(grep -ic "CONFIG_PREEMPT_RT=y" /boot/config-$KERNEL)
 			[ $(is_RT) = 0 ]|| xz -T12 $libmod/*.ko
 			echo -e "# ${cya}- Depmod $cmd_ver modules ..."
@@ -7826,16 +7844,16 @@ is_SU(){
 	)"
 	die 2 ${LINENO} "$warn_log" 1 0
 }
-
 ### MAIN MENUS ###
-base_menu(){
+base_menu(){ # LIST
 	right_check(){
-		if [ $UID = 0 ]; then echo "superadmin"; else echo $"$USER (write privilege not allowed)"; fi
+		if [ $UID = 0 ]; then echo "Administrator"; else echo $"$USER (write privilege not allowed)"; fi
 	}
-	local menu_cmd txt_render defi cara set more install_state
-	# local -a sys_infos=() menu_list=()
-	local -a sys_infos=() cmd_list=() m_list=()
-	local spaces=0 n=0 l_text=''
+	# local menu_cmd txt_render  install_state
+	# local defi cara set more offi offi_ver beta beta_ver
+	local menu_cmd install_state
+	local -a yad_table_arrays=() txt_render=() cmd_list=() m_list=()
+	local spaces=0 l_text='' from_install=0 n=0
 	hlp_tip_txt=$"$( cat <<-HLP
 		${v}Help tips text is currently set${end}
 		${sf}You can unset it at any moment in:
@@ -7845,21 +7863,18 @@ base_menu(){
 	)"
 	[ $hlp_txt = 0 ] && hlp_wrn="\r" || hlp_wrn="$hlp_tip_txt"
 	# [ $hlp_txt = 1 ] && hlp_wrn="\r" || hlp_wrn="$hlp_tip_txt" # TEST
-
-	local from_install=0 # reset var in case of script loop.
 	local IFS=$'\n'
-	# [ $from_install -gt 0 ] && local from_install=0 # reinit var in case of script loop.
 	nv_installer_check
-	sys_infos+=($"Distribution"" : #|$(distro_name)")
-	sys_infos+=($"Processor type"" : #|$ARCH")
-	until [ $n -eq ${#dev_n[*]} ]; do
-		sys_infos+=($"Card $((${dev_n[$n]}+1)) : #|${dev[$n]}")
-		n=$((n+1))
+	yad_table_list $"Distribution :" "$(distro_name)"
+	yad_table_list "Processor type :" "$ARCH"
+	# until [ $n -eq ${#dev_n[*]} ]; do
+	for ((i=1; i<=${#dev_n[*]}; i++)); do
+		yad_table_list $"Card"" $((${dev_n[$n]}+1)) :" "${dev[$n]}"
+		# n=$((n+1))
 	done
-	sys_infos+=($"Driver version installed"" : #|$(drv_installed)")
-	sys_infos+=($"Kernel version"" : #|$KERNEL")
-	sys_infos+=($"GCC version"" : #|$GCC")
-	# sys_infos+=($"NVIDIA binary version"" : #|$NV_bin_ver")
+	yad_table_list $"Driver version installed :" "$LAST_IN" # "$(drv_installed)"
+	yad_table_list $"Kernel version :" "$(uname -r)"
+	yad_table_list $"GCC version :" "$GCC"
 	if [ $open_drv = 1 ]; then
 		install_state=$"installed"
 		if [ $use_open = 1 ]; then
@@ -7867,29 +7882,17 @@ base_menu(){
 		else
 			open_used=$", closed source used"
 		fi
-		sys_infos+=($"Open Source modules"" : #|${install_state}${open_used}" )
-		sys_infos+=($"Modules license"" : #|$(version_license)")
+		yad_table_list $"Open Source modules :" "${install_state}${open_used}"
+		yad_table_list $"Modules license :" "$(version_license)"
 	fi
 	if [[ $(cuda_version) != FALSE ]]; then
-		sys_infos+=($"Cuda version"" : #|$(cuda_version)")
+		yad_table_list $"Cuda version :" "$(cuda_version)"
 	fi
-	sys_infos+=($"Rights"" : #|$(right_check)")
+	yad_table_list $"Rights :" "$(right_check)"
+	yad_table_list "*#" ""
+	yad_table_list $"Last official:${LAST_OFFI}" $"Last Beta:${LAST_BETA}"
+	yad_table "${FUNCNAME}"
 
-	for sys_line in ${sys_infos[@]}; do
-		defi=$(cut -d'|' -f1 <<< $sys_line)
-		cara=${defi%%#*}
-		(( ${#cara} > spaces )) && spaces=${#cara}
-	done
-	for sys_line in ${sys_infos[@]}; do
-		defi=$(cut -d'#' -f1 <<< $sys_line)
-		cara=${defi%%#*}
-		tab=$((spaces - ${#cara}))
-		set=$(cut -d'|' -f2 <<< $sys_line)
-		[ ${#cara} -lt 9 ] && more='\t\t' || more='\t'
-		[ ${tab} -eq 5 ] && more=''
-		txt_render+=( $(printf "\    ${vB}%s${end}%*s${more}${j}%s${end}\n" "$defi" "$tab" "" "$set") )
-	done
-	## ATTENTION check
 	l_text=$"$( cat <<-MSG
 		${r}<big><b>$(nv_pci_device)</b></big>${end}
 		${y}Close and Open Source drivers management${end}
@@ -7902,14 +7905,8 @@ base_menu(){
 	)"
 	cmd_list=( $"Install drivers""|1" $"Update drivers or modules""|2" $"Configuration and Tools""|3" $"Help and Documentation""|4" )
 	echo -e "KERNEL_SOURCES => $(kernel_src)"
-	for l_cmd in ${cmd_list[@]}; do
-		m_cmd="$(cut -d'|' -f1 <<< "$l_cmd")"
-		m_list+=("false")
-		m_list+=("$(cut -d'|' -f2 <<< "$l_cmd")")
-		m_list+=("$m_cmd")
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd" "help-tips.xml")${end}")
-		# [ $hlp_txt = 0 ] && m_list+=("${y}$(xq_tips "base_menu" "$m_cmd")${end}") # TEST
-	done
+	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
+
 	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
@@ -7917,13 +7914,7 @@ base_menu(){
 	else
 		local columns=4 sel_col=2 hid_col=2,4 col_tip=4 edit_col=0 sep=''
 	fi
-	# local l_tail=0 w_head=0 col_name='' columns=4 sel_col=2 sep='' hid_col=2,4 edit_col=0 col_tip=4
 	local w_width='580' w_height='300'
-
-	# local cancel_lbl=$"Exit"'!zen-stop' ok_lbl=$"Select"'!zen-ok'
-	# local list_type='radiolist' columns=3 sel_col=2 sep='' hid_col=2 edit_col=0 col_tip=0
-	# local w_width='580' w_height='300' l_tail=0 w_head=0 col_name=''
-	# menu_list=( false 1 $"Install drivers" false 2 $"Update drivers or modules" false 3 $"Configuration and Tools" false 4 $"Help and Documentation" )
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
 	[ $menu_cmd -ge 100 ] || tmp_dir
 	case $menu_cmd in
@@ -8049,6 +8040,10 @@ set_graphical_env(){
 		)"
 		die 2 ${LINENO} "$warn_log" 0 0
 	fi
+	# capture remote Nvidia data
+	drivers_scrap 0
+	# if set, capture Cuda data.
+	[ ${use_cuda} = 1 ] && drivers_scrap 2 || true
 	# use_dkms=0 # TEST
 # 	# test initramfs distro's tool.
 # 	initramfs_warn
@@ -8173,7 +8168,7 @@ umask 022
 # reset script root vars
 declare dev_n dev slot slot_id vnd vnd_id dev_name
 declare -a deplist=() dep_text=() parent=() command_to_trap=()
-declare from_install='' NAME=''
+declare from_install='' NAME='' #run_pkg='' #LAST_PACK=''
 
 ## system bins path control and depencies list building if any.
 dep_exec_check
@@ -8319,10 +8314,10 @@ else
 					task_opt=0
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
-				# -t) task_opt=0 ; from_install=1; update_cuda ;; # function direct test option. DANGEROUS
-				# -t) task_opt=1 ; read_zen_changelog ;;
-				# -t) task_opt=1 ; edit_script_conf ;;
-				# -t) task_opt=1 ; read_zen_changelog ;; # function direct test option. DANGEROUS
+				# -t) task_opt=0 ; check_for_older ;;
+				# -t) task_opt=1 ; zen_notif_setup ;;
+				# -t) task_opt=1 ; menu_update ;;
+				# -t) task_opt=1 ; win_open_switch ;;
 				-*) die 1 ${LINENO} "Option pipe failed.\nOption "${1}" is not a valid option." "" 0 ;;
 			esac
 			shift

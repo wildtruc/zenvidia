@@ -498,3 +498,21 @@
  - A few other minor local fixes/changes in functions.
  - End of the new messages display migration (supposedly).
  - Translatation still pending.
+* 2026-05-24 - v2.6.00
+ - Switch remote controle content to xq queries that increase greatly the exchanges speed.
+ - Switch wget to curl because it is mainly used by xq for the queries and there's no needs to have
+   both programs in the script.
+ - Rework for tables creation and display because of xq huge speed up.
+ - Rework of Cuda tools now based also on xq.
+ - Rework of zen_notify and zen_task_menu for the same reason as above.
+ - Because of xq, most of the temporarly files for remote exchanges are depracated. They will be
+   cleared in next releases.
+ - Versioning is pass to 2.6 because this a major change in the script.
+ - FIX: After switched to Fedora 44, it appears that polkit pkexec for admin privileges wasn't react
+   like in Fedora 42 and then wasn't open windows display as expected. There was needed to give more
+   details to polkit action config to tell it what it was supposed to do.
+   During exploration, it appears that it was possible to execute wihtout asking for password if
+   user was member of admins (wheel group).
+   Consequences: the script doesn't ask for a password anymore.
+ - Command line tools are still pending.
+ - Next step is to rewrite command line tools and translation.

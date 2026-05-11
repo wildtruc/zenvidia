@@ -20,11 +20,13 @@ Update will be made only on my own bugs discovery or from fatal error send by us
  - from local package.
  - from a dowloaded package.
  - from NVIDIA server.
-
+ - Cuda install (if enabled)
+ 
 ### Updates
  - driver updates check and install.
  - Modules update.
  - New kernel update.
+ - Cuda update
 
 ### Configuration & Tools
  - Open driver switch tool (available when open_drv set to 1)
@@ -76,13 +78,18 @@ As **superuser** or with **sudo** in prefix :
   # to update (this including git update command) :
   INSTALL.sh update
 ```
-Then restart the Destop manager to get the **task bar menu**.
+Then restart the Desktop manager to get the **task bar menu**.
 Or : (outside restart)
 Through terminal command line.
 ```sh
 	zen_notify -n # (no priviledge required) Will start the notifier that will start the tray task menu.
 	zen_start # (with polkit administrator priviledge) Will start zenvidia only.
 ```
+### Default start
+All main features are available from system tray icon menu.
+If you need to start through a terminal ```zen_start``` command is the only needed.
+The programm will start with default administrator privileges granted by polkit rules.
+
 ### Zen Notify
 Zenvidia notify is taskbar notifier checking at user session boot time for driver updates.
 It is installed at the same time as Zenvidia.
@@ -101,13 +108,13 @@ Most of the main functions are available from the desktop task bar menu entries.
 With **end user interface menu > system settings > others menu** (it could differ by distribution) or task bar menu.
 
 ### Command line
-Command line tool is only for rescue purposes, and need to be launch with Desktop manager disable. Desktop manager have to be shutdown with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
+Command line tool is only for rescue purposes, and need to be launch with Desktop manager disable. Desktop manager have to be disable with `systemcl disable [desktop-manager]` command (it doesn't really care in case of real rescue, DM is crashed anyway).
 
 ```zenvidia [command] [version]```
 
 command are : _restore, rebuild, rescue, reinit_.
 
-**version** is the desired driver version _(displayed with zenvidia command alone with X server off)_.
+**version** is the desired driver version _(displayed with zenvidia command alone and no options with X server off)_.
 
 Note : the Grub starting menu option `nvidia-drm.modeset=1` activate the plymouth splash screen on some older distribution or Nvidia versions prevent switching to TTY console with Ctrl+Alt+F(x).
 If set, it is mandatory to change this option to `0` and have a good access to TTY. In case of a real crash, it doesn't really care, but be aware that you will get acces to **one** TTY only.

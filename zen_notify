@@ -25,7 +25,8 @@ local_nvdir=/home/$USER/.zenvidia
 nvdir=/usr/local/share/zenvidia
 script_conf=$nvdir/script.conf
 basic_conf=$local_nvdir/basic.conf
-nvtmp=$local_nvdir/notify
+# nvtmp=$local_nvdir/notify
+zen_docs=/usr/local/share/doc
 # deficon=swiss_knife
 deficon=zen-emblem
 ## check if zen_taskbar_menu exit
@@ -42,34 +43,23 @@ export TEXTDOMAINDIR=$nvdir/locale
 ## to uncomment only in case of session autostart notif issue.
 # sleep 15
 
-[ -d $nvtmp ] || mkdir -p $nvtmp
-notif_temp=$(mktemp --tmpdir -d zen_notif-XXXX)
 ARCH=$HOSTTYPE
-drv_list=$nvtmp/drvlist
-last_update=$nvtmp/last_update
-last_beta=$nvtmp/last_beta
 local_src=$local_nvdir/src
 [ -d $local_src ] || mkdir -p $local_src
-## reset all notif display options
-driver_up=0
-zen_up=0
-msg_suffix=$"update"
-# ping -c2 www.nvidia.com &>/dev/null
-# cnx=$?
 ifs=$IFS
 ## capture for exit status
-trap "IFS=\$ifs rm -Rf $notif_temp" EXIT
+trap "IFS=\$ifs" EXIT
 
 git_hub_api="https://api.github.com/repos/wildtruc/zenvidia/commits?sha=master&per_page=1"
 git_lab_api="https://gitlab.com/api/v4/projects/56148921/repository/commits?sha=master&per_page=1"
 ## gitlhub check (0), gitlab check (1)
-git_master=0
-declare -a _driver_notif=()
-declare driver_up=0 zen_up=0
+# git_master=0
+declare -a driver_notif=()
+declare driver_up=0 zen_up=0 git_master=0 msg_suffix=$"update"
 
 connected(){
 	local site=${site:-$nvidia_base_url}
-	ping -c2 $site &>/dev/null; echo "$?"
+	ping -c2 ${site} &>/dev/null && echo 0 || echo "$?"
 }
 version_array(){
 	# synt : version_array [object]
@@ -84,6 +74,15 @@ version_array(){
 		echo "${part[*]}$suffix"
 	return
 }
+xq_x_query(){
+	local cmd="${1}" query="${2}" regex="${3}" reg_type="${4}"
+	shift
+	local -a cmd_line=() reg_cmd=()
+	[ ${reg_type} = 1 ] && reg_cmd=( '|' 'grep' '-Ec' "${regex}") || true
+	[ ${reg_type} = 2 ] && reg_cmd=( '|' 'tr' "'\n'" "' '") || true
+	cmd_line=( "${cmd}" '|' 'xq' '-x' "${query}" "${reg_cmd[*]}" )
+	eval ${cmd_line[*]}
+}
 git_local_version(){ [ -f ${local_nvdir}/zen_version ] && cat ${local_nvdir}/zen_version || cat ${nvdir}/zen_version; }
 git_log_message(){
 	git_master=0
@@ -97,59 +96,78 @@ driver_ctrl(){
 	## reset all value.
 	# unset ver_array last_array DRV_LIST
 	local last_array=() DRV_LIST=() # ver_array=()
-	local drv_diff=0 greater=0 rem_diff=0
+	local drv_diff=0 greater=0 rem_diff=0 version=0
 	local prefix='' suffix='' msg_suffix=''
-	local LAST_DRV=0 LAST_BETA=0 version=0
-	drv_temp=$(mktemp $notif_temp/drv_notif-XXXX)
+	local LAST_OFFI=0 LAST_BETA=0 LAST_DRV=''
+
 	if [ $(connected) -eq 0 ]; then
-		## default driver caracters max count.
-		nb=9
-		## get all driver list.
-		wget -q -O $drv_temp https://$nvidia_ftp-$ARCH/
-		## get latest.txt file.
-		wget -q -O $last_update https://$nvidia_ftp-$ARCH/latest.txt
-		## latest.txt fiel dfine current official version.
-		## end of all driver list define the beta version if different from diiferent of official.
-		cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p" > $drv_list
-		cat $drv_temp| sed -En "s/^.*href.*'(.*)\/'>.*$/\1/p"| tail -n1 > $last_beta
-		LAST_DRV=$(cat $last_update | awk '{ print $1 }')
-		LAST_BETA=$(cat $last_beta)
+		remote_page=https://${nvidia_ftp}-${ARCH}
+		scrap_cmd=("curl" "-s" "$remote_page")
+		page='latest.txt'
+		index='index.html'
+		LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
+		LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/\1/;$p' || echo "none" )
+		# LAST_BETA="565.77" # TEST
+		[ -f $local_nvdir/taskbar_message ] && echo '' > $local_nvdir/taskbar_message
+
 		if [ -s $nvdir/version.txt ]; then
 			version=$(cat $nvdir/version.txt || true)
 		else
 			version=$(modinfo -F version nvidia || true)
 		fi
-		if (( $(version_array "$LAST_BETA") != $(version_array "$LAST_DRV") )); then
+		if (( $(version_array "$LAST_BETA") != $(version_array "$LAST_OFFI") )); then
 			rem_diff=1 ; last_array=( $(version_array "$LAST_BETA") )
+			LAST_DRV=$LAST_BETA
 		else
-			rem_diff=0 ; last_array=( $(version_array "$LAST_DRV") )
+			rem_diff=0 ; last_array=( $(version_array "$LAST_OFFI") )
+			LAST_DRV=$LAST_OFFI
 		fi
 		for last in ${last_array[@]}; do
 			(( ${last} == $(version_array "$version") )) || drv_diff=1
 			(( ${last} > $(version_array "$version") )) && greater=1
 		done
 		if [ $rem_diff -eq 1 ]; then
-			DRV_LIST=( $"$LAST_DRV, official driver" $"$LAST_BETA, beta driver" )
+			DRV_LIST=( $"$LAST_OFFI, official driver" $"$LAST_BETA, beta driver" )
 		else
-			DRV_LIST=( $"$LAST_DRV, official drivers" )
+			DRV_LIST=( $"$LAST_OFFI, official drivers" )
 		fi
 		if [ ${#DRV_LIST[@]} -gt 0 ]; then
-			local sol eol
 			local IFS=$'\n'
 			cnt=0
 			for drv_line in ${DRV_LIST[@]}; do
 				driver=$(printf "$drv_line"|cut -d',' -f1)
 				release=$(printf "$drv_line"|cut -d',' -f2)
+				local sol='' eol=''
 				if [ $drv_diff -gt 0 ]; then
-					if [ $cnt -eq 0 ]; then sol=''; eol=''; else sol='\n'; eol=''; fi
-					if [[ $(grep -E -c "$driver" $drv_list) -gt 0 ]]; then
-						_driver_notif+=( $"$sol<b>$driver</b> $release.$eol" )
-					else
-						_driver_notif+=( $"$sol<b>$driver</b> $release update.\n<i>(not dowloadable yet)</i>$eol" )
-					fi
+					(( ${cnt} > 0 )) && sol='\n' || true
+					driver_notif+=( $"$sol<b>$driver</b> $release.$eol" )
 					cnt=$((cnt+1))
 				fi
 			done
+			# catch new driver features
+			if [[ -n $LAST_DRV ]]; then
+				local -a local_readme=() remote_readme=() local_chapter=() remote_chapter=()
+				local local_count rem_count chapter_diff chapter_name
+				local_readme=( "cat" "${zen_docs}/NVIDIA_GLX-1.0/html/index.html" )
+				remote_readme=( "curl" "-s" "https://${nvidia_ftp}-$ARCH/${LAST_DRV}/README/index.html" )
+				local_count=$(xq_x_query "${local_readme[*]}" '//dt/span[@class=\"chapter\"]/a' "^[0-9]+\." 1)
+				rem_count=$(xq_x_query "${remote_readme[*]}" '//dt/span[@class=\"chapter\"]/a' "^[0-9]+\." 1)
+				if (( ${local_count} != ${rem_count} )); then
+					echo "${local_count} differ"
+					local_chapter=( $(xq_x_query "${local_readme[*]}" '//dt/span[@class=\"chapter\"]/a/attribute::*' '' 0 ) )
+					remote_chapter=( $(xq_x_query "${remote_readme[*]}" '//dt/span[@class=\"chapter\"]/a/attribute::*' '' 0 ) )
+					chapter_diff=$( echo ${local_chapter[*]} ${remote_chapter[*]} | tr ' ' '\n' | sort | uniq -u)
+					chapter_name="$( xq_x_query "${remote_readme[*]}" '//dt/span[@class=\"chapter\"]/a[@href=\"'${chapter_diff}'\"]' '' 2)"
+					# chapter_name="$(xq_x_query "${local_readme[*]}" '//dt/span[@class=\"chapter\"]/a[@href=\"'${chapter_diff}'\"]' '' 2)" # TEST
+					driver_notif+=( "\n\n<b>"$"Driver major change"":</b>" )
+					driver_notif+=( "\n"$"New feature added to Nvidia Readme." )
+					driver_notif+=( "\n"$"Open"" <b>"$"Next ${LAST_DRV} major change""</b> "$"from system tray menu" )
+					driver_notif+=( "\n"$"and see Chapter"": <b>${chapter_name}</b>"$"for more informations"".\n" )
+					echo -e "next_driver=\"${LAST_DRV}\"" > $local_nvdir/taskbar_message
+					echo -e "next_change=\"https://${nvidia_ftp}-$ARCH/${LAST_DRV}/README/${chapter_diff}\"" >> $local_nvdir/taskbar_message
+					# echo -e "next_change=\"https://${nvidia_ftp}-$ARCH/${LAST_BETA}/README/${chapter_diff}\"" >> $local_nvdir/taskbar_message # TEST
+				fi
+			fi
 			if [[ $greater -gt 0 || ! "$(echo -e "${DRV_LIST[*]}")" =~ $(modinfo -F version nvidia) ]]; then
 				notif_msg+=$"Nvidia driver "
 				driver_up=1
@@ -157,7 +175,7 @@ driver_ctrl(){
 		fi
 	else
 		notif_msg=$"Nvidia driver notification"
-		_driver_notif+=$"<b>WARNING</b> : No Signal"
+		driver_notif+=$"<b>WARNING</b> : No Signal"
 		msg_suffix=''
 	fi
 }
@@ -189,7 +207,7 @@ source_ctrl(){
 				echo -e "* $git_log_tee" | tee -a $local_src/zen_git.log
 			fi
 			notif_msg+="$notif_txt "
-			_driver_notif+=($"${line}zenvidia git repo update.""\n""$git_remote_date $git_remote_version")
+			driver_notif+=($"${line}zenvidia git repo update.""\n""$git_remote_date $git_remote_version")
 			zen_up=1
 		else
 			zen_up=0
@@ -199,12 +217,12 @@ source_ctrl(){
 notifying(){
 	# only display notif if driver_ctrl or source_ctrl are true.
 	test -f $local_nvdir/taskbar_message || touch $local_nvdir/taskbar_message
-	echo -e "notif=0" > $local_nvdir/taskbar_message
-	# if [[ $(connected) -eq 0 ]]&&[[ $driver_up -gt 0 || $zen_up -gt 0 ]]; then
+	notif_set=0
 	if (( $(connected) == 0 ))&&(( ${driver_up} > 0 || ${zen_up} > 0 )); then
-		notify-send -t 5000 -u low -i "$deficon" $"${notif_msg[*]}$msg_suffix" "$(echo "${_driver_notif[@]}")"
-		echo -e "notif=1" > $local_nvdir/taskbar_message
-		echo -e "notif_text=\"${_driver_notif[@]}\"" >> $local_nvdir/taskbar_message
+		notif_set=1
+		notify-send -t 5000 -u low -i "$deficon" $"${notif_msg[*]}$msg_suffix" "$(echo "${driver_notif[@]}")"
+		echo -e "notif=${notif_set}" | tee -a $local_nvdir/taskbar_message
+		echo -e "notif_text=\"${driver_notif[@]}\"" | tee -a $local_nvdir/taskbar_message
 	fi
 	## launch zen_taskbar.
 	if [ -e $zen_bar ]; then
@@ -217,7 +235,6 @@ usage_help(){
 	printf "\t -n : check nvidia only.\n"
 	printf "\t -h : this help.\n"
 }
-# icon_set=$deficon
 test $# -gt 0 || usage_help
 while [ $# -gt 0 ]
 	getopts "z n h" OPT; do
