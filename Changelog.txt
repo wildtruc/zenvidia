@@ -490,3 +490,11 @@
    is fixed.
  - Some other minor issues could appears again (joy of code rewrite). I'm alas far to be omniscient.
  - temp_ramfs had been completly remove from the script and configuration file.
+* 2026-05-11 - v2.5.37
+ - Added a list builder for Yad list windows (menu) for better performances.
+ - help tips added to prime setups.
+ - Corrected the set_su, su_cmd, distro_name functions to fit new code behaviour in case of
+   variables customizations in scrip.conf.
+ - A few other minor local fixes/changes in functions.
+ - End of the new messages display migration (supposedly).
+ - Translatation still pending.

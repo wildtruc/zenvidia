@@ -180,7 +180,7 @@
 		</tip>
 	</edit_script_conf>
 	</locale>
-	<locale code="pr_FR">
+	<locale code="fr_FR">
 	<edit_script_conf>
 		<tip key="open_drv">
 			<p>Si activé, zenvidia activera la gestion du pilote Open de Nvidia.</p>

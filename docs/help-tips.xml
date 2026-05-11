@@ -2,22 +2,6 @@
 <tips>
 <!--   <menus> -->
 	<locale code="en_EN">
-		<!--<menu>
-			<tip key="">
-				<p>-</p>
-				<p>-</p>
-			</tip>
-			<tip key="">
-				<p>-</p>
-				<p>-</p>
-			</tip>
-			<tip key="">
-				<p>-</p>
-				<p>-</p>
-			</tip>
-			<tip key=""><p>-</p></tip>
-			<tip key=""><p>-</p></tip>
-		</menu>-->
 		<base_menu>
 			<tip key="Install drivers">
 				<p>This is the driver installation part.</p>
@@ -127,7 +111,91 @@
 			<tip key="Zenvidia Help and documentation"><p>Read Zenvidia documentation file</p></tip>
 			<tip key="About Zenvidia"><p>Read current Zenvidia README file</p></tip>
 		</menu_manage>
-
+		<manage_pcks>
+			<tip key="Remove downloaded packages">
+				<p>Manage downloaded packages in Zenvidia directory.</p>
+			</tip>
+			<tip key="Backup tools">
+				<p>Make a drivers and libraries backup of the current Nvidia version.</p>
+			</tip>
+			<tip key="Restore tool">
+				<p>Make a restoration of previously backed up drivers installation.</p>
+			</tip>
+			<tip key="Remove Nvidia and restore to default">
+				<p>Remove completly Nvidia Drivers installation and restore to default Nouveau drivers.</p>
+			</tip>
+		</manage_pcks>
+		<net_version_selector>
+			<tip key="Looking for latest version">
+				<p>Look up for the last available version from Nvidia repos site.</p>
+				<p>Will show either official or beta release.</p>
+			</tip>
+			<tip key="Looking for older version">
+				<p>Look up for a previous release available in Nvidia repos site.</p>
+				<p>Note that the listing take a little time, we're talking about the whole drivers list.</p>
+			</tip>
+		</net_version_selector>
+		<edit_xorg_conf>
+			<tip key="Edit full Xorg (GUI)">
+				<p>Edit all non sensitives Xorg option and sets in tabed GUI.</p>
+				<p>Tips will popup on each row if available.</p>
+			</tip>
+			<tip key="Edit full Xorg (text)">
+				<p>Edit raw Xorg configuration file in a text editor.</p>
+			</tip>
+			<tip key="Execute Xorg auto config">
+				<p>Re-create Zenvidia Xorg configuration file creation automation.</p>
+				<p>This is the same as executed during post-install procedure.</p>
+				<p>It's a replay in case a lost xorg.conf files.</p>
+			</tip>
+		</edit_xorg_conf>
+		<zen_notif_setup>
+			<tip key="Check driver update only">
+				<p>This set will only check driver updates at session start.</p>
+				<p>Zenvidia updates will be ignored.</p>
+			</tip>
+			<tip key="Check zenvidia and driver update">
+				<p>This set will check both Nvidia driver and Zenvidia updates at session start.</p>
+			</tip>
+		</zen_notif_setup>
+		<prime_setup_window>
+			<tip key="opti_set">
+				<p>If set, GPU renderer choice will be set to PRIME by default.</p>
+				<p>Only Nvidia dGPU will be used.</p>
+				<p>You can changed this set in : > Configuration and Tools > Edit Zenvidia config</p>
+			</tip>
+			<tip key="offload_set">
+				<p>If set, this window wont be displayed at the next installation or update cycle.</p>
+				<p>All applicable defined sets will be recorded in configuration file.</p>
+				<p>You can changed them set in : > Configuration and Tools > Edit Zenvidia config</p>
+			</tip>
+		</prime_setup_window>
+		<set_su>
+			<tip key="distribution_name">
+			<p>Enter the name of the distribution if not displayed.</p>
+			<p>This option is not esdsential. It only for diplaying in main menu window.</p>
+			</tip>
+			<tip key="su_commnd_line">
+				<p>Select a commande line in the list.</p>
+				<p>If your environment SU command prompt is not in scroll list, enter one here.</p>
+				<p>Command with full options is mandatory.</p>
+				<p>If you're afraid to make a mistake, think to ask your distribution's community first.</p>
+			</tip>
+		</model_fnc>
+		<model_fnc>
+			<tip key="first_row">
+				<p>1.</p>
+				<p>1.</p>
+			</tip>
+			<tip key="second_row">
+				<p>2.</p>
+			<p>2.</p>
+			</tip>
+			<tip key="third_row">
+				<p>3-</p>
+			<p>3s-</p>
+			</tip>
+		</set_su>
 	</locale>
 <!-- Translation "fr_FR" last date 24/4/26 -->
 	<locale code="fr_FR">
@@ -163,7 +231,7 @@
 		</menu_install>
 		<menu_update>
 			<tip key="Mise à niveau du pilote">
-			<p>Vérifie les mises à jour pilote.</p>
+			<p>Vérifie les mises à jour du pilote.</p>
 			<p>Vous pouvez choisir durant le processus de télécharger seulement ou d'installer.</p>
 			<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez coup à:</p>
 			<p>» Menu principal » Installer des pilotes.</p>
@@ -196,17 +264,6 @@
 			<p>Note: puisque Cuda prend énormément de place, le paque ne sera pas conservé après coup.</p>
 			</tip>
 		</menu_update>
-		<menu_manage>
-			<tip key="Manuel de documentation">
-				<p>Lire le fichier documentation intégrale courant du pilote Nvidia</p>
-			</tip>
-			<tip key="Journal des modifications">
-				<p>Lire le journal courant des modifications du pilote Nvidia</p>
-			</tip>
-			<tip key="Journal des modifications Zenvidia"><p>Lire le journal des modifications Zenvidia</p></tip>
-			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
-			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
-		</menu_manage>
 		<menu_modif>
 			<tip key="Éditer le fichier de configuration Xorg">
 				<p>Éditer le fichier de configuration courant xorg dans /etc/X11.</p>
@@ -246,6 +303,18 @@
 				<p>Pris en charge de PRIME et PRIME render offload uniquement.</p>
 			</tip>
 		</menu_modif>
+		<menu_manage>
+			<tip key="Manuel de documentation">
+				<p>Lire le fichier documentation intégrale courant du pilote Nvidia</p>
+			</tip>
+			<tip key="Journal des modifications">
+				<p>Lire le journal courant des modifications du pilote Nvidia</p>
+			</tip>
+			<tip key="Journal des modifications Zenvidia"><p>Lire le journal des modifications Zenvidia</p></tip>
+			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
+			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
+		</menu_manage>
+
 	</locale>
 <!--   </menus> -->
 </tips>
