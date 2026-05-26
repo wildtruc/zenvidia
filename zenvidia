@@ -1051,15 +1051,7 @@ is_RT(){
 	[[ -n $(grep "PREEMPT_RT" /boot/config-$KERNEL) && \
 	$(grep -c "CONFIG_PREEMPT_RT=y" /boot/config-$KERNEL) -gt 0 ]] && echo 1 || echo 0
 }
-<<<<<<< HEAD
 rt_options(){ # WARN
-=======
-<<<<<<< HEAD
-rt_options(){ # WARN
-=======
-rt_options(){ # WARN # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 # test if kernel is realtime.
 	if [ $(is_RT) = 1 ]; then
 		local yad_warn
@@ -1112,15 +1104,7 @@ test_ramfs_tool(){
 ## detect if ramfs tool exist then send to initramfs_warn if none.
 	test "$(initramfs_tools)" = 0 && echo 0 || echo 1
 }
-<<<<<<< HEAD
 initramfs_warn(){ # WARN
-=======
-<<<<<<< HEAD
-initramfs_warn(){ # WARN
-=======
-initramfs_warn(){ # WARN # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	if [ $(test_ramfs_tool) = 0 ]; then
 		## send alert
 		## and ask to proceed with modprobe reload if initramfs tool is no detected.
@@ -1375,15 +1359,7 @@ dm_service_patch(){
 		$d_sys daemon-reload
 	fi
 }
-<<<<<<< HEAD
 restart_dm_warn(){ # WARN
-=======
-<<<<<<< HEAD
-restart_dm_warn(){ # WARN
-=======
-restart_dm_warn(){ # WARN # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	# can be potentially add : gdm, sddm, lightdm, lxdm (gdm,kdm,xdm,lightdm,lxdm,slim,sddm)
 	local yad_warn reboot warn_log
 	if (( $(chk_family) <= $(chk_old_family) )); then
@@ -1883,15 +1859,7 @@ prime_setup_window(){ # FIELD
 			${end}
 		INFO
 	)"
-<<<<<<< HEAD
 	[ $task_opt -gt 0 ] && w_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
-=======
-<<<<<<< HEAD
-	[ $task_opt -gt 0 ] && w_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
-=======
-
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local select_render_sets
 	local ok_lbl=$"Set"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
 	yad_field "" "LBL" '' ''
@@ -3639,15 +3607,7 @@ xorg_check(){ # WARN
 	fi
 }
 ## INITIAL OR UPGRADE INSTALL PROCESS
-<<<<<<< HEAD
 INSTALL_DRIVER(){ # PULSE ###
-=======
-<<<<<<< HEAD
-INSTALL_DRIVER(){ # PULSE ###
-=======
-INSTALL_DRIVER(){ # PULSE
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local warn_log yad_warn report_log n init_ramfs
 	local compiled_driver='' final_installed_mod_version='' dkms_stat='' update_status=1
 	## tell script that all POST_INSTALL process came from global install. Needed in many cases.
@@ -4209,17 +4169,8 @@ upgrade_kernel(){ # PULSE
 }
 ## FROM A REMOTE/USER DIRECTORY
 net_version_selector(){ # LIST
-<<<<<<< HEAD
 	# local menu_cmd n m_cmd hlp_tip='' LAST_PACK LAST_OFFI older_pack
 	local menu_cmd n m_cmd hlp_tip='' older_pack #LAST_PACK=''
-=======
-<<<<<<< HEAD
-	# local menu_cmd n m_cmd hlp_tip='' LAST_PACK LAST_OFFI older_pack
-	local menu_cmd n m_cmd hlp_tip='' older_pack #LAST_PACK=''
-=======
-	local menu_cmd n m_cmd hlp_tip='' LAST_PACK LAST_OFFI older_pack
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local -a m_list=() cmd_list=()
 	local IFS=$'\n'
 	local cmd_list=( $"Looking for latest version""|1" $"Looking for older version""|2" )
@@ -4243,34 +4194,10 @@ net_version_selector(){ # LIST
 	esac
 	if [ "$LAST_DRV" != '' ]; then check_update; fi
 }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 check_for_older(){ # LIST
 	local older_pack rem_packages_list hlp_tip=''
 	local IFS=$ifs
 	drivers_list=( $(drivers_scrap 1) )
-<<<<<<< HEAD
-=======
-=======
-check_dl_command(){ # PULSE
-	local y_text=$"NVIDIA Download center data check"
-	local pulse=1 log=0 hold=0 hide_txt=1
-	win_log_options
-	{	timeout=30
-	{	$p_wget -q -O $upt_compat_dir/last_update https://$nvidia_ftp-$ARCH/latest.txt
-	}& eval lpid=$! ; y_pulse ;} | win_yad_progress
-}
-check_for_older(){ # LIST
-	check_dl_command
-	local older_pack rem_packages_list old_pack_list=()
-	local rem_packages_list=( $(sort -Vr $(remote_drv_list)| sed -n 's/ /*/g;p') )
-	LAST_OFFI=$(cat $upt_compat_dir/last_update | awk '{ print $1 }')
-	ln=0
-	# cat $(remote_drv_list)| sort -Vr | nl -n ln| sed -En "s/[\ |\t]/#/g;s/^([0-9]{0,3})[#]{1,6}(.*$)/false \1 \2/g;p" > $(user_CF_DIR)/notify/drv_remote_list
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 
 	local IFS=$'\n'
 	local l_text="${j}${bf}"$"Driver version to install""${end}\n${end}${v}$hlp_tip${end}"
@@ -4286,7 +4213,6 @@ check_for_newer(){
 	LAST_DRV=$( [[ $LAST_OFFI != $LAST_BETA ]] && printf "$LAST_BETA" || printf "$LAST_OFFI" )
 }
 ## UPDATED RELEASE & CUDA CHECK
-<<<<<<< HEAD
 hardware_compat(){
 	stock(){
 		test -f $(user_CF_DIR)/release/nv-update-${@} && echo 1 || echo 0
@@ -4294,79 +4220,6 @@ hardware_compat(){
 	installed(){
 		test -d $nv_root/nvidia.${@} && echo 1 || echo 0
 	}
-<<<<<<< HEAD
-=======
-=======
-hardware_compat(){ # PULSE
-	local upt_compat_list upt_local_conf  drv_class line drv_end comp_reg pci_device pci_dev_id
-	local family_last='' family='' legacy_drv='' family_compat=0
-	local -a COMPAT=() legacy_list=() class_list=()
-	## check remote site file if netwok connection is available.
-	if [ $(connected) = 0 ]; then
-		local y_text=$"NVIDIA Download center compatibility check ""(${j}$DRV${end})"
-		local pulse=1 log=0 hold=0 hide_txt=1
-		win_log_options
-		{	timeout=30
-		{	$p_wget -q -O $upt_compat_dir/upt_compat https://$nvidia_ftp-$ARCH/$DRV/README/supportedchips.html
-		}& eval lpid=$!; y_pulse; } | win_yad_progress
-		local regex='Below are the legacy'
-		local sed_cmd=$( cat <<-SED
-			/<h3>/,/${regex}/{
-			H; /<\/tr>/{
-				x; s/^\n//; s/\n/\ /g
-				s/ <[\/]?tr[^>]*[ ]?>//g
-				s/<\/td> <td>/,/g
-				s/<[^>]*>[ ]?//g
-			p}}
-		SED
-		)
-		cat $upt_compat_dir/upt_compat | sed -En -e "$sed_cmd" > $nv_compat_dir/compat.$DRV
-		## built a genaral compatibility list for series drivers classes.
-		upt_compat_list=$(user_CF_DIR)/updates/upt_compat_list
-		upt_local_conf=$(remote_drv_list)
-		local sed_cmd=$( cat <<-SED
-			/<h3>/,/name=\"subsys/{
-			H; /<\/tr>/{
-				x;s/^\n//;s/\n/ /g
-				s/ <[\/]?tr[^>]*>[ ]?//g
-				s/<\/td> <td>/,/g;s/<[^>]*>[ ]?//g
-				s/^(.*\.)?The (.*) driver.*$/* \2/g
-			p}}
-		SED
-		)
-		cat $upt_compat_dir/upt_compat | sed -En -e "$sed_cmd" > $upt_compat_list
-		## add a separator at the end.
-		echo -e "------" >> $upt_compat_list
-
-		## here start the compatibility tool.
-		[ -d $nv_compat_dir ]|| mkdir -p $nv_compat_dir/series
-		local IFS=$'\n'
-		(( $(echo "$DRV"| cut -d. -f1) > 334 )) && comp_reg='Current' || comp_reg='NVIDIA Ge'
-		COMPAT+=("$(grep -E "^${comp_reg}" $upt_compat_list | awk '{print $1" "$2}')")
-		legacy_list=("$(cat $upt_compat_list| grep -E "\* .*\.xx")")
-		for section in ${legacy_list[*]}; do COMPAT+=("$section");	done
-		if [ $(ls -1 $nv_compat_dir/series/ | grep -E -c "^[0-9]*\.[0-9]*\.[0-9]*$") -gt 0 ]; then
-			rm -f $nv_compat_dir/series/* | grep -E "^[0-9]*\.[0-9]*\.[0-9]*$"
-		fi
-		for line in ${COMPAT[@]}; do
-			if [[ $line =~ ".xx" ]]; then
-				drv_class=$(echo -e "$line"| sed -En 's/\* (.*).xx$/\1/p')
-				line=$(cut -d' ' -f2 <<< $line)
-			else
-				drv_class=$(echo "$DRV"| cut -d. -f1)
-			fi
-			drv_end=$(cat <<< ${COMPAT[*]}| grep -A1 "$line"| sed -En "s/^\* (.*).xx$/\1/g;\$p")
-			[[ $drv_end == $drv_class ]] && drv_end='-----'
-			sed -En "/$line/,/$drv_end.xx/{/^(.*|0x),.*/p}" $upt_compat_list > $nv_compat_dir/series/$drv_class
-		done
-	fi
-
-	## build compat file list from created.
-	class_list=("$(ls -1 $nv_compat_dir/series/| sort -V)")
-	## check compat.
-	## dig for device id and usual name.
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	pci_device=${dev[$e]}
 	pci_dev_id=${slot_id[$e]}
 	[ ${#dev_n[*]} -gt 0 ] && pci_name="${y}${pci_device}${v}: ${end}${end}" || pci_name=''
@@ -4460,23 +4313,10 @@ check_update(){
 	win_update
 }
 win_update(){ # YAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	local -a yad_table_arrays=() txt_render=() DOWN_list=() more_render=() info_render=()
 	local suf line name drive serie installed beta stock
 	local w_text='' compatibilty='' not='' compat_name='' previous_name=''
 	local compat_tag=1 unsupported=0 stock_count=0
-<<<<<<< HEAD
-=======
-=======
-	# reset list and messages
-	local COMP_L main_msg more_msg compat_msg ui_mod in_repos
-	local reroute=0 sel_cmd=0
-	local in_installed=0 in_compat_list=0 in_local_repos=0 in_dl_repos=0 un_compat_list=0 DOWN_list=()
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 
 	local spaces=0 tab=0
 	kokoro="${y}$(echo -e '\u2764')${end}"
@@ -4594,31 +4434,10 @@ win_update(){ # YAD
 		0) ;;
 	esac
 }
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 win_update_reroute(){ # LIST # MENU
 	local menu_cmd m_cmd m_row m_name hlp_tip=''
 	local -a m_list=() cmd_list=()
 
-<<<<<<< HEAD
-=======
-=======
-win_update_reroute(){ # LIST # MENU # TODO local
-	local n help_tip reroute_list ins_list menu_reroute
-	reroute_list=($"Install last $LAST_UPT" $"Check again Nvidia server" $"Check for a local package")
-	n=1
-	for ins_cmd in "${reroute_list[@]}"; do
-		ins_list+=("false")
-		ins_list+=("$n")
-		ins_list+=("$ins_cmd")
-		n=$[ $n+1 ]
-	done
-	IFS=$(echo -en "\n\b")
-	# l_text="${j}${bf}"$"Select an operation in the list""${end}\n${end}"
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	l_text=$"$(cat <<-LOG
 		${j}${bf}Select a function in the list${end}${end}
 		${y}Be aware this is re-do function until you select a different driver.${end}
@@ -4648,15 +4467,7 @@ win_update_reroute(){ # LIST # MENU # TODO local
 		100|*) menu_update ;;
 	esac
 }
-<<<<<<< HEAD
 from_directory(){ # LIST # MENU
-=======
-<<<<<<< HEAD
-from_directory(){ # LIST # MENU
-=======
-from_directory(){ # LIST # MENU # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	nv_dir(){
 		local list_drv=()
 		local drv_pick l_text local_drv
@@ -4800,15 +4611,7 @@ from_net(){ # WARN
 		fi || die 1 ${LINENO} "Remote package check/install failed." "" 1
 }
 ## DOWNLOADERS
-<<<<<<< HEAD
 download_menu(){ # LIST # WARN
-=======
-<<<<<<< HEAD
-download_menu(){ # LIST # WARN
-=======
-download_menu(){ # LIST # WARN # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local dl_cmd yad_warn
 	l_text="${y}"$"$( cat <<-INFO
 		${jB}${bf}Downloads${end}${end}
@@ -4853,20 +4656,9 @@ download_menu(){ # LIST # WARN # TODO local
 	last_driver_pack
 	eval run_pack=$run_pack
 }
-<<<<<<< HEAD
 download_only(){ # WARN
 	local yad_warn run_pack
 	pushd $buildtmp &>/dev/null
-=======
-<<<<<<< HEAD
-download_only(){ # WARN
-	local yad_warn run_pack
-	pushd $buildtmp &>/dev/null
-=======
-download_only(){ # WARN # TODO local
-	cd $buildtmp
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	download_menu
 	if [ -f $buildtmp/$run_pack ]; then
 		warn_log=$"${v}Driver download ${j}$LAST_PACK${end} ended.${end}"
@@ -4904,30 +4696,9 @@ win_download_display(){ # PULSE
 	{ curl -s --output-dir $buildtmp/ -O $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
 	return # true
 }
-<<<<<<< HEAD
 last_driver_pack(){ # PULSE # LIST
 	local l_text # run_pack
 	local -a RUN_PACK=() m_list=() scrap_list=() warn_log=()
-=======
-<<<<<<< HEAD
-last_driver_pack(){ # PULSE # LIST
-	local l_text # run_pack
-	local -a RUN_PACK=() m_list=() scrap_list=() warn_log=()
-=======
-last_driver_pack(){ # PULSE # LIST # TODO local ***
-	local drv_list=()
-	local y_text='' warn_log='' l_text=''
-	run_pack=() # run_pack is not a local var
-	# download downloadable list
-	y_text="${v}"$"Remote content control""${end}"
-	local pulse=1 log=0 hold=0 hide_txt=1
-	win_log_options
-	{ timeout=30
-	{	$p_wget -q -O $nvtmp/dl_list https://$nvidia_ftp-$ARCH/$LAST_PACK/
-		cat $nvtmp/dl_list | grep -E -o "href='NVIDIA.*[0-9]+.*'"| sed -En "s/^.*'(.*)'/\1/p" > $nvtmp/dl_selector
-	} & eval lpid=$!; y_pulse; } | win_yad_progress
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 
 	scrap_list=( $(xq_x_query 3 ".run$") )
 	for line in ${scrap_list[@]}; do
@@ -4943,31 +4714,10 @@ last_driver_pack(){ # PULSE # LIST # TODO local ***
 			m_list+=("false")
 			m_key='no_compat'
 		fi
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 		m_list+=("$m_row")
 		m_list+=("$m_cmd")
 	}
 	yad_make_list ${FUNCNAME} "${RUN_PACK[*]}" "help-tips.xml" 1
-<<<<<<< HEAD
-=======
-=======
-		for line in $RUN_PACK; do
-			drv_list+=("false")
-			drv_list+=("$line")
-		done
-		# run_pack=() # run_pack is not a local var
-		local IFS=$(echo -en "\n\b")
-		l_text="${v}"$"Choose the version to install""${end}"
-		[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
-		local ok_lbl=$"Select"'!zen-ok' l_tail=0 w_head=0 col_name=''
-		local list_type='radiolist' columns=2 sel_col=2 sep='' hid_col=0 edit_col=0 col_tip=0 w_width='500' w_height='100'
-		run_pack=( $(win_yad_list "${drv_list[*]}" "") )
-		evac "$run_pack" "base_menu" 1
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 
 	local IFS=$'\n'
 	l_text="${v}"$"Choose the version to install""${end}"
@@ -4983,10 +4733,6 @@ last_driver_pack(){ # PULSE # LIST # TODO local ***
 	run_pack=( $( win_yad_list "${m_list[*]}" "") )
 	evac "$run_pack" "base_menu" 1
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	file_size=$(xq_x_query 4 "${run_pack}|size" | sed -En 's/^([0-9]+)([A-Z]*)$/\1|\2/p')
 	run_pack_sha=$(xq_x_query 4 "${run_pack}.sha256sum|file")
 	# download command options
@@ -5005,18 +4751,6 @@ last_driver_pack(){ # PULSE # LIST # TODO local ***
 		if [ -f $run_pack.sha256sum ]; then
 			sha256sum ${run_pack}
 			sha256sum --status -c ${run_pack_sha}
-<<<<<<< HEAD
-=======
-=======
-		# get size of the pack in ko and check file integriy
-		local _local=$(du -h $buildtmp/$run_pack | awk '{print $1}'| grep -o "[0-9]*")
-		local _remote=$(cat $nvtmp/dl_list | grep -A1 "$run_pack<"|sed -En "s/^.*>(.*)<\/.*>.*$/\1/g;2p"| grep -o "[0-9]*")
-		if [ -f $buildtmp/$run_pack.sha256sum ]; then
-			pushd $buildtmp &>/dev/null
-			sha256sum $run_pack
-			sha256sum --status -c $run_pack.sha256sum
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 			if [ $? = 1 ]; then
 					warn_log+="${j}<b>"$"Download check sum error""</b>${end}.\n"
 					warn_log+=$"Transaction aborted""\n"
@@ -5201,15 +4935,7 @@ check_remote_cuda(){
 	# check_cuda_versions
 }
 update_cuda_list(){ # PULSE # Cuda start process
-<<<<<<< HEAD
 	# json_log=$nvtmp/jsonpage.html # to temp
-=======
-<<<<<<< HEAD
-	# json_log=$nvtmp/jsonpage.html # to temp
-=======
-	json_log=$nvtmp/jsonpage.html # to temp
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user)
 	y_text="${v}"$"Remote CUDA version page check ...""${end}"
 	local pulse=1 log=0 hold=0 hide_txt=0
@@ -5556,6 +5282,10 @@ cuda_download(){
 	fi
 }
 package_checksum_sim(){
+	# page checksum trouvée :
+	# https://developer.download.nvidia.com/compute/cuda/13.2.1/docs/sidebar/md5sum.txt
+	# forme : e5b4bdf19cc27d63a8254cb486764626 cuda_13.2.1_595.58.03_linux.run
+
 	local remote_size package_size proc_msg more_msg bck_to warn_log
 	remote_size=$CUDA_SIZE_O
 	package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
@@ -5627,21 +5357,12 @@ cuda_install_info(){ # WARN
 }
 # everything start from here.
 update_cuda(){ # PULSE
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	cuda_last_version=${LAST_CUDA}
 	cuda_last_serie=$(cut -d'.' -f1 <<< "${cuda_last_version}")
 	# cuda_remote_versions=( "$(drivers_scrap 3)" )
 	# cuda_remote_versions=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
 	local cuda_remote_versions=()
 
-<<<<<<< HEAD
-=======
-=======
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	# json_log=$nvtmp/jsonpage.html # to temp # TEST
 	# cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user) # TEST
 	BUILDS=( $(ls -1 $(user_CF_DIR)/release/ | sed -n "s/^.*-//g;p" | sort -V) )
@@ -5743,10 +5464,6 @@ xq_tips(){
 	echo -e "$(xq -q "tips>locale[code="${locale}"]>${menu}>tip[key="${cmd}"]>p" $help_tips)\c" | tr '\n' '\r'
 }
 xq_x_query(){
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	# 0 = current, 1 = legacy list, 2 = legacy, 3 = .run pack query, 4 = .run name/size
 	# local type=${1} dev_query="${2}" dev_id='' DEV_REMOTE_PATH='' remote_page=''
 	local type=${1} dev_query="${2}" dev_id DEV_REMOTE_PATH remote_page
@@ -5808,19 +5525,6 @@ xq_x_query(){
 		xq -x '//li[span[@class]/a[@href="'$run_pack'"]]/span[@class="'${dev_id}'"]' || true
 	fi
 
-<<<<<<< HEAD
-=======
-=======
-	# remote page version ou new_version
-	remote_page=https://${nvidia_ftp}-$ARCH/$(version)/README/supportedchips.html
-	# first sed cmd clean up remote page of wrong utf letters.
-	reg_fix_utf='/<p>For an explanation/,/<\/i><\/a>.<\/p>/d;p'
-	# legacy list
-	curl -s $remote_page | sed -n "${reg_fix_utf}" | xq -n -x '//p[a[@name]]/a'| sed -En 's/^.*id="legacy_(.*)".*$/\1/p'
-	# current
-	curl -s $remote_page | sed -n "${reg_fix_utf}" | xq -n -x '//p[a[@name]]/following::div[@class][1]/table[1]/tbody[1]/tr[@id="devid2489"]'
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 }
 # command & options for yad window maker
 yad_table(){
@@ -5906,26 +5610,12 @@ yad_make_list(){
 			list_plugin
 		else
 			[ ${m_row} = 0 ] && m_list+=("true") || m_list+=("false")
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 			m_key=${m_cmd}
 			m_list+=("$m_row")
 			m_list+=("$m_cmd")
 		fi
 		[[ ${m_tips} != '' ]] || hlp_txt=0
 		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "$m_fnc" "$m_key" "$m_tips")${end}") || true
-<<<<<<< HEAD
-=======
-=======
-		fi
-		m_list+=("$m_row")
-		m_list+=("$m_cmd")
-		[[ ${m_tips} != '' ]] || hlp_txt=0
-		[ $hlp_txt = 1 ] && m_list+=("${y}$(xq_tips "$m_fnc" "$m_cmd" "$m_tips")${end}") || true
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	done
 	return
 }
@@ -6271,26 +5961,12 @@ win_open_switch(){ # WARN # LIST
 			# if [ $use_open -gt 0 ]; then OPEN='TRUE'; PROP='FALSE'; else OPEN='FALSE'; PROP='TRUE'; fi
 			local l_text=$"$( cat <<-MSG
 				${v}${j}${bf}Driver switch${end}${end}
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
-
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 				<b>Driver type selection (proprietary/open source)</b>.
 
 				<i>( ${y}driver with license $(/sbin/modinfo -F license nvidia -k $KERNEL) actualy loaded${end} )</i>${end}
 			MSG
 			)"
-<<<<<<< HEAD
 			[ $task_opt -gt 0 ] && l_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
-=======
-<<<<<<< HEAD
-			[ $task_opt -gt 0 ] && l_text+="${y}\n""Attention"": ""Admin privileges granted"".${end}" || true
-=======
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 			list_plugin(){
 				if [ $use_open -gt 0 ]; then
 					# OPEN='TRUE'; PROP='FALSE'
@@ -6299,34 +5975,16 @@ win_open_switch(){ # WARN # LIST
 					# OPEN='FALSE'; PROP='TRUE'
 					[ ${m_row} = 0 ] && m_list+=("true") || m_list+=("false")
 				fi
-<<<<<<< HEAD
 				m_key=${m_cmd}
 				m_list+=("$m_row")
 				m_list+=("$m_cmd")
-=======
-<<<<<<< HEAD
-				m_key=${m_cmd}
-				m_list+=("$m_row")
-				m_list+=("$m_cmd")
-=======
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 			}
 			local IFS=$'\n'
 			cmd_list=( $"Load proprietary drivers""|0" $"Load Open Source Drivers""|1" )
 			yad_make_list ${FUNCNAME} "${cmd_list[*]}" "" 1
 
-<<<<<<< HEAD
 			[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back"'!zen-back'
 			local ok_lbl=$"Select"'!zen-ok'
-=======
-<<<<<<< HEAD
-			[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back"'!zen-back'
-			local ok_lbl=$"Select"'!zen-ok'
-=======
-			local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 			local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 			if [ $hlp_txt = 0 ]; then
 				local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
@@ -6367,15 +6025,7 @@ manage_pcks(){ # LIST
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
 	local l_text=$"${j}${bf}"$"Manage drivers packages""${end}${end}${y}${nf}$w_text${end}${end}"
-<<<<<<< HEAD
 	local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-=======
-<<<<<<< HEAD
-	local cancel_lbl=$"Back"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-=======
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
 		local columns=3 sel_col=2 hid_col=2 col_tip=0 edit_col=0 sep=''
@@ -6625,23 +6275,9 @@ remove_nvidia(){ # WARN # PULSE
 		if [ $yad_warn -ge 1 ]; then base_menu; fi
 	fi
 }
-<<<<<<< HEAD
 backup_tools(){ # LIST
 	local menu_cmd n m_cmd m_row m_name hlp_tip=''
 	local -a m_list=() cmd_list=() l_text=()
-=======
-<<<<<<< HEAD
-backup_tools(){ # LIST
-	local menu_cmd n m_cmd m_row m_name hlp_tip=''
-	local -a m_list=() cmd_list=() l_text=()
-=======
-backup_tools(){ # LIST # TODO set to yad_make_list
-	local hlp_tip=''
-	local w_text menu_backup l_text
-	local list_array=()
-	w_text=$"$( cat <<-MSG
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 
 	local IFS=$'\n'
 	cmd_list=( $"Make a backup""|1" $"Remove a backup""|2" )
@@ -6667,20 +6303,9 @@ backup_tools(){ # LIST # TODO set to yad_make_list
 		100|*) manage_pcks ;;
 	esac
 }
-<<<<<<< HEAD
 backup_pcks(){ # WARN # PULSE
 	local yad_warn bak_version menu_cmd
 	local warn_log='' y_text=''
-=======
-<<<<<<< HEAD
-backup_pcks(){ # WARN # PULSE
-	local yad_warn bak_version menu_cmd
-	local warn_log='' y_text=''
-=======
-backup_pcks(){ # WARN # PULSE # TODO local
-	local yad_warn bak_version pgrs_out
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	bak_version=$(version)
 	if [ -f $nv_backup_dir/nvidia.$bak_version.tar$zip_ex ]; then
 		warn_log=$"$(cat <<-MSG
@@ -6717,15 +6342,7 @@ backup_pcks(){ # WARN # PULSE # TODO local
 		manage_pcks
 	fi
 }
-<<<<<<< HEAD
 restore_pcks(){ # WARN # LIST # PULSE
-=======
-<<<<<<< HEAD
-restore_pcks(){ # WARN # LIST # PULSE
-=======
-restore_pcks(){ # WARN # LIST # PULSE # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	alert_message(){
 	# current version overwrite ALERT message
 		warn_log=$"$( cat <<-WRN
@@ -7294,22 +6911,10 @@ x_yad_extract(){
 	done
 }
 x_yad_tab(){ # TAB
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	local section section_names track section_block
 	local vendor_id section_line option_line option_type
 	local option_reg screen_reg option_bis_reg
 	local option value option_line section_line o_tip
-<<<<<<< HEAD
-=======
-=======
-	local section section_names track section_block \
-	vendor_id section_line option_line option_type option_reg screen_reg option_bis_reg \
-	option value option_line section_line o_tip
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	## tab window
 	for para in ${device_options[@]}; do
  		local -a section_list=() options_list=()
@@ -7423,15 +7028,7 @@ x_yad_tab(){ # TAB
 		fi
 	done
 }
-<<<<<<< HEAD
 x_yad_block(){ # YAD
-=======
-<<<<<<< HEAD
-x_yad_block(){ # YAD
-=======
-x_yad_block(){ # YAD # TODO local
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	xorg_cfg=/etc/X11/xorg.conf.nvidia ### DEV to remove
 	local -a device_options=() DEVICE_section_list=()
 	local tab_names KEY n device_options options_orig device mn_cmd
@@ -7514,21 +7111,10 @@ edit_xorg_full_text(){ # TEXT
 	esac
 }
 edit_xorg_conf(){ # LIST
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> refs/remotes/origin/master
 	local -a m_list=() cmd_list=()
 	local menu_cmd n m_cmd m_row m_name
 	local l_text=''
 
-<<<<<<< HEAD
-=======
-=======
-	local menu_cmd n m_cmd m_row m_name hlp_tip=''
-	local -a m_list=() cmd_list=()
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	if [ ! -e /etc/X11/xorg.conf ]; then
 		warn_log=$"$(cat <<-WARN
 			${j}<b>Xorg config file missing</b>${end}
@@ -7543,26 +7129,12 @@ edit_xorg_conf(){ # LIST
 	local IFS=$'\n'
 	cmd_list=( $"Edit full Xorg (GUI)""|1" $"Edit full Xorg (text)""|2" $"Execute Xorg auto config""|3" )
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
-<<<<<<< HEAD
 
 	# l_text="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n${v}"$"Edit or manage Xorg config and options.""${end}"
 	l_text+="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n"
 	l_text+="${v}"$"Edit or manage Xorg configuration and options.""${end}"
 	[ $task_opt -gt 0 ] && l_text+="${y}\n\n""Attention"": ""Admin privileges granted"".${end}" || true
 
-=======
-<<<<<<< HEAD
-
-	# l_text="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n${v}"$"Edit or manage Xorg config and options.""${end}"
-	l_text+="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n"
-	l_text+="${v}"$"Edit or manage Xorg configuration and options.""${end}"
-	[ $task_opt -gt 0 ] && l_text+="${y}\n\n""Attention"": ""Admin privileges granted"".${end}" || true
-
-=======
-
-	l_text="${j}${bf}"$"Edit Xorg Config File""${end}${end}\n${v}"$"Edit or manage Xorg config and options.""${end}"
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
 	local ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
@@ -7936,18 +7508,9 @@ zen_notif_setup(){ # WARN # LIST
 		else
 			m_list=("false")
 		fi
-<<<<<<< HEAD
 		m_key=${m_cmd}
 		m_list+=("$m_row")
 		m_list+=("$m_cmd")
-=======
-<<<<<<< HEAD
-		m_key=${m_cmd}
-		m_list+=("$m_row")
-		m_list+=("$m_cmd")
-=======
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	}
 	local menu_cmd n m_cmd m_row m_name hlp_tip=''
 	local -a m_list=() cmd_list=()
@@ -8032,15 +7595,7 @@ menu_update(){ # LIST
 	fi
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-<<<<<<< HEAD
 	local l_text="${j}${bf}"$"Update Drivers or kernel modules""${end}${end}$hlp_tip"
-=======
-<<<<<<< HEAD
-	local l_text="${j}${bf}"$"Update Drivers or kernel modules""${end}${end}$hlp_tip"
-=======
-	local l_text="${j}${bf}"$"Update Drivers or kernel modules$""${end}${end}$hlp_tip"
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
@@ -8763,15 +8318,7 @@ else
 					task_opt=0
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
-<<<<<<< HEAD
 				# -t) task_opt=0 ; check_for_older ;;
-=======
-<<<<<<< HEAD
-				# -t) task_opt=0 ; check_for_older ;;
-=======
-				# -t) task_opt=1 ; prime_setup_window ;;
->>>>>>> refs/remotes/origin/master
->>>>>>> refs/remotes/origin/master
 				# -t) task_opt=1 ; zen_notif_setup ;;
 				# -t) task_opt=1 ; menu_update ;;
 				# -t) task_opt=1 ; win_open_switch ;;
