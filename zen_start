@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
+
 pk_exec=$(command -v pkexec)
 if [ $(stat -c %u /run/user/*) -gt 0 ]; then
 	$pk_exec /usr/local/bin/zenvidia ${@}

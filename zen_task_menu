@@ -29,11 +29,7 @@ img_zen_green=$icon_stock/zen-emblem-gr.png
 img_nv_settings=$icon_stock/zen-settings.png
 img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
-# define active user for pid file creation and check.
-# def_user_id=$(loginctl list-users --no-legend | grep "active"|awk '{print $1}')
-# menu_pid=/run/user/${def_user_id}/zen_task.pid
 
-# test -f ${menu_pid} && test $(ps -A --no-headers| grep -c $(cat $menu_pid)) -gt 0 && exit 0
 test -f $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 
 export PATH=$PATH:/usr/local/bin
@@ -49,10 +45,11 @@ declare open_menu='' opti_menu='' adds=''
 
 if [ -f $local_conf_dir/version.txt ]; then
 	driver_changelog=$" Read ${version} change log"'!'${d_zen}' -d!zen-info,'
-	nvidia_help=$" Nvidia ${version} documentation"'!'${d_zen}' -h!zen-question,'
+	nvidia_help=$" Nvidia ${version} documentation"'!'${d_zen}' -h!zen-docs,'
 	[ "$version" != '' ] && version_txt=$"<b>$version</b> in use. <small>($adds)</small>" || version_txt=$"no driver detected"
 fi
 if [ -f $local_notif ]; then
+	declare next_change='' next_major_change='' next_driver=''
 	. $local_notif
 	if [ $notif = 1 ]; then
 		embed_text="$(cat <<-MSG
@@ -64,7 +61,11 @@ if [ -f $local_notif ]; then
 	else
 		embed_text="$version_txt"
 	fi
-	changelog_menu=$" Read Zenvidia change log"'!'${d_zen}' -r!zen-warning,'
+	changelog_menu=$" Read Zenvidia change log"'!'${d_zen}' -r!zen-question,'
+	if [[ -n ${next_change} && ${next_change} != '' ]]; then
+		open_uri="xdg-open ${next_change}"
+		next_major_change=$" Next ${next_driver} major change"'!'${open_uri}'!zen-warning,'
+	fi
 fi
 menu_list=(
 	\ $"Start zenvidia"!zen_start!$img_zen,
@@ -74,8 +75,8 @@ menu_list=(
 	$"Check Nvidia driver Update"!zen_start -u!zen-refresh,
 	${open_menu}${driver_changelog}${nvidia_help}${changelog_menu}
 	$"Zenvidia Help and documentation"!$d_zen -s!zen-docs,
-	#$"Zenvidia About"!$d_zen -a!zen-docs,
+	${next_major_change}
 	$"Close Zenvidia task menu"!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \
---icon-size=24 --menu="${menu_list[*]}" --separator=',' & # echo $(pgrep -n yad) > $menu_pid
+--icon-size=24 --menu="${menu_list[*]}" --separator=',' &

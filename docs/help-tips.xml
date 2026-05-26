@@ -123,6 +123,7 @@
 			</tip>
 			<tip key="Remove Nvidia and restore to default">
 				<p>Remove completly Nvidia Drivers installation and restore to default Nouveau drivers.</p>
+				<p>This operation implies certain risks. To usue with high cautions.</p>
 			</tip>
 		</manage_pcks>
 		<net_version_selector>
@@ -181,7 +182,36 @@
 				<p>Command with full options is mandatory.</p>
 				<p>If you're afraid to make a mistake, think to ask your distribution's community first.</p>
 			</tip>
-		</model_fnc>
+		</set_su>
+		<from_directory>
+			<tip key="Use Zenvidia stock director">
+				<p>Every donwloaded packages are stored in default or user Zenvidia directory.</p>
+				<p>When available score is always greater than 0.</p>
+			</tip>
+			<tip key="Use a user local directory">
+				<p>Alternatively, you can select a local Nvidia package from user directory.</p>
+				<p>As above, score need to be greater than 0.</p>
+			</tip>
+		</from_directory>
+		<backup_tools>
+			<tip key="Make a backup">
+				<p>Back up the current driver installation.</p>
+				<p>It could be a fresh or new a previously backed up archive.</p>
+			</tip>
+			<tip key="Remove a backup">
+				<p>Manage previously archived installation driver.</p>
+			</tip>
+		</backup_tools>
+		<last_driver_pack>
+			<tip key="compat">
+				<p>This package includes compatibility for 64 and 32 bits librairies.</p>
+				<p>Mandatory for programs such as Wine for gaming environment.</p>
+			</tip>
+			<tip key="no_compat">
+				<p>This package is for pure 64 bits environment.</p>
+				<p>To select if you do not intend to run programs needing 32 bits compatibility.</p>
+			</tip>
+		</last_driver_pack>
 		<model_fnc>
 			<tip key="first_row">
 				<p>1.</p>
@@ -189,13 +219,13 @@
 			</tip>
 			<tip key="second_row">
 				<p>2.</p>
-			<p>2.</p>
+				<p>2.</p>
 			</tip>
 			<tip key="third_row">
 				<p>3-</p>
-			<p>3s-</p>
+				<p>3s-</p>
 			</tip>
-		</set_su>
+		</model_fnc>
 	</locale>
 <!-- Translation "fr_FR" last date 24/4/26 -->
 	<locale code="fr_FR">
@@ -231,37 +261,37 @@
 		</menu_install>
 		<menu_update>
 			<tip key="Mise à niveau du pilote">
-			<p>Vérifie les mises à jour du pilote.</p>
-			<p>Vous pouvez choisir durant le processus de télécharger seulement ou d'installer.</p>
-			<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez coup à:</p>
-			<p>» Menu principal » Installer des pilotes.</p>
-			<p>Note: Tous les téléchargements sont stockés dans le dépôt Zenvidia.</p>
+				<p>Vérifie les mises à jour du pilote.</p>
+				<p>Vous pouvez choisir durant le processus de télécharger seulement ou d'installer.</p>
+				<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez coup à:</p>
+				<p>» Menu principal » Installer des pilotes.</p>
+				<p>Note: Tous les téléchargements sont stockés dans le dépôt Zenvidia.</p>
 			</tip>
 			<tip key="Mettre à jour le pilote uniquement (dkms)">
-			<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
-			<p>Utilisé pour re-contruire le pilote courant.</p>
+				<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
+				<p>Utilisé pour re-contruire le pilote courant.</p>
 			</tip>
 			<tip key="Mettre à jour le pilote uniquement">
-			<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
-			<p>Utilisé pour re-contruire le pilote courant.</p>
-			<p>Cette fonction utilise uniquement le répertoire source. </p>
+				<p>Installe des modules dkms nvidia pour un nouveau noyau.</p>
+				<p>Utilisé pour re-contruire le pilote courant.</p>
+				<p>Cette fonction utilise uniquement le répertoire source. </p>
 			</tip>
 			<tip key="Mettre à jour le pilote uniquement (forcé)">
-			<p>Commande optionnelle pour forcer l'installation depuis les sources pilotes</p>
-			<p>Utilisé pour re-contruire le pilote courant dans le cas d'un bug ou échec de DKMS.</p>
+				<p>Commande optionnelle pour forcer l'installation depuis les sources pilotes</p>
+				<p>Utilisé pour re-contruire le pilote courant dans le cas d'un bug ou échec de DKMS.</p>
 			</tip>
 			<tip key="Mettre à jour le pilote pour un autre noyau (dkms)">
-			<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
-			<p>Cette fronctionn utilise DKMS.</p>
+				<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
+				<p>Cette fronctionn utilise DKMS.</p>
 			</tip>
 			<tip key="Mettre à jour le pilote pour un autre noyau">
-			<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
-			<p>Cette fonction utilise uniquement le répertoire source.</p>
+				<p>Commande optionnelle pour mettre à jour les modules nvidia pour un autre noyau.</p>
+				<p>Cette fonction utilise uniquement le répertoire source.</p>
 			</tip>
 			<tip key="Misee à jour de Cuda Toolkit">
-			<p>Cette commande contrôlera les mise à jour Cuda Toolkit.</p>
-			<p>L'installation sera permise à la fin du processus.</p>
-			<p>Note: puisque Cuda prend énormément de place, le paque ne sera pas conservé après coup.</p>
+				<p>Cette commande contrôlera les mise à jour Cuda Toolkit.</p>
+				<p>L'installation sera permise à la fin du processus.</p>
+				<p>Note: puisque Cuda prend énormément de place, le paque ne sera pas conservé après coup.</p>
 			</tip>
 		</menu_update>
 		<menu_modif>
@@ -314,7 +344,52 @@
 			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
 			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
 		</menu_manage>
-
+		<manage_pcks>
+			<tip key="Supprimer des paquets téléchargés">
+				<p>Gérer les paquets téléchargés dans le répertoire Zenvidia.</p>
+			</tip>
+			<tip key="Outils de sauvegarde">
+				<p>Faire une sauvergarde des pilotes et librairies de la version Nvidia courante.</p>
+			</tip>
+			<tip key="Outils de restauration">
+				<p>Faire un restoration d'une archive précédemment sauvegardée.</p>
+			</tip>
+			<tip key="Supprimer Nvidia et restaurer le système par défaut">
+				<p>Supprimmer entièrement l'installation Nvidia et restaure au pilote Nouveau par défaut.</p>
+				<p>Cette oprération représente un certain risque. À manier avec prudence.</p>
+			</tip>
+		</manage_pcks>
+		<edit_xorg_conf>
+			<tip key="Éditer intégralement Xorg (GUI)">
+				<p>Éditer les options non sensibles de l'environnement X dans un GUI en onglets.</p>
+				<p>Les tips surgiront sur chauqe ligne si disponible.</p>
+			</tip>
+			<tip key="Éditer intégralement Xorg (texte)">
+				<p>Éditer la configuration Xorg brute dans un éditeur de texte.</p>
+			</tip>
+			<tip key="Éxécuter l'auto configuration de Xorg">
+				<p>Rejoue l'automatisme de création de la configuration Xorg par Zenvidia.</p>
+				<p>Ceci est la même procédure que durant la post installation.</p>
+				<p>C'est un Replay en cas de perte du fichier xorg.conf.</p>
+			</tip>
+		<zen_notif_setup>
+			<tip key="Check driver update only">
+				<p>This set will only check driver updates at session start.</p>
+				<p>Zenvidia updates will be ignored.</p>
+			</tip>
+			<tip key="Check zenvidia and driver update">
+				<p>This set will check both Nvidia driver and Zenvidia updates at session start.</p>
+			</tip>
+		</zen_notif_setup>
+		<backup_tools>
+			<tip key="Faire une sauvegarde">
+				<p>Sauvergarder l'installation pilote courante.</p>
+				<p>Cela peut être un nouvellement installée ou une archive déjà précédemment traitée.</p>
+			</tip>
+			<tip key="Supprimer une sauvegarde">
+				<p>Gérer les archives pilotes précédemment sauvegardées.</p>
+			</tip>
+		</backup_tools>
 	</locale>
 <!--   </menus> -->
 </tips>

@@ -1,0 +1,15 @@
+/*
+ * Allow users in privileged gamemode group to run cpugovctl &
+ * gpuclockctl without authentication
+ */
+polkit.addRule(function (action, subject) {
+    if ((action.id == "com.github.pkexec.zenvidia.zenvidia" ||
+         action.id == "com.github.pkexec.zenvidia.xorgconf" ||
+         action.id == "com.github.pkexec.zenvidia.primecon" ||
+         action.id == "com.github.pkexec.zenvidia.switcher" ||
+         action.id == "com.github.pkexec.zenvidia.update") &&
+        subject.isInGroup("wheel"))
+    {
+        return polkit.Result.YES;
+    }
+});

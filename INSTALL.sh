@@ -1,5 +1,7 @@
 #! /bin/bash
-set -e -o functrace
+
+set -e
+#set -euo pipefail  # TODO next
 
 # DEFINE FIRST THE CURRENT USER NAME
 C_USER=$(stat -c %U -- /run/user/*| grep -v "root")
@@ -23,13 +25,13 @@ nc='\e[0m'
 
 check_su(){
 if [ ${S_USER} != "root" ]; then
-	echo -e "${red}WARNING: You can't run this shell as ${S_USER}. You must be ROOT${nc}"	; exit ; fi
+	echo -e "${red}WARNING: You can't run this shell as ${S_USER}. You must be ROOT${nc}"; exit ; fi
 }
 make_install(){
 	## pre install
-	mkdir -p ${INSTALL_DIR} ${CONF_DIR}/{compats/series,updates,release}
+	mkdir -p ${INSTALL_DIR} ${CONF_DIR}/{compats/series,updates,release} # TODO remove compat updates
 	mkdir -p ${PREFIX}/share/{applications,pixmaps,doc/zenvidia}
-	mkdir -p ${INSTALL_DIR}/{temp,build,log,release,backups,compats,locale/locale_dev/locale_po}
+	mkdir -p ${INSTALL_DIR}/{temp,build,log,release,backups,compats,locale/locale_dev/locale_po} # TODO remove temp,build; release compat
 	## install system
 	install -Dm755 -t ${BIN_DIR}/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
 	install -Dm644 -t ${INSTALL_DIR}/ *.conf
@@ -41,6 +43,7 @@ make_install(){
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -rf -t ${INSTALL_DIR}/ locale/locale
@@ -61,7 +64,7 @@ make_install(){
 	echo -e "INSTALL DONE."
 	# start xtray zenvidia task bar
 	echo -e "Reload your desktop manager for the system tray task bar refresh or start."
-	echo -e "Or quit zen_task_menu if already lauch and type in a terminal as default user:"
+	echo -e "Or quit zen_task_menu if already launch and type in a terminal as default user:"
 	echo -e "zen_notify -z (or -n if driver check only)"
 }
 make_uninstall(){
@@ -72,6 +75,7 @@ make_uninstall(){
 	rm -f ${PREFIX}/share/pixmaps/zen-*.png
 	rm -Rf ${PREFIX}/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
+	rm -f /usr/share/polkit-1/rules/com.github.pkexec.zenvidia.rules
 	echo -e "UNINSTALL DONE."
 }
 make_safeuninstall(){
@@ -81,6 +85,7 @@ make_safeuninstall(){
 	rm -f ${PREFIX}/share/pixmaps/zen-*.png
 	rm -Rf ${PREFIX}/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
+	rm -f /usr/share/polkit-1/rules/com.github.pkexec.zenvidia.rules
 	echo -e "SAFE UNINSTALL DONE."
 }
 make_udapte(){
@@ -95,6 +100,7 @@ make_udapte(){
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t ${INSTALL_DIR}/ locale/locale
