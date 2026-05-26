@@ -152,7 +152,7 @@ driver_ctrl(){
 				remote_readme=( "curl" "-s" "https://${nvidia_ftp}-$ARCH/${LAST_DRV}/README/index.html" )
 				local_count=$(xq_x_query "${local_readme[*]}" '//dt/span[@class=\"chapter\"]/a' "^[0-9]+\." 1)
 				rem_count=$(xq_x_query "${remote_readme[*]}" '//dt/span[@class=\"chapter\"]/a' "^[0-9]+\." 1)
-				if (( ${local_count} != ${rem_count} )); then
+				if (( ${local_count} < ${rem_count} )); then
 					echo "${local_count} differ"
 					local_chapter=( $(xq_x_query "${local_readme[*]}" '//dt/span[@class=\"chapter\"]/a/attribute::*' '' 0 ) )
 					remote_chapter=( $(xq_x_query "${remote_readme[*]}" '//dt/span[@class=\"chapter\"]/a/attribute::*' '' 0 ) )

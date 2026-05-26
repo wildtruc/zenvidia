@@ -498,7 +498,7 @@
  - A few other minor local fixes/changes in functions.
  - End of the new messages display migration (supposedly).
  - Translatation still pending.
-* 2026-05-24 - v2.6.00
+* 2026-05-26 - v2.6.00
  - Switch remote controle content to xq queries that increase greatly the exchanges speed.
  - Switch wget to curl because it is mainly used by xq for the queries and there's no needs to have
    both programs in the script.
@@ -516,3 +516,8 @@
    Consequences: the script doesn't ask for a password anymore.
  - Command line tools are still pending.
  - Next step is to rewrite command line tools and translation.
+* 2026-05-26 - v2.6.01
+ - Unexpected move in Nvidia remote README: the script was made to check if there was a new chapter
+   in README index.html and thus do not expect there weas chapter retrieved from docs.
+   New beta driver came up during git pushing and revealed the issue.
+   This is a quick update to fix this.
