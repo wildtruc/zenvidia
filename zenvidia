@@ -7957,7 +7957,7 @@ base_menu(){ # LIST
 	echo -e "KERNEL_SOURCES => $(kernel_src)"
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-	[[ -d /proc/${spid} ]] && kill ${spid} || true
+	# [[ -d /proc/${spid} ]] && kill ${spid} || true
 
 	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
