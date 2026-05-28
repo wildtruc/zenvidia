@@ -521,3 +521,5 @@
    in README index.html and thus do not expect there weas chapter retrieved from docs.
    New beta driver came up during git pushing and revealed the issue.
    This is a quick update to fix this.
+* 2026-05-28 - v2.6.02
+ - Wrongly set an array var in xorg configurator GUI in local state. Fixed.
