@@ -181,7 +181,7 @@ user_CF_DIR(){
 }
 remote_drv_list(){
 	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		su_cmd "$(command -v zen_notify) -n &>/dev/null"
+		su_cmd 3 "$(command -v zen_notify) -n &>/dev/null"
 	fi
 	echo "$(user_CF_DIR)/notify/drvlist" || true
 	return
@@ -403,16 +403,20 @@ yad_css(){
 
 ### SU, EXIT AND ERROR TOOLS
 su_cmd(){
-	local sudo_cmd
-	if [[ -n ${su_cmd_prompt} ]]; then
-		sudo_cmd="${su_cmd_prompt}"
+	local type=${1} cmd="${2}" sudo_default=''
+	local -a sudo_cmd_line=()
+	su_prompt(){ # check if there is a custom command line before acting
+		local sudo_default=${1}
+		[[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt}" || printf ${sudo_default}
+	}
+	[ ${type} = 0 ] && sudo_cmd_line="$(command -v sudo)" # sudo test presence.
+	[ ${type} = 1 ] && sudo_cmd_line=( "$(su_prompt "sudo -l -u")" "$(def_user)" ) # exec for defaut user X/W Application.
+	[ ${type} = 2 ] && sudo_cmd_line=( "$(su_prompt "sudo -u")" "$(def_user)" "env XDG_RUNTIME_DIR=/run/user/$(def_user_id)" )
+	[ ${type} = 3 ] && sudo_cmd_line=( "$(su_prompt "sudo -u")" "$(def_user)" ) # general
+	if [[ -n "${cmd}" && ${type} -gt 0 ]]; then
+		eval ${sudo_cmd_line[*]} ${cmd}
 	else
-		[ -e $(command -v sudo) ] && sudo_cmd="sudo -u" || sudo_cmd="su -l"
-	fi
-	if [[ -n "${@}" ]]; then
-		eval ${sudo_cmd} $(def_user) ${@}
-	else
-		echo "$sudo_cmd"
+		echo "$sudo_cmd_line"
 	fi
 }
 error()(
@@ -1448,7 +1452,7 @@ nv_open_switch(){ # WARN
 			# win_yad_warns
 			local ok_lbl=$"Yes, switch to $drv_on"'!zen-ok' cancel_lbl=$"No, keep $drv_off"'!zen-undo'
 			yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
-			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
+			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_manage; fi
 
 			## Switch exec start here
 			y_text=$"DRIVER SWITCH from DKMS"" ${j}$drv_off${end} "$"to"" ${j}$drv_on${end} "$"build"
@@ -1538,7 +1542,7 @@ nv_open_switch(){ # WARN
 			# win_yad_warns
 			local ok_lbl=$"Yes, remove"'!zen-ok' cancel_lbl=$"No, preserve"'!zen-undo'
 			yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
-			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; fi
+			if [ $yad_warn -ge 1 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_manage; fi
 
 			## remove dkms driver tree.
 			y_text=$"Open Source Drivers deletion"
@@ -1821,7 +1825,7 @@ prime_setup(){
 	[ $opti_auto_set -ne $old_auto_set ] && sed -Ei "s/^(opti_auto_set)=.*$/\1=$opti_auto_set/" $basic_conf
 	[ "$render" != "$old_render" ] && sed -Ei "s/^(render)=.*$/\1=\"$render\"/" $basic_conf
 	## if program is not launch from install process, go back section menu or exit if task bar cmd.
-	[ $from_install = 0 ] && { [ $task_opt = 1 ] && exit 0 || menu_modif ;}
+	[ $from_install = 0 ] && { [ $task_opt = 1 ] && exit 0 || menu_manage ;}
 }
 prime_setup_window(){ # FIELD
 	# local xorg_version=$(cat /var/log/Xorg.0.log| sed -En "/Build ID:/{;s/^.*\ ([1\.]?[0-9]*[.].*)-.*$/\1/p}") # TEST
@@ -1872,7 +1876,7 @@ prime_setup_window(){ # FIELD
 		100)	if [ $from_install = 1 ]; then
 					render='NONE'; offload=0; opti_auto_set=0
 				else
-					[ $task_opt = 1 ] && exit 1 || menu_modif
+					[ $task_opt = 1 ] && exit 1 || menu_manage
 				fi
 			;;
 		200)	[ $task_opt = 1 ] && exit 1 || base_menu ;;
@@ -4686,7 +4690,7 @@ download_track(){
 	done
 	return
 }
-win_download_display(){ # PULSE
+win_download_display(){ # PROGRESS
 	# local file_down file_up file_ex > to be set in previous function
 	local pulse=0 log=0 hold=0 hide_txt=0
 	win_log_options
@@ -4696,7 +4700,7 @@ win_download_display(){ # PULSE
 	{ curl -s --output-dir $buildtmp/ -O $remote_pack & eval wpid=$! && download_track ;} | win_yad_progress
 	return # true
 }
-last_driver_pack(){ # PULSE # LIST
+last_driver_pack(){ # LIST
 	local l_text # run_pack
 	local -a RUN_PACK=() m_list=() scrap_list=() warn_log=()
 
@@ -4822,7 +4826,7 @@ check_cuda_storage(){
 	echo -e "${path_info[@]}"| sed -n 's/\!$//p' > $nvtmp/path_info_list
 }
 cuda_storage_warn(){ # FIELD
-	local info_text su_opts set_args su_cmd_prompt storage_warn
+	local info_text su_opts set_args storage_warn
 	p_root_dir=$(df -H / | awk '{print $5}'|sed -n '$p')
 	g_root_dir=$(df -H / | awk '{print $4}'|sed -n '$p')
 	check_cuda_storage
@@ -5619,6 +5623,13 @@ yad_make_list(){
 	done
 	return
 }
+yad_spinner(){
+	local img_spin="gtk-refresh"
+	{ timeout=20; local lpid=''; y_pulse ;} | \
+	yad --progress --pulsate --splash --no-buttons --hide-text --witdth=150 --height=100 \
+	--autoclose --image="${img_spin}" --text="${v}<b>"$"Please wait""</b>${end}" & eval spid=$!
+	# end of process # [[ -d /proc/${spid} ]] && kill ${spid} || true
+}
 win_log_options(){
 	# set default
 	x_sleep='' esc_message='' x_hold='--auto-close' x_button='--no-buttons'
@@ -5856,8 +5867,16 @@ win_yad_list(){
 			[ ${int} = 0 ] && exit 1 || true
 		fi
 	fi
- 	if [ $_exit -eq 1 ]; then echo 100; elif [ $_exit -eq 252 ]; then echo 200 ;fi
-	if (( $_exit == 143 )); then exit 1; fi
+ 	if [ $_exit -eq 1 ]; then
+		echo 100
+	elif [ $_exit -eq 252 ]; then
+		echo 200
+	elif [ $_exit -eq 143 ]; then
+		exit 1
+	elif [ $_exit -eq 0 ]; then
+		return
+	fi
+	# if (( $_exit == 143 )); then exit 1; fi
 
 }
 win_yad_text(){
@@ -5949,12 +5968,12 @@ win_open_switch(){ # WARN # LIST
 				1|2)
 					[ $use_open = $old_use_open ] || sed -Ei "s/^use_open=.*$/use_open=$old_use_open/" $basic_conf
 					rm -f $(user_CF_DIR)/old_basic.conf
-					[ $task_opt -gt 0 ] && exit 0 || menu_modif
+					[ $task_opt -gt 0 ] && exit 0 || menu_manage
 				;;
 			esac
 
 		else
-			## if old_basic.conf doesn't exist and/or the commande comes from menu_modif.
+			## if old_basic.conf doesn't exist and/or the commande comes from menu_manage.
 			## Executte swith in a classic way.
 			old_open_drv=$open_drv
 			old_use_open=$use_open
@@ -5993,11 +6012,11 @@ win_open_switch(){ # WARN # LIST
 			fi
 			local w_width='400' w_height='0'
 			driver_swt=( $( win_yad_list "${m_list[*]}" "") )
-			if [ ${driver_swt} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_modif; else
+			if [ ${driver_swt} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 0 || menu_manage; else
 				use_open=$driver_swt
 				if [ $use_open -ne $old_use_open ]; then
 					nv_open_switch
-					[ $task_opt -gt 0 ] && exit 0 || menu_modif
+					[ $task_opt -gt 0 ] && exit 0 || menu_manage
 				fi
 			fi
 		fi
@@ -6040,7 +6059,7 @@ manage_pcks(){ # LIST
 		3) restore_pcks ;;
 		4) remove_nvidia ;;
 		200) base_menu ;;
-		100|*) menu_modif ;;
+		100|*) menu_manage ;;
 	esac
 }
 remove_pcks(){ # LIST # WARN
@@ -6317,7 +6336,7 @@ backup_pcks(){ # WARN # PULSE
 		)"
 		local ok_lbl=$"Overwrite"'!zen-ok' cancel_lbl=$"No"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
-		if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then base_menu; fi
+		if [ $yad_warn = 1 ]; then menu_manage; elif [ $yad_warn = 2 ]; then base_menu; fi
 	else
 		warn_log=$"$( cat <<-WRN
 			You are going to backup ${j}$bak_version${end} driver installation
@@ -6327,7 +6346,7 @@ backup_pcks(){ # WARN # PULSE
 		)"
 		local ok_lbl=$"Ok"'!zen-ok' cancel_lbl=$"Close"'!zen-close'
 		yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
-		if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then base_menu; fi
+		if [ $yad_warn = 1 ]; then menu_manage; elif [ $yad_warn = 2 ]; then base_menu; fi
 	fi
 	if [ $yad_warn = 0 ]; then
 		y_text=$"Backup"" : ${j}$bak_version${end} "$"backup archive creation"
@@ -6366,41 +6385,14 @@ restore_pcks(){ # WARN # LIST # PULSE
 		yad_warn=$( win_yad_warns "${warn_log}" 0 "${ok_lbl}" "${cancel_lbl}" 0 "" )
 		if [ $yad_warn -ge 1 ]; then base_menu; fi
 	}
-	nv_build_options
-	# list package in release directory
-	from_install=0
-	local -a drive_list=()
-	local yad_warn='' l_text='' warn_log=''
-	local drive_packs res_version res_suffix
-
-	[ -d $nv_backup_dir ]|| mkdir -p $nv_backup_dir
-	nv_root_repo=$(ls -1 $nv_backup_dir | grep ".tar.*$"| sort -rV)
-	for drive in $nv_root_repo; do
-		drive_list+=("false")
-		drive_list+=("$drive")
-	done
-	l_text=$"$( cat <<-MSG
-		${j}<b>Restoration tool</b>${end}
-
-		Driver actually loaded $(drv_installed).
-
-		${v}Select the driver you want to restore.${end}
-	MSG
-	)"
-	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
-	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
-	local columns=2 sel_col=2 hid_col=0 col_tip=0 edit_col=0 sep=''
-	local w_width='400' w_height='300'
-
-	local IFS=$(echo -en "\n\b")
-	drive_packs=( $(win_yad_list "${drive_list[*]}" "") )
-	if [[ "$drive_packs"  =~ [a-z] ]]; then
+	restore_archive(){
 		# check that list not empty before proceed.
-		if [[ $drive_packs ]]; then
+		if [[ -n $drive_packs ]]; then
 			res_version=$(printf "$drive_packs"|sed -n "s/nvidia.\(.*[0-9]*\).tar.*$/\1/p")
 			res_suffix=$(printf "$drive_packs"|sed -n "s/.*\.//p")
 			ls /usr/$master$ELF_64/xorg/modules/extensions/libglxserver_nvidia.so &>/dev/null
-			if [ $? -eq 0 ]||[ ! -d $nv_root/$drive_packs ]; then
+			# if [ $? -eq 0 ]||[ ! -d $nv_root/$drive_packs ]; then
+			if [[ $? -eq 0 || ! -d $nv_root/$drive_packs ]]; then
 				## win_yad_warns
 				warn_log=$"${v}Restoring ${j}$res_version${end} will replace actual${end} ${j}$(version)${end}."
 				ok_lbl=$"Yes, restore and replace"'!zen-ok' ; cancel_lbl=$"Abort"'!zen-back'
@@ -6432,7 +6424,7 @@ restore_pcks(){ # WARN # LIST # PULSE
 							driver_logfile=$nvlog/$(version)-$KERNEL.log
 							nv_cmd_dkms_conf
 							# Compil and install DKMS modules
-							nv_build_dkms
+							if [ $use_dkms = 1 ]; then nv_build_dkms; else nv_cmd_make_src; fi
 							. $tmp_vars
 							if [ $pass -eq 1 ]; then
 								die 2 ${LINENO} $"# FAILURE : DKMS compilation ERROR !!""\n"$"# FAILURE : See 'Update drivers or modules' > 'Update driver only (dkms/force)' to force build." "manage_pcks" 1
@@ -6469,13 +6461,46 @@ restore_pcks(){ # WARN # LIST # PULSE
 					restart_dm_warn
 				fi
 			else
-				# current version overwrite ALERT message
+				# current version overwrite ALERT message for none libglxserver versions.
 				alert_message
 			fi
 		else
 			manage_pcks
 		fi
-	fi
+	}
+	nv_build_options
+	# list package in release directory
+	from_install=0
+	local -a drive_list=() cmd_list=() m_list=()
+	local yad_warn='' l_text='' warn_log=''
+	local drive_packs res_version res_suffix
+
+	[ -d $nv_backup_dir ]|| mkdir -p $nv_backup_dir # make sure that the backup directoryexist (fresh)
+	l_text=$"$( cat <<-MSG
+		${j}<b>Restoration tool</b>${end}
+
+		Driver actually loaded $(drv_installed).
+
+		${v}Select the driver you want to restore.${end}
+	MSG
+	)"
+	local IFS=$'\n'
+	cmd_list=( $(ls -1 $nv_backup_dir | grep ".tar.*$"| sort -rV) )
+	# yad_make_list ${FUNCNAME} "${cmd_list[*]}" "" 0
+	for drive in ${cmd_list[@]}; do
+		m_list+=("false")
+		m_list+=("$drive")
+	done
+	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
+	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
+	local columns=2 sel_col=2 hid_col=0 col_tip=0 edit_col=0 sep=''
+	local w_width='400' w_height='300'
+	drive_packs=$(win_yad_list "${m_list[*]}" "")
+	case $drive_packs in
+		${drive_packs}) [[ "${drive_packs}" =~ [a-z] ]] && restore_archive || true;;
+		200) base_menu 1 ;;
+		100|*) manage_pcks ;;
+	esac
 }
 
 ## EDITION TOOLS
@@ -6592,7 +6617,7 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 	else
 		if [ ${conf_base} -ge 100 ]; then
 			[ $task_opt -gt 0 ] && exit 0
-			if [ ${conf_base} = 200 ]; then base_menu; else menu_modif; fi
+			if [ ${conf_base} = 200 ]; then base_menu; else menu_manage; fi
 		fi
 	fi
 	if [[ $UID = 0 || $task_opt = 0 ]]; then
@@ -6613,7 +6638,7 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 			WRN
 			)"
 			yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
-			if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then exit 1; else
+			if [ $yad_warn = 1 ]; then menu_manage; elif [ $yad_warn = 2 ]; then exit 1; else
 				## if open_drv is change, DKMS autoinstall boot time command has to be change by adding the blank file
 				## 'no-autoinstall' in /etc/dkms directory. Method seems to work without issue except for package manager
 				## udpate program that apprently need 'autoinstall all' to be set (fedora here).
@@ -6655,7 +6680,7 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 		exit 1
 	fi
 	## then go back to Section Menu.
-	[ $task_opt -gt 0 ] && exit 0 || menu_modif
+	[ $task_opt -gt 0 ] && exit 0 || menu_manage
 }
 edit_color_conf(){ # YAD
 	## color tmep file test preview and vars reset
@@ -6770,9 +6795,9 @@ edit_color_conf(){ # YAD
 		edit_color_text
 		font_button=$(yad_gui)
 		case $font_button in
-			0) color_config; mv -f $TMP_conf $color_conf; chown $(def_user):$(def_user) $color_conf; zen_colors; menu_modif ;;
+			0) color_config; mv -f $TMP_conf $color_conf; chown $(def_user):$(def_user) $color_conf; zen_colors; menu_manage ;;
 			2) color_config; . $TMP_conf; zen_colors; edit_color_conf ;;
-			100) menu_modif ;;
+			100) menu_manage ;;
 			200) base_menu ;;
 		esac
 }
@@ -7017,8 +7042,8 @@ x_yad_tab(){ # TAB
 			done
 			if [ ${#options_list[*]} -gt 0 ]; then
 				local t=$n
-				local tab_text=$"<b>${3} :</b> ${c}${2}${end} - Section \"$section\""
-				local tab_names+=(--tab="${sf}${c}$(echo -e "${2}\n$section")${end}${end}")
+				tab_text=$"<b>${3} :</b> ${c}${2}${end} - Section \"$section\""
+				tab_names+=(--tab="${sf}${c}$(echo -e "${2}\n$section")${end}${end}")
 				## create tab.
 				$d_yad --plug=${1} --tabnum="$t" --list --checklist --editable --editable-cols=4 --text="$tab_text" \
 				--column=1 --column=2 --column=3 --column=4 --column=5 --no-headers \
@@ -7031,13 +7056,13 @@ x_yad_tab(){ # TAB
 x_yad_block(){ # YAD
 	xorg_cfg=/etc/X11/xorg.conf.nvidia ### DEV to remove
 	local -a device_options=() DEVICE_section_list=()
-	local tab_names KEY n device_options options_orig device mn_cmd
+	local tab_names KEY n options_orig device mn_cmd
 	local xorg_tmp_dir server_sections device_sections
 	local w_text=''
 	local xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	nv_doc=$zen_docs/nv-tips
 	x_doc=$zen_docs/x-tips
-
+	# yad_spinner # wait please :)
 	## create a temp dir to remove at the end of the porcess.
 	xorg_tmp_dir=$(mktemp -d $zen_tmp_dir/xorg.conf.XXXX)
 	## main window
@@ -7074,8 +7099,10 @@ x_yad_block(){ # YAD
 		[ $e = 2 ] && c=${y} # LIGHTBLUE
 		device='Device'$e
 		x_yad_tab "$KEY" "${dev_name[$e]}" "${vnd[$e]}" "${vnd_id[$e]}"
-		echo -en "*** ${grn}${tab_names[*]}${nc} ***"
+		# echo -en "*** ${grn}${tab_names[*]}${nc} ***"
 	done
+	# kill $!
+	# [[ -d /proc/${spid} ]] && kill ${spid} || true
 	local cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
 	local buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
 	{ mn_cmd=$( $d_yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="$WIN_TITLE" --window-icon=$img_zen_desktop \
@@ -7105,7 +7132,7 @@ edit_xorg_full_text(){ # TEXT
 			else
 				die 2 $"Xorg config file do not differ from previous. Abort" "base_menu" 0
 			fi
-			menu_modif
+			menu_manage
 		;;
 		1|2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
@@ -7168,7 +7195,7 @@ edit_distro_conf(){ # WARN # TEXT
 	local yad_warn edit_plug_conf cara_count
 	local ok_lbl=$"I live dangerously"'!zen-ok' cancel_lbl=$"Well, I'm finally a coward"'!zen-back'
 	yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
-	if [ $yad_warn = 1 ]; then menu_modif; elif [ $yad_warn = 2 ]; then base_menu; fi
+	if [ $yad_warn = 1 ]; then menu_manage; elif [ $yad_warn = 2 ]; then base_menu; fi
 	## edit config file.
 	local log_brief="$(user_CF_DIR)/distro.conf"
 	## count number of caracter before edit
@@ -7186,7 +7213,7 @@ edit_distro_conf(){ # WARN # TEXT
 			else
 				die 2 $"Distribution config file do not differ from previous. Abort" "base_menu" 0
 			fi
-			menu_modif
+			menu_manage
 		;;
 		1|2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
@@ -7201,7 +7228,7 @@ read_help(){ # TEXT
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
 	local ok_lbl='' w_formatted=1 w_wrap=1 w_width='780' w_height='400' all_btn=0 colors=1
 	read_view=$(win_yad_text "$log_brief" 0 "")
-	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_manage; fi
+	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_infos; fi
 }
 read_about(){ # TEXT
 	local read_view log_brief='' log_txt
@@ -7224,7 +7251,7 @@ read_about(){ # TEXT
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'; ok_lbl=''
 	local w_formatted=1 w_wrap=1 w_width='700' w_height='400' all_btn=0 colors=1
 	read_view=$(win_yad_text "$log_brief" 0 "--image=zen-emblem")
-	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_manage; fi
+	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_infos; fi
 }
 read_nv_help(){ # LIST # TEXT
 	local index read_view chapter_index chapters_list help_tip=''
@@ -7258,11 +7285,11 @@ read_nv_help(){ # LIST # TEXT
 			read_view=$(win_yad_text "$chap_brief" 0 "")
 			case "$read_view" in
 				0) read_nv_help ;;
-				1) [ $task_opt -gt 0 ] && exit 0 || menu_manage; ;;
+				1) [ $task_opt -gt 0 ] && exit 0 || menu_infos; ;;
 				2) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 			esac
 		;;
-		100) [ $task_opt -gt 0 ] && exit 0 || menu_manage; ;;
+		100) [ $task_opt -gt 0 ] && exit 0 || menu_infos; ;;
 		200) [ $task_opt -gt 0 ] && exit 0 || base_menu; ;;
 	esac
 }
@@ -7286,7 +7313,7 @@ read_changelog(){ # LIST # TEXT
 		local ok_lbl=$"Back to index"'!zen-undo'
 		local w_formatted=0 w_wrap=1 w_width='750' w_height='400' all_btn=1 colors=1
 		read_view=$(win_yad_text "$log_brief" 0 "")
-		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; else
+		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else
 			if [[ $relist_title != '' ]]; then
 				list_relist
 			else
@@ -7343,10 +7370,10 @@ read_changelog(){ # LIST # TEXT
 			fi
 		else
 			if [ "$catch_title" != '' ]; then
-				if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; else read_changelog; fi
-				# if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; else re_list; fi # IN TEST
+				if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else read_changelog; fi
+				# if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else re_list; fi # IN TEST
 			else
-				if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; fi
+				if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; fi
 			fi
 		fi
 	}
@@ -7428,7 +7455,7 @@ read_zen_changelog(){ # LIST # TEXT
 		local log_txt=$"${v}${mf}<b>Zenvidia changelog : ${y}$log_version${end}</b>${end}${end}"
 		local w_formatted=1 w_wrap=${wrap} w_width='750' w_height='400' all_btn=1 colors=1 ok_lbl=$"Back to list"'!zen-undo'
 		read_view=$(win_yad_text "$log_brief" 0 "")
-		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; else list_relist; fi
+		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else list_relist; fi
 	}
 	list_relist(){
 		if [[ ${#entrylog_list[@]} -le 1 ]]; then
@@ -7442,6 +7469,8 @@ read_zen_changelog(){ # LIST # TEXT
 		fi
 		local l_text=$"${j}${bf}Zenvidia Change Logs list${end}${end}"
 		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
+		# [[ -d /proc/${spid} ]] && kill ${spid} || true
+
 		# local col_name=( "" "Version" "" )
 		local ok_lbl='Read!zen-ok'
 		local list_type='radiolist' l_tail=0 w_head=1 col_name=()
@@ -7456,9 +7485,10 @@ read_zen_changelog(){ # LIST # TEXT
 			log_brief=$(cat $log_pages | sed -En '/'$entry_log'/,/'$log_end'/{;s/^\t/\ \ \ /g;{s/^\*.*v.*$//g;p}}')
 			brief
 		else
-			if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_manage; fi
+			if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; fi
 		fi
 	}
+	# [ ${task_opt} = 0 ] && yad_spinner || true
 	local initial_list=() entry_list_core=() entry entry_end log_section
 	initial_list=$(grep -E -e "^\* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //g;p"| sort -V)
 	for entry in ${initial_list[@]}; do
@@ -7476,11 +7506,12 @@ nv_config(){
 		gpu_set="$($d_nv_settings -q gpus | grep -i "nvidia" | sed -En "s/^.*\[gpu:([0-9])\].*(\(.*\)).*$/\"GPU \1 - \2\"/g;p")"
 	# 	$(su_cmd) "$(def_user)" $d_nv_settings -p "$gpu_set"
 		if [ $UID = 0 ]; then
-			su_cmd "env XDG_RUNTIME_DIR=/run/user/$(def_user_id) $d_nv_settings --page=$gpu_set"
+			# su_cmd 1 "env XDG_RUNTIME_DIR=/run/user/$(def_user_id) $d_nv_settings --page=$gpu_set"
+			su_cmd 2 "$d_nv_settings --page=$gpu_set"
 		else
 			$d_nv_settings --page=$gpu_set
 		fi
-		menu_modif
+		menu_manage
  	else
 		die 2 ${LINENO} $"Nvidia-setting not found.\nInstall it first !" "base_menu" 0
  	fi
@@ -7494,8 +7525,8 @@ zen_notif_setup(){ # WARN # LIST
 		ok_lbl=$"Ok"'!zen-ok'
 		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 		case $yad_warn in
-			0) sed -Ei "s/(Exec=zen_notify) -[a-z]/\1 $_set/" $notif_desk_file; menu_modif ;;
-			1) [ $task_opt -gt 0 ] && exit 0 || menu_modif ;;
+			0) sed -Ei "s/(Exec=zen_notify) -[a-z]/\1 $_set/" $notif_desk_file; menu_manage ;;
+			1) [ $task_opt -gt 0 ] && exit 0 || menu_manage ;;
 			2) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
 		esac
 	}
@@ -7543,11 +7574,18 @@ zen_notif_setup(){ # WARN # LIST
 		1) _set='-n'; _notif=$"driver check only" ;;
 		2) _set='-z'; _notif=$"driver and zenvidia check" ;;
 		200) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
-		100|*) [ $task_opt -gt 0 ] && exit 0 || menu_modif ;;
+		100|*) [ $task_opt -gt 0 ] && exit 0 || menu_manage ;;
 	esac
 	setup_validation
 }
-
+cuda_notes(){
+	su_cmd 2 "xdg-open https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cuda-libraries" &
+	menu_infos
+}
+cuda_docs(){
+	su_cmd 2 "xdg-open https://docs.nvidia.com/cuda/index.html" &
+	menu_infos
+}
 ## SUB MENU
 menu_install(){ # LIST
 	local menu_cmd n m_cmd hlp_tip='' # menu_inst
@@ -7622,7 +7660,7 @@ menu_update(){ # LIST
 		100|*) base_menu ;;
 	esac
 }
-menu_modif(){ # LIST
+menu_manage(){ # LIST
 	check_version
 	local menu_cmd n m_cmd l_cmd hlp_tip=''
 	local -a m_list=() cmd_list=()
@@ -7669,12 +7707,20 @@ menu_modif(){ # LIST
 		100|*) base_menu ;;
 	esac
 }
-menu_manage(){ # LIST
+menu_infos(){ # LIST
 	local menu_cmd m_cmd l_cmd hlp_tip w_height # menu_mng
 	local -a cmd_list=() m_list=()
 
 	local IFS=$'\n'
-	cmd_list=( $"Documentation manual ($(version))""|1" $"Change Logs ($(version))""|2" $"Zenvidia Logs""|3" $"Zenvidia Help and documentation""|4" $"About Zenvidia""|5" )
+	# cmd_list=( $"Documentation manual ($(version))""|1" $"Change Logs ($(version))""|2" $"Zenvidia Logs""|3" $"Zenvidia Help and documentation""|4" $"About Zenvidia""|5" )
+	cmd_list+=($"Documentation manual ($(version))""|1")
+	cmd_list+=($"Change Logs ($(version))""|2")
+	cmd_list+=($"Zenvidia Logs""|3")
+	cmd_list+=($"Zenvidia Help and documentation""|4")
+	cmd_list+=($"About Zenvidia""|5")
+	cmd_list+=($"Cuda"" ${LAST_CUDA} ""Release Notes (remote)""|6")
+	cmd_list+=($"Cuda Documentation manual Zenvidia (remote)""|7")
+	# cmd_list+=()
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 	local l_text="${j}${bf}"$"Help and Documentation""${end}${end}"
 	local cancel_lbl=$"Back to main"'!zen-back' ok_lbl=$"Select"'!zen-ok'
@@ -7692,6 +7738,8 @@ menu_manage(){ # LIST
 		3) read_zen_changelog ;;
 		4) read_help ;;
 		5) read_about ;;
+		6) cuda_notes ;;
+		7) cuda_docs ;;
 		# 100|200|*) base_menu ;;
 		200) exit 1 ;;
 		100|*) base_menu ;;
@@ -7853,8 +7901,6 @@ base_menu(){ # LIST
 	right_check(){
 		if [ $UID = 0 ]; then echo "Administrator"; else echo $"$USER (write privilege not allowed)"; fi
 	}
-	# local menu_cmd txt_render  install_state
-	# local defi cara set more offi offi_ver beta beta_ver
 	local menu_cmd install_state
 	local -a yad_table_arrays=() txt_render=() cmd_list=() m_list=()
 	local spaces=0 l_text='' from_install=0 n=0
@@ -7911,6 +7957,8 @@ base_menu(){ # LIST
 	echo -e "KERNEL_SOURCES => $(kernel_src)"
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
 	if [ $hlp_txt = 0 ]; then
@@ -7924,8 +7972,8 @@ base_menu(){ # LIST
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then menu_install; else is_SU; base_menu; fi;;
 		2) if [ $UID = 0 ]; then menu_update; else is_SU; base_menu; fi;;
-		3) menu_modif ;;
-		4) menu_manage ;;
+		3) menu_manage ;;
+		4) menu_infos ;;
 		100|200|*) exit 1 ;;
 	esac
 }
@@ -7939,8 +7987,10 @@ install_controls(){
 }
 set_graphical_env(){
 	test -x "$d_yad" || exit 0 # security
+	## define window title for all Yad windows.
+	WIN_TITLE="Zenvidia - $(zen_version)"
 	## check su command to allow root to get default user env.
-	[[ -n "$(su_cmd)" ]] || set_su
+	[[ -n "$(su_cmd 0 "")" ]] || set_su
 	# cmdline tool doesn't need to read config, so skip the step if in console only.
 	if [[ $(def_user) != "root" ]]; then
 	# check if default user has conf file to load, or create it from shipped.
@@ -7994,7 +8044,7 @@ set_graphical_env(){
 		notif_desk_file=/home/$(def_user)/.config/autostart/zen_notify.desktop
 		notif_desk_opt=$(cat $notif_desk_file| sed -En "s/^Exec=.*-(.*)/\1/p")
 		## in case of first use, take care to launch zen_notify which is launching zen_task_menu
-		[ -e $(user_CF_DIR)/notify/drvlist ] || su_cmd "zen_notify -n &>/dev/null"
+		# [ -e $(user_CF_DIR)/notify/drvlist ] || su_cmd "zen_notify -n &>/dev/null"
 		## then read script conf.
 		. $basic_conf
 		. $color_conf
@@ -8009,10 +8059,9 @@ set_graphical_env(){
 	fi
 	## define storege check unit.
 	(( ${divider} == 1024 )) && bit='b' || bit='o'
-	## define window title for all Yad windows.
-	WIN_TITLE="Zenvidia - $(zen_version)"
 	# load markup span font colors.
 	zen_colors
+	# yad_spinner # wait please :)
 	## xterm dispaly details
 	xterm_display_vars
 	## check/install dependies.
@@ -8131,6 +8180,7 @@ declare_default_sets(){
 	# cuda_install_dir=${cuda_install_dir:-/usr/local}
 	cuda_install_dir=${cuda_install_dir:-DEFAULT}
 	temp_ramfs=${temp_ramfs:-0}
+	spid=${pid:-0}
 }
 default_zen_dir(){
 	## Outside the "make install" process, for various reasons (restoration, fresh OS install, etc..)
@@ -8280,12 +8330,14 @@ if [ $(x_check) -gt 0 ]; then
 	exit 0
 else
 	set_graphical_env
+	# yad_spinner
 	## from there, script need a runing X server
 	## option are for zen_task_menu, rescue, degug and test.
 	if [ $# -gt 0 ]; then
 		while (( $# > 0 )); do
 		# 't' is the dev test function option.
 			task_opt=1
+			# [[ -d /proc/${spid} ]] && kill ${spid} || true
 			case ${1} in
 				-r) read_zen_changelog;;
 				-s) read_help;;
