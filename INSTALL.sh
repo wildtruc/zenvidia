@@ -88,7 +88,7 @@ make_safeuninstall(){
 	rm -f /usr/share/polkit-1/rules/com.github.pkexec.zenvidia.rules
 	echo -e "SAFE UNINSTALL DONE."
 }
-make_udapte(){
+make_update(){
 	sudo -u ${C_USER} git pull
 	## system
 	install -CDm755 -b -t ${BIN_DIR}/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
@@ -133,7 +133,7 @@ if [ $# -gt 0 ]; then
 			install) make_install ;;
 			uninstall) make_uninstall ;;
 			safeuninstall) make_safeuninstall ;;
-			udapte) make_udapte ;;
+			update) make_update ;;
 			*|help) echo -e "${red}Wrong option${nc}"; make_help ;;
 		esac
 		shift
