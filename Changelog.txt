@@ -523,3 +523,6 @@
    This is a quick update to fix this.
 * 2026-05-28 - v2.6.02
  - Wrongly set an array var in xorg configurator GUI in local state. Fixed.
+* 2026-05-29 - v2.6.03
+ - Fix dyslexic error in INSTALL.sh, typo was wrong for "update" commande preventing command to
+   start. u_u
