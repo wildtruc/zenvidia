@@ -8442,7 +8442,6 @@ trap_on_exit 'IFS=$ifs' # security, not necessary needed.
 trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
 
 ## check if X server is off before lauching cmd line tools.
-# x_check(){ echo 1;} # TEST
 if [ $(x_check) -gt 0 ]; then
 	DEV "Command line tools" "0" # unavailable message
 	# gcc, env, kernel, etc
