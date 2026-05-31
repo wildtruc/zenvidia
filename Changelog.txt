@@ -537,3 +537,6 @@
  - Because "set" options recently setted for unlink variables in zen_task_menu, the script failed
    if notify message was not found in user conf directory. Fixed.
  - If other issues appear due to all this majors changes, I will try to fix as fast as possible.
+* 2026-05-31 - v2.6.11
+ - HOFIX: zenvida-modules-relaod was unexpecteedly corrupt from a previous upload.
+ - Tool tips translation update.

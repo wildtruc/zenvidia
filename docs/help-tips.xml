@@ -66,7 +66,7 @@
 				<p>Note: because Cuda is taking a huge place, it wont be kept afterward.</p>
 			</tip>
 		</menu_update>
-		<menu_modif>
+		<menu_manage>
 			<tip key="Edit Xorg config file">
 				<p>Edit the current xorg configuration file in /etc/X11.</p>
 			</tip>
@@ -103,14 +103,16 @@
 				<p>When available, manage Prime Display behaviour.</p>
 				<p>PRIME and PRIME render offload managed only.</p>
 			</tip>
-		</menu_modif>
-		<menu_manage>
+		</menu_manage>
+		<menu_infos>
 			<tip key="Documentation manual"><p>Read the full current Nvidia documentation file</p></tip>
 			<tip key="Change Logs"><p>Read the current Nvidia version changelog file</p></tip>
 			<tip key="Zenvidia Logs"><p>Read the Zenvidia changelog file</p></tip>
 			<tip key="Zenvidia Help and documentation"><p>Read Zenvidia documentation file</p></tip>
 			<tip key="About Zenvidia"><p>Read current Zenvidia README file</p></tip>
-		</menu_manage>
+			<tip key="Cuda Release Notes"><p>Open dedicated release notes in the browser</p></tip>
+			<tip key="Cuda Documentation manual"><p>Open dedicated documentation pages in the browser</p></tip>
+		</menu_infos>
 		<manage_pcks>
 			<tip key="Remove downloaded packages">
 				<p>Manage downloaded packages in Zenvidia directory.</p>
@@ -294,7 +296,7 @@
 				<p>Note: puisque Cuda prend énormément de place, le paque ne sera pas conservé après coup.</p>
 			</tip>
 		</menu_update>
-		<menu_modif>
+		<menu_manage>
 			<tip key="Éditer le fichier de configuration Xorg">
 				<p>Éditer le fichier de configuration courant xorg dans /etc/X11.</p>
 			</tip>
@@ -332,8 +334,8 @@
 				<p>Quand disponible, gére le comportement du Prime Display.</p>
 				<p>Pris en charge de PRIME et PRIME render offload uniquement.</p>
 			</tip>
-		</menu_modif>
-		<menu_manage>
+		</menu_manage>
+		<menu_infos>
 			<tip key="Manuel de documentation">
 				<p>Lire le fichier documentation intégrale courant du pilote Nvidia</p>
 			</tip>
@@ -343,7 +345,9 @@
 			<tip key="Journal des modifications Zenvidia"><p>Lire le journal des modifications Zenvidia</p></tip>
 			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
 			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
-		</menu_manage>
+			<tip key="Note de version Cuda"><p>Ouvre la page de dédiée dans le navigateur</p></tip>
+			<tip key="Manuel de documenttaion Cuda"><p>Ouvre les pages de documentation dans le navigateur</p></tip>
+		</menu_infos>
 		<manage_pcks>
 			<tip key="Supprimer des paquets téléchargés">
 				<p>Gérer les paquets téléchargés dans le répertoire Zenvidia.</p>
@@ -381,6 +385,7 @@
 				<p>This set will check both Nvidia driver and Zenvidia updates at session start.</p>
 			</tip>
 		</zen_notif_setup>
+
 		<backup_tools>
 			<tip key="Faire une sauvegarde">
 				<p>Sauvergarder l'installation pilote courante.</p>
@@ -390,6 +395,16 @@
 				<p>Gérer les archives pilotes précédemment sauvegardées.</p>
 			</tip>
 		</backup_tools>
+		<last_driver_pack>
+			<tip key="compat">
+				<p>Ce paquet inclus les compatibilités pour les librairies 64 and 32 bits.</p>
+				<p>Indispensable pour les programmes tel que Wine pour les environnements gaming.</p>
+			</tip>
+			<tip key="no_compat">
+				<p>Ce paquet est purement 64 bits.</p>
+				<p>À sélectionner si n'y a pas intention d'utiliser de compatiblités 32 bits.</p>
+			</tip>
+		</last_driver_pack>
 	</locale>
 <!--   </menus> -->
 </tips>
