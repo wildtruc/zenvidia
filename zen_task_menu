@@ -29,6 +29,7 @@ img_zen_green=$icon_stock/zen-emblem-gr.png
 img_nv_settings=$icon_stock/zen-settings.png
 img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
+zen_version=$(cat $local_conf_dir/zen_version)
 
 test -f $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 
@@ -36,7 +37,9 @@ export PATH=$PATH:/usr/local/bin
 export TEXTDOMAIN=zen_task_bar
 export TEXTDOMAINDIR=/usr/local/share/zenvidia/locale
 
-declare open_menu='' opti_menu='' adds=''
+declare open_menu='' driver_changelog='' nvidia_help='' changelog_menu=''
+declare next_major_change='' zen_new_update=''
+declare opti_menu='' adds=''
 
 [ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
@@ -49,7 +52,8 @@ if [ -f $local_conf_dir/version.txt ]; then
 	[ "$version" != '' ] && version_txt=$"<b>$version</b> in use. <small>($adds)</small>" || version_txt=$"no driver detected"
 fi
 if [ -f $local_notif ]; then
-	declare next_change='' next_major_change='' next_driver=''
+	declare notif=0 notif_text=''
+	declare next_change='' next_driver='' zen_new_version=''
 	. $local_notif
 	if [ $notif = 1 ]; then
 		embed_text="$(cat <<-MSG
@@ -66,6 +70,9 @@ if [ -f $local_notif ]; then
 		open_uri="xdg-open ${next_change}"
 		next_major_change=$" Next ${next_driver} major change"'!'${open_uri}'!zen-warning,'
 	fi
+	if [[ -n ${zen_new_version} && ${zen_new_version} != ${zen_version} ]]; then
+		zen_new_update=$" Update ${zen_new_version} from git repos"'!zen_start -g!zen-warning,'
+	fi
 fi
 menu_list=(
 	\ $"Start zenvidia"!zen_start!$img_zen,
@@ -75,7 +82,7 @@ menu_list=(
 	$"Check Nvidia driver Update"!zen_start -u!zen-refresh,
 	${open_menu}${driver_changelog}${nvidia_help}${changelog_menu}
 	$"Zenvidia Help and documentation"!$d_zen -s!zen-docs,
-	${next_major_change}
+	${next_major_change}${zen_new_update}
 	$"Close Zenvidia task menu"!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \

@@ -59,4 +59,14 @@
 		<annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
 	</action>
 
+	<action id="com.github.pkexec.zenvidia.git">
+		<message>Zenvidia need Admin priviledges to update from GIT</message>
+		<defaults>
+			<allow_any>no</allow_any>
+			<allow_inactive>no</allow_inactive>
+			<allow_active>no</allow_active>
+		</defaults>
+		<annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/zenvidia -g</annotate>
+		<annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+		</action>
 </policyconfig>

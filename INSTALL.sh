@@ -1,7 +1,6 @@
 #! /bin/bash
 
-# set -e
-#set -euo pipefail  # TODO next
+# set -e # devel
 
 # DEFINE FIRST THE CURRENT USER NAME
 C_USER=$(stat -c %U -- /run/user/*| grep -v "root")

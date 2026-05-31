@@ -528,4 +528,12 @@
    start. u_u
 * 2026-05-31 - v2.6.04
  - When fastly uploading INSTALL.sh for fix, forgot to unset developpemnt "abort on error". Fixed.
-
+* 2026-05-31 - v2.6.10
+ - Add basic spinner to not confuse users in case of long starting processes.
+ - Add git repose self update : will display in systray menu on zenvidia update.
+ - Rework of su_cmd o fit new general behaviour of the scriot.
+ - Driver stock unumeration improperly set to list. Not fatal. Fixed.
+ - Package install command had faulty IFS. Fedora 44 handle default IFS differenly as before. Fixed.
+ - Because "set" options recently setted for unlink variables in zen_task_menu, the script failed
+   if notify message was not found in user conf directory. Fixed.
+ - If other issues appear due to all this majors changes, I will try to fix as fast as possible.
