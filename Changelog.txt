@@ -539,4 +539,4 @@
  - If other issues appear due to all this majors changes, I will try to fix as fast as possible.
 * 2026-05-31 - v2.6.11
  - HOFIX: zenvida-modules-relaod was unexpecteedly corrupt from a previous upload.
- - Tool tips translation update.
+ - Tool tips translation update (btw).
