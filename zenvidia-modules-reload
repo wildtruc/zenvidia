@@ -17,7 +17,7 @@ if [ -e /var/run/nv-modules-reload.pid ]; then
 	if [ $(lsmod | grep -c "nouveau") -gt 0 ]; then
 		$d_probe -r nouveau
 	else
-		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && && echo "[zenvidia] $PCI_ID modules unload done" || true
+		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID modules unload done" || true
 	fi
 	if [ -e "/sys/bus/pci/rescan" ]; then
 	 	echo 1 > /sys/bus/pci/rescan && echo "global pci rescan done" >> $reload_log || true
