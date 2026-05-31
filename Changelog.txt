@@ -526,3 +526,6 @@
 * 2026-05-29 - v2.6.03
  - Fix dyslexic error in INSTALL.sh, typo was wrong for "update" commande preventing command to
    start. u_u
+* 2026-05-31 - v2.6.04
+ - When fastly uploading INSTALL.sh for fix, forgot to unset developpemnt "abort on error". Fixed.
+
