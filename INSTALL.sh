@@ -1,6 +1,6 @@
 #! /bin/bash
 
-set -e
+# set -e
 #set -euo pipefail  # TODO next
 
 # DEFINE FIRST THE CURRENT USER NAME
