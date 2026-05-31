@@ -18,14 +18,14 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # DEFAULT set options
-# set -eEu
+# set -xeEu
 set -eEu
 
 # xhost +si:localuser:root
 
 # set -e -E -u -o pipefail -o functrace
 # set -e -E -u -o functrace
-export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
+# export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 ## Fixed Variables (could not be change)
 ### ZENVIDIA VARS ### readonly install_dir="/usr/local" (AI fix)
 install_dir=/usr/local							# default tools & system install directory
@@ -85,12 +85,23 @@ pkg_installer(){
 	esac
 }
 pkg_options(){
+# 	case $(distro_version) in
+#  		arch|manjaro) echo "--noconfirm ";;
+#  		mageia|mandriva) echo "-y install ";;
+# 		rhel|fedora|centos) echo "-y install ";;
+# 		opensuse|sles) echo "--non-interactive install ";;
+# 		ubuntu|mint|debian) echo "-y install ";;
+# # 		sles) echo "";;
+# 		*) echo "none" ; pkg_inst=0 && return ;;
+# 	esac
+# 	return
+	pm_opt_list=()
 	case $(distro_version) in
- 		arch|manjaro) echo "--noconfirm ";;
- 		mageia|mandriva) echo "-y install ";;
-		rhel|fedora|centos) echo "-y install ";;
-		opensuse|sles) echo "--non-interactive install ";;
-		ubuntu|mint|debian) echo "-y install ";;
+ 		arch|manjaro) pm_opt_list+=("-S" "--noconfirm");;
+ 		mageia|mandriva) pm_opt_list+=("-y" "install");;
+		rhel|fedora|centos) pm_opt_list+=("-y" "install");;
+		opensuse|sles) pm_opt_list+=("--non-interactive" "install");;
+		ubuntu|mint|debian) pm_opt_list+=("-y" "install");;
 # 		sles) echo "";;
 		*) echo "none" ; pkg_inst=0 && return ;;
 	esac
@@ -98,9 +109,13 @@ pkg_options(){
 }
 pkg_install_cmd(){
 	local pkg_inst=1
-	local pm_cmd=$(pkg_installer) pm_options="$(pkg_options)" pm_list="${1}"
-	local IFS=$' '
-	${pm_cmd} install ${pm_options[*]} ${pm_list}
+	[ ${#pm_opt_list[*]} -gt 0 ] || pkg_options
+	# local pm_cmd=$(pkg_installer) pm_options="$(pkg_options)" pm_list="${1}"
+	local pm_cmd=$(pkg_installer) pm_list="${1}"
+	# local IFS=$' '
+	local IFS=$'\n'
+	# eval ${pm_cmd} ${pm_options[*]} ${pm_list[*]}
+	eval ${pm_cmd} ${pm_opt_list[*]} ${pm_list[*]}
 	return
 }
 # elf types
@@ -403,16 +418,18 @@ yad_css(){
 
 ### SU, EXIT AND ERROR TOOLS
 su_cmd(){
+	# syntax : su_cmd 0/1/2/3 "cmd"
 	local type=${1} cmd="${2}" sudo_default=''
 	local -a sudo_cmd_line=()
 	su_prompt(){ # check if there is a custom command line before acting
-		local sudo_default=${1}
-		[[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt}" || printf ${sudo_default}
+		local sudo_default=( ${@} )
+		# [[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf ${sudo_default[*]}
+		[[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf %s "${sudo_default[*]}"
 	}
 	[ ${type} = 0 ] && sudo_cmd_line="$(command -v sudo)" # sudo test presence.
-	[ ${type} = 1 ] && sudo_cmd_line=( "$(su_prompt "sudo -l -u")" "$(def_user)" ) # exec for defaut user X/W Application.
-	[ ${type} = 2 ] && sudo_cmd_line=( "$(su_prompt "sudo -u")" "$(def_user)" "env XDG_RUNTIME_DIR=/run/user/$(def_user_id)" )
-	[ ${type} = 3 ] && sudo_cmd_line=( "$(su_prompt "sudo -u")" "$(def_user)" ) # general
+	[ ${type} = 1 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-l" "-u")" "$(def_user)" ) # exec for defaut user X/W Application.
+	[ ${type} = 2 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-u")" "$(def_user)" "env XDG_RUNTIME_DIR=/run/user/$(def_user_id)" )
+	[ ${type} = 3 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-u")" "$(def_user)" ) # general
 	if [[ -n "${cmd}" && ${type} -gt 0 ]]; then
 		eval ${sudo_cmd_line[*]} ${cmd}
 	else
@@ -592,11 +609,12 @@ dep_lib_check(){
 	# rpm base : kernel-devel kernel-headers /usr/src/linux-$(uname -r)
 	# rh : kernel-devel kernel-headers /usr/src/kernels/linux-$(uname -r)
 	if [ $resolve_dep = 0 ]; then
+	# if [ $resolve_dep = 1 ]; then # TEST
 		case $(distro_version) in
-			arch|manjaro) deplist+=("kernel-headers"); deplist+=("git") ;;
-			rhel|fedora|centos) deplist+=("kernel-headers"); deplist+=("kernel-devel"); deplist+=("git") ;;
-			mageia|mandriva) deplist+=("kernel-desktop-devel-latest"); deplist+=("git") ;; # deplist+=("kernel-desktop-devel");;
-			ubuntu|mint|debian) deplist+=("kernel-headers"); deplist+=("kernel-devel-$(uname -r)"); deplist+=("git") ;;
+			arch|manjaro) deplist+=("kernel-headers" "git") ;;
+			rhel|fedora|centos) deplist+=("kernel-headers" "kernel-devel" "git") ;;
+			mageia|mandriva) deplist+=("kernel-desktop-devel-latest" "git") ;; # deplist+=("kernel-desktop-devel");;
+			ubuntu|mint|debian) deplist+=("kernel-headers" "kernel-devel-$(uname -r)" "git") ;;
 # 			*) ;;
 		esac
 		return
@@ -606,9 +624,12 @@ dep_control(){ # yad and xterm autoinstall here. # PULSE
 	if [ -x $(pkg_installer) ]; then
 		local yad_warn warn_log
 		[[ $p_xterm != '' || $d_yad != '' ]] || (
-		echo -e "${red}"$"XTERM and YAD are missing, installing"" ...${nc}"; $(pkg_install_cmd) "xterm yad";
-		export p_xterm=$(command -v xterm)
-		export d_yad=$(command -v yad)
+			local -a pm_opt_list=()
+			echo -e "${red}"$"XTERM and YAD are missing, installing"" ...${nc}"
+			pm_opt_list=( "xterm" "yad" )
+			$(pkg_install_cmd) "${pm_opt_list[*]}";
+			export p_xterm=$(command -v xterm)
+			export d_yad=$(command -v yad)
 		)
 		if [ "${#deplist[*]}" -gt 0 ] ; then
 			local IFS=$'\n'
@@ -638,13 +659,12 @@ dep_control(){ # yad and xterm autoinstall here. # PULSE
 					yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "" )
 					# if [ $_exit = 0 ]; then
 					if [ $yad_warn = 0 ]; then
+						local -a pm_opt_list=()
 						local y_text=$"Depencies installation, please wait."
 						local pulse=1 log=1 hold=1 hide_txt=1
 						win_log_options
 						{ timeout=30 ;{
-							pkg_install_cmd "${deplist[*]}" | read_sequence 3 #\
-							# while read line; do echo "# ${line}"; done
-							sleep ${read_timeout}
+							pkg_install_cmd "${deplist[*]}" | read_sequence 3
 							echo -e "# "
 							echo -e "$esc_message"
 							[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
@@ -665,45 +685,45 @@ dep_control(){ # yad and xterm autoinstall here. # PULSE
 					)"
 					die 2 ${LINENO} "${warn_log}" 1 0 && exit 0
 				fi
-			else
-				if [ $UID = 0 ]; then
-					EXEC=$"$(
-						cat <<-DEP
-							read -p "Will you install them now ? (Y/N) :" confirm
-							if [[ "\$confirm" =~ [yY] ]]; then
-								echo -e "\n${grn}Depencies installation, please wait . . .${nc}\n"
-								$(pkg_install_cmd) ${deplist[*]}
-								sed -i "s/resolve_dep=.*/resolve_dep=1/" $script_conf
-							else
-								echo -e "\n${red}Those dependencies are mandatory for Zenvidia.${nc}\n"
-								echo -e "If you don't want Zenvidia to install them automatically,"
-								echo -e "you need to use your packages manager instead"
-								echo -e "BYE !"
-							fi
-						DEP
-					)"
-				else
-					EXEC=$"$(
-						cat <<-DEP
-							echo -e "Zenvidia is start without admin privileges."
-							echo -e "You need to restart with ${red}Zenvidia (admin)${nc} to install them."
-						DEP
-					)"
-				fi
-				w_text=$"$(
-					cat <<-DEP
-						echo -e "${red}Script Dependencies Check${nc}\n"
-
-						echo -e "Required dependencies are not met.\n"
-						echo -e "${dep_text[*]}\n"
-						$EXEC
-						echo -e "\n${cya}*****  Close window to escape *****${nc}"
-					DEP
-					)"
-				primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
-				term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
-				xt_options=' -hold -fn 8x13 -geometry 80x24+'$[ ( ($term_x_dsp-660)/2) ]'+0'
-				$p_xterm $xt_options -e "$w_text"
+			# else
+			# 	if [ $UID = 0 ]; then
+			# 		EXEC=$"$(
+			# 			cat <<-DEP
+			# 				read -p "Will you install them now ? (Y/N) :" confirm
+			# 				if [[ "\$confirm" =~ [yY] ]]; then
+			# 					echo -e "\n${grn}Depencies installation, please wait . . .${nc}\n"
+			# 					$(pkg_install_cmd) ${deplist[*]}
+			# 					sed -i "s/resolve_dep=.*/resolve_dep=1/" $script_conf
+			# 				else
+			# 					echo -e "\n${red}Those dependencies are mandatory for Zenvidia.${nc}\n"
+			# 					echo -e "If you don't want Zenvidia to install them automatically,"
+			# 					echo -e "you need to use your packages manager instead"
+			# 					echo -e "BYE !"
+			# 				fi
+			# 			DEP
+			# 		)"
+			# 	else
+			# 		EXEC=$"$(
+			# 			cat <<-DEP
+			# 				echo -e "Zenvidia is start without admin privileges."
+			# 				echo -e "You need to restart with ${red}Zenvidia (admin)${nc} to install them."
+			# 			DEP
+			# 		)"
+			# 	fi
+			# 	w_text=$"$(
+			# 		cat <<-DEP
+			# 			echo -e "${red}Script Dependencies Check${nc}\n"
+   #
+			# 			echo -e "Required dependencies are not met.\n"
+			# 			echo -e "${dep_text[*]}\n"
+			# 			$EXEC
+			# 			echo -e "\n${cya}*****  Close window to escape *****${nc}"
+			# 		DEP
+			# 		)"
+			# 	primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
+			# 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
+			# 	xt_options=' -hold -fn 8x13 -geometry 80x24+'$[ ( ($term_x_dsp-660)/2) ]'+0'
+			# 	$p_xterm $xt_options -e "$w_text"
 			fi
 			## check if datas comes from special distro config.
 			[ -f $(user_CF_DIR)/distro.conf ] && {
@@ -1698,6 +1718,8 @@ prime_setup(){
 	local xorg_cfg=/etc/X11/xorg.conf.nvidia
 	local old_auto_set=$opti_auto_set old_preset=$opti_preset old_offload=$offload old_render=$render
 	local render com xrandr_conf gdm_conf desktop_conf
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 	if [ $opti_auto_set = 1 ]; then
 		[ $offload = 1 ] && render='PRIME'
@@ -3209,7 +3231,11 @@ build_source(){
 }
 nv_cmd_make_src(){ # PULSE
  	[ -f "$(find -L $(kernel_src) -name "sign-file")" ] || die 1 "${LINENO}" "sign-file kernel script not found" "" 1
-	echo_message 0 $"# Build and install modules from sources"
+	if [ $from_install = 1 ]; then
+		echo_message 1 "${j}−${end}" $"Build and install modules from sources"
+	else
+		echo_message 0 $"Build and install modules from sources"
+	fi
 	## get the previous yad pid if any
 	list_kill_parent_pids
  	local pulse=0 log=1 hold=1 hide_txt=1
@@ -3441,7 +3467,7 @@ nv_cmd_install_cuda(){ # PULSE
 	popd
 	nv_ctrl_install_cuda
 }
-nv_ctrl_install_cuda(){
+nv_ctrl_install_cuda(){ # PROBABLY DEPRACATED
 	cuda_dir_check=$cuda_dir_version
 	[ -d $cuda_install_dir/$cuda_dir_check ] || base_menu
 	cuda_dir_size=$(du -sbB $((${divider}*${divider})) $cuda_install_dir/$cuda_dir_check | awk '{print $1}') # Size in Mo/Mb
@@ -3461,7 +3487,7 @@ nv_ctrl_install_cuda(){
 		die 2 ${LINENO} "Cuda's evaluation size failed.\nAbort." 1 0
 	fi
 }
-cuda_checksum_alarm(){
+cuda_checksum_alarm(){ # PROBABLY DEPRACATED
 	local warn_log=$"$(cat <<-WARN
 		$cuda_dir_check directory doesn't have the expected size.
 		- expected size : above 9000 M${bit}
@@ -3612,7 +3638,8 @@ xorg_check(){ # WARN
 }
 ## INITIAL OR UPGRADE INSTALL PROCESS
 INSTALL_DRIVER(){ # PULSE ###
-	local warn_log yad_warn report_log n init_ramfs
+	local yad_warn report_log n init_ramfs
+	local warn_log=''
 	local compiled_driver='' final_installed_mod_version='' dkms_stat='' update_status=1
 	## tell script that all POST_INSTALL process came from global install. Needed in many cases.
 	local from_install=1
@@ -3624,7 +3651,7 @@ INSTALL_DRIVER(){ # PULSE ###
 		${v}Installing driver ${j}$(new_version)${end} for hardware : ${j}$install_dev${end}${end}.
 	WRN
 	)"
-	ok_lbl=$"Install"'!zen-ok' ; cancel_lbl=$"Back to main"'!zen-close'
+	local ok_lbl=$"Install"'!zen-ok' cancel_lbl=$"Back to main"'!zen-close'
 	yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
 	if [ $yad_warn -ge 1 ]; then base_menu; fi
 
@@ -3645,9 +3672,17 @@ INSTALL_DRIVER(){ # PULSE ###
 		DRV=$(new_version)
 		for e in ${dev_n[@]}; do
 			if [[ "${vnd_id[$e]}" =~ "10de" ]]; then
+				local -a compat=() hardware_msg=() die_message=()
+				local compat_query compat_serie compat_driver
+				local set_uncompat=0 compat_test=0 main_compat=0 is_beta=0
+				local IFS=$'\n'
 				hardware_compat
-				. $tmp_vars
-				echo_message 1 "${j}−${end}" $"Compatiblity found in" ${y}"$match_drv"${end} "serie, proceed to install"
+				eval main_compat=$main_compat
+				[ ${set_uncompat} = 0 ] || hardware_uncompat
+				# . $tmp_vars
+				# echo_message 1 "${j}−${end}" $"Compatiblity found in" ${y}"$match_drv"${end} "serie, proceed to install"
+				echo_message 1 "${j}−${end}" "${hardware_msg[*]}"
+				[ ${set_uncompat} = 1 ] && die 2 ${LINENO} "${die_message[@]}" "base_menu" 0
 			fi
 		done
 		# CUDA REMOTE CHEKC HERE
@@ -4289,6 +4324,8 @@ check_update(){
 	local -a compat=() legacy_list=() DIFF_list=() hardware_msg=() die_message=()
 	local compat_query compat_serie compat_driver is_beta #e row
 	local set_uncompat=0 compat_test=0 #main_compat=0
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 	LAST_DRV=${LAST_DRV:-$LAST_OFFI}
 	if [[ $LAST_DRV == $LAST_BETA ]] ; then
@@ -4320,7 +4357,7 @@ win_update(){ # YAD
 	local -a yad_table_arrays=() txt_render=() DOWN_list=() more_render=() info_render=()
 	local suf line name drive serie installed beta stock
 	local w_text='' compatibilty='' not='' compat_name='' previous_name=''
-	local compat_tag=1 unsupported=0 stock_count=0
+	local compat_tag=1 unsupported=0 #stock_count=0
 
 	local spaces=0 tab=0
 	kokoro="${y}$(echo -e '\u2764')${end}"
@@ -4335,6 +4372,7 @@ win_update(){ # YAD
 	yad_table_list $"Beta version :" "${LAST_BETA}"
 	yad_table ${FUNCNAME}
 	# form : name|id|vclass|driver|serie|stock|installed|beta|compatible
+	local available_drivers=${#compat[*]}
 	for line in ${compat[*]}; do
 		# id=$(cut -d'|' -f2 <<< "${line}")
 		name=$(cut -d'|' -f1 <<< "${line}")
@@ -4359,9 +4397,7 @@ win_update(){ # YAD
 	# done
 	# for line in ${compat[*]}; do
 	# 	drive=$(cut -d'|' -f4 <<< "${line}")
-		# stock=$(cut -d'|' -f6 <<< "${line}")
-		stock+=( $(cut -d'|' -f6 <<< "${line}") )
-		stock_count=$([ $stock -gt 0 ] && printf $((stock_count+1)) || printf 0)
+		stock=$(cut -d'|' -f6 <<< "${line}")
 		installed=$(cut -d'|' -f7 <<< "${line}")
 		case ${installed} in
 			0) is_installed="";; # do
@@ -4375,10 +4411,9 @@ win_update(){ # YAD
 		previous_name=${name}
 		[[ ${compatible} = 1 && ${installed} = 0 && ${stock} = 0 ]] && DOWN_list+=("${drive}") || true
 	done
+	# [[ ${installed} = 1 && ${stock_count} = 1 ]] && ui_mod=0 || true # EX
 	[[ ${#DOWN_list[*]} -gt 0 ]] && ui_mod=1 || ui_mod=0
-	[[ ${installed} = 1 && ${stock_count} = 1 ]] && ui_mod=0 || true
-	[[ ${installed} = 1 && ${stock_count} -gt 1 ]] && ui_mod=2 || true
-	# [[ ${installed} = 0 && ${stock} = 1 ]] && ui_mod=2 || true
+	[[ ${#compat[*]} = 1 && ${installed} = 1 && ${#DOWN_list[*]} = 0 ]] && ui_mod=2 || true
 
 	local ok_lbl=$"Select" cancel_lbl=$"Abort" option=''
 	local -a zen_opts=() table_opts=() list_opts=()
@@ -4389,19 +4424,14 @@ win_update(){ # YAD
 			# list_opts=''
 			extra_msg="\n"$"Nothing to do."
 			;;
-		1)	# list dl/install
-			# zen_opts=("--list" "--radiolist" "--no-headers" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=$ok_lbl!zen-ok:0")
-			# table_opts=("--column" "set" "--column" "2" "--column" "action" "--separator=" "--hide-column=2" "--print-column=2")
-			# list_opts=("true" 1 "Install" "false" 2 "Download ")
+		1)	# download
 			ok_lbl=$"Install" cancel_lbl=$"Abort" option=$"Download"
 			zen_opts=("--image=zen-question" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=${option}!gtk-save:2" "--button=${ok_lbl}!gtk-redo-ltr:3")
 			extra_msg="\n"$"What do you want to do ?"
 			;;
-		2)	# other or redo
+		2)	# single isntalled and replay
 			ok_lbl=$"Replay Install"
 			zen_opts=("--image=zen-question" "--borders=15" "--button=${cancel_lbl}!zen-back:1" "--button=${ok_lbl}!zen-ok:4")
-			# table_opts=''
-			# list_opts=''
 			extra_msg="\n"$"Nothing to do.\nYou may optionaly select to replay install."
 			;;
 	esac
@@ -4702,7 +4732,7 @@ win_download_display(){ # PROGRESS
 }
 last_driver_pack(){ # LIST
 	local l_text # run_pack
-	local -a RUN_PACK=() m_list=() scrap_list=() warn_log=()
+	local -a RUN_PACK=() m_list=() scrap_list=() #warn_log=()
 
 	scrap_list=( $(xq_x_query 3 ".run$") )
 	for line in ${scrap_list[@]}; do
@@ -4738,7 +4768,7 @@ last_driver_pack(){ # LIST
 	evac "$run_pack" "base_menu" 1
 
 	file_size=$(xq_x_query 4 "${run_pack}|size" | sed -En 's/^([0-9]+)([A-Z]*)$/\1|\2/p')
-	run_pack_sha=$(xq_x_query 4 "${run_pack}.sha256sum|file")
+
 	# download command options
 	remote_pack=https://$nvidia_ftp-$ARCH/$LAST_PACK/$run_pack
 	local_pack=$run_pack
@@ -4749,12 +4779,19 @@ last_driver_pack(){ # LIST
 	local y_text="<b>"$"Downlaoding"" ${j}$LAST_PACK${end} "$"driver from"" ${y}Nvidia${end} "$"server""</b>"
 	win_download_display
 
-	if [ -f $buildtmp/$run_pack ]; then
+	current_pack_sha=$(xq_x_query 4 "${run_pack}.sha256sum|file")
+	current_pack=$run_pack
+	pack_sha_uri="https://${nvidia_ftp}-$ARCH/${LAST_PACK}/${current_pack_sha}"
+	package_checksum_ctrl
+}
+package_checksum_ctrl(){
+	local -a warn_log=()
+	if [ -f $buildtmp/$current_pack ]; then
 		pushd $buildtmp &>/dev/null
-		curl -s https://${nvidia_ftp}-$ARCH/${LAST_PACK}/${run_pack_sha} -o ${run_pack_sha}
-		if [ -f $run_pack.sha256sum ]; then
-			sha256sum ${run_pack}
-			sha256sum --status -c ${run_pack_sha}
+		curl -s ${pack_sha_uri} -o ${current_pack_sha}
+		if [ -f $current_pack.sha256sum ]; then
+			sha256sum ${current_pack}
+			sha256sum --status -c ${current_pack_sha}
 			if [ $? = 1 ]; then
 					warn_log+="${j}<b>"$"Download check sum error""</b>${end}.\n"
 					warn_log+=$"Transaction aborted""\n"
@@ -4765,7 +4802,7 @@ last_driver_pack(){ # LIST
 		fi
 	else
 		warn_log+="${j}""<b>"$"Download failure""</b>${end}\n"
-		warn_log+="${run_pack} "$"pack is missing"".\n"
+		warn_log+="${current_pack} "$"pack is missing"".\n"
 		warn_log+=$"Cancelling all children preocesses.""\n"
 		warn_log+=$"Try to restart driver download from"" <b>"$"Update menu""</b>"
 		die 2 ${LINENO} "${warn_log[@]}" "base_menu" 0
@@ -4953,7 +4990,7 @@ update_cuda_list(){ # PULSE # Cuda start process
 }
 # Check if sys have enough tmpfs space.
 cuda_tmpfs_warn(){ # FIELD
-	local CUDA_size tempfs_dir home_dir total_tmp total_cuda swap_space war_log set_tmp
+	local CUDA_size tempfs_dir home_dir total_tmp total_cuda swap_space warn_log set_tmp
 	local ok_lbl='' cancel_lbl='' selector swap_fs home_alternative alt_storage alt_msg
  	local alt_btn chk_btn_tmp=FALSE chk_btn_save=FALSE media_storage media_line
 	local dl_warn_msg='' proc_msg='' proc_msg_pre='' proc_msg_suf='' bck_to=''
@@ -5126,7 +5163,6 @@ cuda_sel_pack(){ # LIST # WARN
 	if [ $from_install = 0 ]; then
 		# From update menu : BUILDS=( $(ls -1 ~/.zenvidia/release/ | sed -n "s/^.*-//g;p" | sort -V) )
 		local cuda_list=( "$(cat $cuda_log| sort -rV)" )
-# 		IFS=$(echo -en "\n\b")
 		local IFS=$'\n'
 		failed_install_log_path="$(user_CF_DIR)/cuda-temp-path.log"
 # 		failed_install_log_path="./cuda-temp-path.log" # TEST
@@ -5170,8 +5206,9 @@ cuda_sel_pack(){ # LIST # WARN
 		done
 		local list_title="${j}${bf}"$"Available CUDA builds""${end}${end}"
 		list_text+=$"Note that the previous release before last one\nis automaticaly remove from Nvidia server."
-		list_text+="\n"$"Last cuda  Toolkit version:"" ${j}${LAST_CUDA}${end}"
+		list_text+="\n"$"Last cuda  Toolkit version:"" ${y}${LAST_CUDA}${end}"
 		[[ $(cuda_version) != FALSE ]] && {
+			list_text+="\n"$"Installed version:"" ${j}$(cuda_version)${end}"
 			list_text+="\n\n"$"WARNING : Installer doesn't automaticaly remove older version.\n"
 			list_text+="To preserve system storage space ""${j}"$(cuda_version)"${end}"$" version will be remove."
 			}
@@ -5289,30 +5326,34 @@ package_checksum_sim(){
 	# page checksum trouvée :
 	# https://developer.download.nvidia.com/compute/cuda/13.2.1/docs/sidebar/md5sum.txt
 	# forme : e5b4bdf19cc27d63a8254cb486764626 cuda_13.2.1_595.58.03_linux.run
+	current_pack_sha=$local_pack.sha256sum
+	current_pack=$local_pack
+	pack_sha_uri="https://$cuda_base_url/compute/cuda/$CUDA_VERSION/docs/sidebar/md5sum.txt"
+	package_checksum_ctrl
 
-	local remote_size package_size proc_msg more_msg bck_to warn_log
-	remote_size=$CUDA_SIZE_O
-	package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
-	if (( $remote_size != $package_size )); then
-		proc_msg=$"Downloaded file not of the same size than remote."
-		diff_size=$"Expected"": $(($CUDA_SIZE_O/($divider*$divider))) ,"$"received"": ""$(($package_size/($divider*$divider)))."
-		more_msg=$"Data check sum process failure"
-		if [ $from_install = 1 ]; then
-			echo_message 2 "- ""$proc_msg" "<b>"$more_msg"</b>"
-			report_log+=($"\t\t\t\t${gB} cuda-$CUDA_VERSION\t${end}> ${r}check sum error${end}.\n")
-			bck_to=''
- 		else
-			echo_message 0 "$proc_msg"
-			bck_to='base_menu'
-		fi
-		warn_log=$"$(cat <<-MSG
-			${proc_msg}
-			${diff_size}
-			${more_msg}
-		MSG
-		)"
-		die 2 ${LINENO} "$warn_log" "$bck_to" 0
-	fi
+	# local remote_size package_size proc_msg more_msg bck_to warn_log
+	# remote_size=$CUDA_SIZE_O
+	# package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
+	# if (( $remote_size != $package_size )); then
+	# 	proc_msg=$"Downloaded file not of the same size than remote."
+	# 	diff_size=$"Expected"": $(($CUDA_SIZE_O/($divider*$divider))) ,"$"received"": ""$(($package_size/($divider*$divider)))."
+	# 	more_msg=$"Data check sum process failure"
+	# 	if [ $from_install = 1 ]; then
+	# 		echo_message 2 "- ""$proc_msg" "<b>"$more_msg"</b>"
+	# 		report_log+=($"\t\t\t\t${gB} cuda-$CUDA_VERSION\t${end}> ${r}check sum error${end}.\n")
+	# 		bck_to=''
+ # 		else
+	# 		echo_message 0 "$proc_msg"
+	# 		bck_to='base_menu'
+	# 	fi
+	# 	warn_log=$"$(cat <<-MSG
+	# 		${proc_msg}
+	# 		${diff_size}
+	# 		${more_msg}
+	# 	MSG
+	# 	)"
+	# 	die 2 ${LINENO} "$warn_log" "$bck_to" 0
+	# fi
 }
 # warn before doing anything.
 cuda_install_info(){ # WARN
@@ -5355,7 +5396,7 @@ cuda_install_info(){ # WARN
 	ask_msg=$(win_yad_warns "$warn_log" ${selector} "${ok_lbl}" "${cancel_lbl}" 0 "")
 	case ${ask_msg} in
 		2|1) echo -e "local cuda_cancel=1"| tee -a $tmp_vars; return 1 ;;
-		0) echo -e "local cuda_cancel=1"| tee -a $tmp_vars; return ;;
+		0) echo -e "local cuda_cancel=0"| tee -a $tmp_vars; return ;;
 	esac
 	# then, go to install functions.
 }
@@ -5625,10 +5666,10 @@ yad_make_list(){
 }
 yad_spinner(){
 	local img_spin="gtk-refresh"
-	{ timeout=20; local lpid=''; y_pulse ;} | \
+	proc_pid=$$
+	{ timeout=20; local lpid=$proc_pid; y_pulse ;} | \
 	yad --progress --pulsate --splash --no-buttons --hide-text --witdth=150 --height=100 \
 	--autoclose --image="${img_spin}" --text="${v}<b>"$"Please wait""</b>${end}" & eval spid=$!
-	# end of process # [[ -d /proc/${spid} ]] && kill ${spid} || true
 }
 win_log_options(){
 	# set default
@@ -5935,6 +5976,8 @@ win_open_switch(){ # WARN # LIST
 		local driver_swt m_cmd m_row m_name
 		local -a m_list=() cmd_list=()
 		local drv_swt_message yad_warn warn_log
+		# interrupt spinner when from systray cmd
+		[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 		if [[ $task_opt = 1 && -s $(user_CF_DIR)/old_basic.conf ]]; then
 			## if the driver switch come from a modification of the script basic.conf
@@ -6509,8 +6552,8 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 	local conf_base conf_chg yad_warn
 	local -a orig_conf=() cnf_list=() col_name=() conf_list=()
 	local old_conf=$(user_CF_DIR)/old_basic.conf # << COULD COME FROM AN OTHER SESSION.
+	[ ${task_opt} = 0 ] && yad_spinner || true
 
-	# local IFS=$(echo -en "\n\b")
 	local IFS=$'\n'
 	local conf_list=( $(cat $basic_conf | sed -En 's/^# (.*):.*/\1/p') )
 	test -s $old_conf && rm -f $old_conf
@@ -6537,9 +6580,11 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 		[ $hlp_txt = 1 ] && cnf_list+=("${y}$(xq_tips "edit_script_conf" "$set_id" "help-conf-tips.xml")${end}")
 		orig_conf+=("$setted;$set_id;$set_val")
 	done
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	local help_tip="${v}\n"$"Define options and functions you would like to use or change""\n${end}"
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
-
 	local ok_lbl=$"Apply"'!zen-ok' # list_type='checklist'
 	local list_type='checklist' l_tail=0 w_head=1
 	if [ $hlp_txt = 0 ]; then
@@ -6792,14 +6837,16 @@ edit_color_conf(){ # YAD
 			fi
 		done
 	}
-		edit_color_text
-		font_button=$(yad_gui)
-		case $font_button in
-			0) color_config; mv -f $TMP_conf $color_conf; chown $(def_user):$(def_user) $color_conf; zen_colors; menu_manage ;;
-			2) color_config; . $TMP_conf; zen_colors; edit_color_conf ;;
-			100) menu_manage ;;
-			200) base_menu ;;
-		esac
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+	edit_color_text
+	font_button=$(yad_gui)
+	case $font_button in
+		0) color_config; mv -f $TMP_conf $color_conf; chown $(def_user):$(def_user) $color_conf; zen_colors; menu_manage ;;
+		2) color_config; . $TMP_conf; zen_colors; edit_color_conf ;;
+		100) menu_manage ;;
+		200) base_menu ;;
+	esac
 }
 ## This section is dedicated to Xorg config edition.
 # Here the full xorg editor GUI with specific functions.
@@ -7062,7 +7109,9 @@ x_yad_block(){ # YAD
 	local xorg_conf_log=$(user_CF_DIR)/xorg_cfg.log
 	nv_doc=$zen_docs/nv-tips
 	x_doc=$zen_docs/x-tips
-	# yad_spinner # wait please :)
+	# wait please :)
+	[ ${task_opt} = 0 ] && yad_spinner || true
+
 	## create a temp dir to remove at the end of the porcess.
 	xorg_tmp_dir=$(mktemp -d $zen_tmp_dir/xorg.conf.XXXX)
 	## main window
@@ -7101,8 +7150,9 @@ x_yad_block(){ # YAD
 		x_yad_tab "$KEY" "${dev_name[$e]}" "${vnd[$e]}" "${vnd_id[$e]}"
 		# echo -en "*** ${grn}${tab_names[*]}${nc} ***"
 	done
-	# kill $!
-	# [[ -d /proc/${spid} ]] && kill ${spid} || true
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	local cancel_lbl=$"Cancel"'!zen-close' ; ok_lbl=$"Ok"'!zen-ok'
 	local buttons=( "--button=$cancel_lbl:1" "--button=$ok_lbl:0" )
 	{ mn_cmd=$( $d_yad --key=$KEY --notebook --tab-pos=top --width=550 --height=400 --title="$WIN_TITLE" --window-icon=$img_zen_desktop \
@@ -7225,6 +7275,9 @@ read_help(){ # TEXT
 	local IFS=$'\n'
 	log_brief="$zen_docs/HELP.txt"
 	log_txt=$"${j}<b>Zenvidia help and documentation</b>${end}"
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
 	local ok_lbl='' w_formatted=1 w_wrap=1 w_width='780' w_height='400' all_btn=0 colors=1
 	read_view=$(win_yad_text "$log_brief" 0 "")
@@ -7232,6 +7285,8 @@ read_help(){ # TEXT
 }
 read_about(){ # TEXT
 	local read_view log_brief='' log_txt
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 	## set translation path.
 	local TEXTDOMAIN="zenvidia-about"
 	local z_version="$(zen_version)"
@@ -7256,11 +7311,14 @@ read_about(){ # TEXT
 read_nv_help(){ # LIST # TEXT
 	local index read_view chapter_index chapters_list help_tip=''
 	local IFS=$(echo -en "\n\b")
-		chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
-		for chapter in ${chapters_list[@]}; do
-			chapter_index+=("FALSE")
-			chapter_index+=("$chapter")
-		done
+	chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
+	for chapter in ${chapters_list[@]}; do
+		chapter_index+=("FALSE")
+		chapter_index+=("$chapter")
+	done
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	## display index first
 	[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Back to main"'!zen-back'
 	ok_lbl=$"Select"!'zen-ok'; l_tail=0; w_head=0 ; col_name=''
@@ -7339,6 +7397,9 @@ read_changelog(){ # LIST # TEXT
 				ln=$(($ln+1))
 			done
 		fi
+		# interrupt spinner when from systray cmd
+		[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 		local list_type='radiolist' columns=2 sel_col=2 sep='' hid_col=0 edit_col=0 col_tip=0 l_tail=0 w_head=0 col_name=''
 		local w_width='550' w_height='420'
 		l_text=$"${j}${bf}Nvidia Change Logs list $relist_title${end}${end}"
@@ -7418,7 +7479,7 @@ read_zen_changelog(){ # LIST # TEXT
 	local -a entry_list=() entrylog_list=() col_name=()
 	local log_list='' log_brief='' log_from_local='' entrylog=''
 	local log_end log_list log_brief entry_list
-
+	local proc_pid=$$
 	## if zenvidia update check is not enable in zen_notifyn changelog wont be updated
 	## and only core changelog is available.
 	if [[ "$notif_desk_opt" =~ 'z' ]]; then log_from_local=1; else log_from_local=0; fi
@@ -7469,7 +7530,8 @@ read_zen_changelog(){ # LIST # TEXT
 		fi
 		local l_text=$"${j}${bf}Zenvidia Change Logs list${end}${end}"
 		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Back to menu"'!zen-back'
-		# [[ -d /proc/${spid} ]] && kill ${spid} || true
+
+		[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 		# local col_name=( "" "Version" "" )
 		local ok_lbl='Read!zen-ok'
@@ -7488,7 +7550,8 @@ read_zen_changelog(){ # LIST # TEXT
 			if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; fi
 		fi
 	}
-	# [ ${task_opt} = 0 ] && yad_spinner || true
+	[ ${task_opt} = 0 ] && yad_spinner || true
+	# yad_spinner
 	local initial_list=() entry_list_core=() entry entry_end log_section
 	initial_list=$(grep -E -e "^\* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //g;p"| sort -V)
 	for entry in ${initial_list[@]}; do
@@ -7543,9 +7606,11 @@ zen_notif_setup(){ # WARN # LIST
 		m_list+=("$m_row")
 		m_list+=("$m_cmd")
 	}
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+
 	local menu_cmd n m_cmd m_row m_name hlp_tip=''
 	local -a m_list=() cmd_list=()
-
 	cmd_list=(
 	$"Check driver update only|1|driver check only|n"
 	$"Check zenvidia and driver update|2|driver and zenvidia check|z"
@@ -7585,6 +7650,91 @@ cuda_notes(){
 cuda_docs(){
 	su_cmd 2 "xdg-open https://docs.nvidia.com/cuda/index.html" &
 	menu_infos
+}
+git_auto_update(){
+	local main_path=${install_dir} bin_path=${install_dir}/bin  data_path=${install_dir}/share/zenvidia
+
+	install -CDm755 -b -t ${bin_path}/ zenvidia zen_notify zen_start zen_task_menu zenvidia-modules-reload
+	install -CDm644 -b -t ${data_path}/ *.conf
+	install -Dm644 -t ${data_path}/ README.md
+	install -Dm644 -t ${main_path}/share/applications/ desktop_files/{zenvidia,zenvidia-unpriviledge}.desktop
+	install -Dm644 -t ${main_path}/share/pixmaps/ pixmaps/*.png
+	install -Dm644 -t ${main_path}/share/doc/zenvidia/ docs/*.txt
+	install -Dm644 -t ${main_path}/share/doc/zenvidia/ docs/*.xml
+	install -Dm644 -t ${main_path}/share/doc/zenvidia/ Changelog.txt
+	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
+	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
+	install -CDm644 -t ${data_path}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
+	install -CDm644 -t ${data_path}/locale_dev/locale_po locale/locale_dev/*
+	cp -ruf -t ${data_path}/ locale/locale
+	# user
+	install -Dm644 -t /home/$(def_user)/.config/autostart/ desktop_files/{zen_notify,nvidia-settings-rc}.desktop
+	git log -n1 | grep -E -o "v[0-9]..*" > ${data_path}/zen_version
+	cp -f ${data_path}/zen_version $(user_CF_DIR)/
+	chown -R $(def_user):$(def_user) $(user_CF_DIR)
+}
+git_relaunch(){
+	su_cmd 2 "${install_dir}/bin/zen_notify -${notif_desk_opt}" &&	return 0
+	# su_cmd 2 "bash -x ${install_dir}/bin/zen_notify -${notif_desk_opt}" && exit 1 # TEST
+}
+git_update(){ # WARN # PULSE >> CLEANUP
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+	if [ ${grant_update} = 1 ]; then
+		. $(user_CF_DIR)/taskbar_message
+		[[ ${zen_new_version} != '' ]] || exit 1
+		local yad_warn y_text=''
+		local -a warn_log=()
+		warn_log+="${v}"$"You are about installing Zenvidia update"" ${j}${zen_new_version}${end}"".\n"
+		warn_log+=$"Please confirm"".${end}"
+		local ok_lbl=$"Install"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
+		yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "")
+		if [ $yad_warn -ge 1 ]; then exit 0; fi
+
+		mkdir -p ${zen_tmp_dir}/git-update
+		pushd ${zen_tmp_dir}/git-update &>/dev/null
+		y_text="${mf}"$"Zenvidia Update from"" ${j}$(zen_version)${end} "$"to"" ${j}${zen_new_version}${end}${end}"
+		local pulse=1 log=0 hold=0 hide_txt=0
+		win_log_options
+		{ timeout=30; {
+			echo_message 0 $"Cloning remote git repos"
+			git clone $zenvidia_git
+			# mkdir -p zenvidia # TEST
+			pushd zenvidia/ &>/dev/null
+			echo_message 0 $"Installing update"" ${zen_new_version}"
+			git_auto_update
+			# echo -e "# J'INSTALLE"; sleep 2 # TEST
+			# cp -f /home/mike/Devel/NVIDIA/dev_zenvidia/INSTALL-TEST.sh . # TEST
+			# # $(bash -x ./INSTALL-TEST.sh update) # TEST
+			# bash ./INSTALL-TEST.sh update # TEST
+			popd &>/dev/null
+			}& eval lpid=$!; y_pulse; } | win_yad_progress
+			popd &>/dev/null
+			if [[ -n ${systray_pid} ]]; then
+				local yad_warn
+				local -a warn_log=()
+				warn_log+="${j}<b>"$"Relaunch systray Zenvidia icon""</b>\n${end}"
+				warn_log+="${v}${mf}"$"Systray menu icon need to be relaunched for changes to take effect"".\n${end}${end}"
+				warn_log+="${nf}${y}"$"By selecting \"Later\" you should restart your session manager""\n${end}"
+				warn_log+="${y}"$"or start through default user terminal with:""\n${end}"
+				warn_log+="zen_notify -z ${y}(-n: driver, -z: driver, zenvidia)${end}${end}"
+				local ok_lbl=$"Yes"'!zen-ok' cancel_lbl=$"No, later"'!zen-back'
+				yad_warn=$( win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "zen-warning" )
+				case ${yad_warn} in
+					# 0) exec $(git_relaunch) & exit 1 ;; # TEST
+					0) kill ${systray_pid}; $(git_relaunch) & ;;
+					1|2|*) exit 1 ;;
+				esac
+			else
+				warn_log+=$"Relaunch user session for changes to take effect"
+				die 2 ${LINENO} "${warn_log[*]}" 1 0
+			fi
+	else
+		warn_log+=$"There is more than one process using Yad"".\n"
+		warn_log+=$"Close the other process first, then relauch update from systray""."
+		die 2 ${LINENO} "${warn_log[*]}" 1 0
+	fi
+	exit 1
 }
 ## SUB MENU
 menu_install(){ # LIST
@@ -7938,7 +8088,7 @@ base_menu(){ # LIST
 	if [[ $(cuda_version) != FALSE ]]; then
 		yad_table_list $"Cuda version :" "$(cuda_version)"
 	fi
-	yad_table_list $"Rights :" "$(right_check)"
+	yad_table_list $"Rights :" "${y}$(right_check)${end}"
 	yad_table_list "*#" ""
 	yad_table_list $"Last official:${LAST_OFFI}" $"Last Beta:${LAST_BETA}"
 	yad_table "${FUNCNAME}"
@@ -7957,7 +8107,7 @@ base_menu(){ # LIST
 	echo -e "KERNEL_SOURCES => $(kernel_src)"
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 
-	# [[ -d /proc/${spid} ]] && kill ${spid} || true
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 	local cancel_lbl=$"Exit"'!zen-back' ok_lbl=$"Select"'!zen-ok'
 	local list_type='radiolist' l_tail=0 w_head=0 col_name=''
@@ -7968,7 +8118,7 @@ base_menu(){ # LIST
 	fi
 	local w_width='580' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
-	[ $menu_cmd -ge 100 ] || tmp_dir
+	[[ ${menu_cmd} != '' && ${menu_cmd} -lt 100 ]] && tmp_dir
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then menu_install; else is_SU; base_menu; fi;;
 		2) if [ $UID = 0 ]; then menu_update; else is_SU; base_menu; fi;;
@@ -7986,7 +8136,15 @@ install_controls(){
 	fi
 }
 set_graphical_env(){
+	# local proc_pid=$$
 	test -x "$d_yad" || exit 0 # security
+	# zen_task_menu pid for git_update function.
+	yad_current_pid=$(ps -C yad -o pid | grep -cv "[A-Z]") || true
+	if [[ ${yad_current_pid} -gt 0 && ${yad_current_pid} -lt 2 ]]; then
+		grant_update=1 ; systray_pid=$(pidof yad)
+	else
+		grant_update=0 ; systray_pid=''
+	fi
 	## define window title for all Yad windows.
 	WIN_TITLE="Zenvidia - $(zen_version)"
 	## check su command to allow root to get default user env.
@@ -8061,7 +8219,7 @@ set_graphical_env(){
 	(( ${divider} == 1024 )) && bit='b' || bit='o'
 	# load markup span font colors.
 	zen_colors
-	# yad_spinner # wait please :)
+	yad_spinner # wait please :)
 	## xterm dispaly details
 	xterm_display_vars
 	## check/install dependies.
@@ -8351,6 +8509,7 @@ else
 				-o) [ $UID = 0 ] && win_open_switch;;
 				-a) read_about;;
 				-u) if [ $UID = 0 ]; then legacy_drv=0; tmp_dir; check_for_newer; check_update; fi ;;
+				-g) [ $UID = 0 ] && git_update ;;
 				--rescue) echo "not available yet" ;;
 				--trace) ## debug without unbound vars analysis but heading function name to trace errors.
 					set -x -e -E +u -T -o pipefail
