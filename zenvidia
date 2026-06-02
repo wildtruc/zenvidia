@@ -7148,6 +7148,8 @@ x_yad_block(){ # YAD
 # Here simple xorg editor and menu.
 edit_xorg_full_text(){ # TEXT
 	local cara_count edit_xorg log_txt log_brief
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 	local IFS=$(echo -en "\n\b")
 	log_txt="${j}${bf}"$"Edit raw Xorg config file""${end}${end}\n"${v}$"The <b>Save</b> button will overwrite the existing file.""${end}"
 	log_brief=$xorg_cfg
