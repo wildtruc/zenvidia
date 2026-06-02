@@ -538,5 +538,11 @@
    if notify message was not found in user conf directory. Fixed.
  - If other issues appear due to all this majors changes, I will try to fix as fast as possible.
 * 2026-05-31 - v2.6.11
- - HOFIX: zenvida-modules-relaod was unexpecteedly corrupt from a previous upload.
+ - HOTFIX: zenvida-modules-relaod was unexpecteedly corrupt from a previous upload.
  - Tool tips translation update (btw).
+* 2026-06-02 - v2.6.19
+ - HOTFIX: zenvida-modules-relaod (bis). Removed testing log var in file (unlink variable error).
+ - help tips achieved. Still missing translation for proper text display for other languages.
+ - Dependencies check rework. Added sudo to the list for non default sudo distros.
+ - Moved tmp_dir command in execution order that wasn't corresponding to he new process order.
+ - Minor change in zen_start, zen_nofify and zen_task_menu.

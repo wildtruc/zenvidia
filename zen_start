@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -eo pipefail
 
 pk_exec=$(command -v pkexec)
 if [ $(stat -c %u /run/user/*) -gt 0 ]; then

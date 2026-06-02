@@ -111,7 +111,7 @@
 			<tip key="Zenvidia Help and documentation"><p>Read Zenvidia documentation file</p></tip>
 			<tip key="About Zenvidia"><p>Read current Zenvidia README file</p></tip>
 			<tip key="Cuda Release Notes"><p>Open dedicated release notes in the browser</p></tip>
-			<tip key="Cuda Documentation manual"><p>Open dedicated documentation pages in the browser</p></tip>
+			<tip key="Cuda Documentation Manual"><p>Open dedicated documentation pages in the browser</p></tip>
 		</menu_infos>
 		<manage_pcks>
 			<tip key="Remove downloaded packages">
@@ -135,7 +135,7 @@
 			</tip>
 			<tip key="Looking for older version">
 				<p>Look up for a previous release available in Nvidia repos site.</p>
-				<p>Note that the listing take a little time, we're talking about the whole drivers list.</p>
+				<p>Will display from the most rescent version to the oldest one.</p>
 			</tip>
 		</net_version_selector>
 		<edit_xorg_conf>
@@ -173,21 +173,9 @@
 				<p>You can changed them set in : > Configuration and Tools > Edit Zenvidia config</p>
 			</tip>
 		</prime_setup_window>
-		<set_su>
-			<tip key="distribution_name">
-			<p>Enter the name of the distribution if not displayed.</p>
-			<p>This option is not esdsential. It only for diplaying in main menu window.</p>
-			</tip>
-			<tip key="su_commnd_line">
-				<p>Select a commande line in the list.</p>
-				<p>If your environment SU command prompt is not in scroll list, enter one here.</p>
-				<p>Command with full options is mandatory.</p>
-				<p>If you're afraid to make a mistake, think to ask your distribution's community first.</p>
-			</tip>
-		</set_su>
 		<from_directory>
 			<tip key="Use Zenvidia stock director">
-				<p>Every donwloaded packages are stored in default or user Zenvidia directory.</p>
+				<p>Every downloaded packages are stored in default or user Zenvidia directory.</p>
 				<p>When available score is always greater than 0.</p>
 			</tip>
 			<tip key="Use a user local directory">
@@ -265,7 +253,7 @@
 			<tip key="Mise à niveau du pilote">
 				<p>Vérifie les mises à jour du pilote.</p>
 				<p>Vous pouvez choisir durant le processus de télécharger seulement ou d'installer.</p>
-				<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez coup à:</p>
+				<p>Si vous sélectionnez d'uniquement télécharger le pilote, retournez après coup à:</p>
 				<p>» Menu principal » Installer des pilotes.</p>
 				<p>Note: Tous les téléchargements sont stockés dans le dépôt Zenvidia.</p>
 			</tip>
@@ -345,7 +333,7 @@
 			<tip key="Journal des modifications Zenvidia"><p>Lire le journal des modifications Zenvidia</p></tip>
 			<tip key="Aide et documentation Zenvidia"><p>Lire le fichier de d'aide et de documentation Zenvidia</p></tip>
 			<tip key="À propos de Zenvidia"><p>Lire le fichier README actuel de Zenvidia</p></tip>
-			<tip key="Note de version Cuda"><p>Ouvre la page de dédiée dans le navigateur</p></tip>
+			<tip key="Note de version Cuda"><p>Ouvre la page dédiée dans le navigateur</p></tip>
 			<tip key="Manuel de documenttaion Cuda"><p>Ouvre les pages de documentation dans le navigateur</p></tip>
 		</menu_infos>
 		<manage_pcks>
@@ -363,6 +351,16 @@
 				<p>Cette oprération représente un certain risque. À manier avec prudence.</p>
 			</tip>
 		</manage_pcks>
+		<net_version_selector>
+			<tip key="Rechercher la dernière version">
+				<p>Cherche la dernière version disponible depuis le sie de dépôt Nvidia.</p>
+				<p>Montrera indifféremment la version officiel ou bêta.</p>
+			</tip>
+			<tip key="Rechercher une ancienne version">
+				<p>Cherche une version antérieure disponible depuis le sie de dépôt Nvidia.</p>
+				<p>Affichera de la version la plus récente à la plus ancienne.</p>
+			</tip>
+		</net_version_selector>
 		<edit_xorg_conf>
 			<tip key="Éditer intégralement Xorg (GUI)">
 				<p>Éditer les options non sensibles de l'environnement X dans un GUI en onglets.</p>
@@ -377,15 +375,39 @@
 				<p>C'est un Replay en cas de perte du fichier xorg.conf.</p>
 			</tip>
 		<zen_notif_setup>
-			<tip key="Check driver update only">
-				<p>This set will only check driver updates at session start.</p>
-				<p>Zenvidia updates will be ignored.</p>
+			<tip key="Contrôle des mises à jour pilote uniquement">
+				<p>Ce paramètre contrleera uniquement les mises à jour pilote en début de session.</p>
+				<p>Les mises à jour de Zenvidia seront ignorées.</p>
 			</tip>
-			<tip key="Check zenvidia and driver update">
-				<p>This set will check both Nvidia driver and Zenvidia updates at session start.</p>
+			<tip key="Contrôle des mises à jour pilote et de Zenvidia">
+				<p>Ce paramètre contrôlera les mises à jour Nvidia et Zenvidia en début de session.</p>
 			</tip>
 		</zen_notif_setup>
-
+		<prime_setup_window>
+			<tip key="opti_set">
+				<p>Si paramétré, le choix de rendu du GPU sera sur PRIME par défaut.</p>
+				<p>Le dGPU Nvidia sera uniquement utilisé.</p>
+				<p>Vous pouvez changer ce paramètre à partir de :</p>
+				<p>> Outils et Configuration > Éditer la configuration de Zenvidia</p>
+			</tip>
+			<tip key="offload_set">
+				<p>Si paramétré, cette fenêtre ne sera plus affichée à la prochain cycle d'installation</p>
+				<p>ou de mise à jour.</p>
+				<p>Tous les paramètres applicables seront enregistrés dans le fichier de configuration.</p>
+				<p>Vous pouvez les changer à partir de:</p>
+				<p>> Outils et Configuration > Éditer la configuration de Zenvidia</p>
+			</tip>
+		</prime_setup_window>
+		<from_directory>
+			<tip key="Utiliser le dépôt Zenvidia">
+				<p>Tous les paquets téléchargés sont stockés dans répertoire par défaut de Zenvidia.</p>
+				<p>Quand disponible le compte est ttoujours suéprieur à 0.</p>
+			</tip>
+			<tip key="Utiliser un répertoire utilisateur local">
+				<p>Alternativement, vous pouvez sélectionner un paquet du répertoire local.</p>
+				<p>Comme au-dessus, le compte doit être supérieur à 0.</p>
+			</tip>
+		</from_directory>
 		<backup_tools>
 			<tip key="Faire une sauvegarde">
 				<p>Sauvergarder l'installation pilote courante.</p>

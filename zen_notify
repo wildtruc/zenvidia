@@ -126,9 +126,9 @@ driver_ctrl(){
 			(( ${last} > $(version_array "$version") )) && greater=1
 		done
 		if [ $rem_diff -eq 1 ]; then
-			DRV_LIST=( $"$LAST_OFFI, official driver" $"$LAST_BETA, beta driver" )
+			DRV_LIST=( "$LAST_OFFI, "$"official driver" "$LAST_BETA, "$"beta driver" )
 		else
-			DRV_LIST=( $"$LAST_OFFI, official drivers" )
+			DRV_LIST=( "$LAST_OFFI, "$"official drivers" )
 		fi
 		if [ ${#DRV_LIST[@]} -gt 0 ]; then
 			local IFS=$'\n'
@@ -207,7 +207,7 @@ source_ctrl(){
 			fi
 			echo -e "zen_new_version=${git_remote_version}" | tee -a $local_nvdir/taskbar_message
 			notif_msg+="$notif_txt "
-			driver_notif+=($"${line}zenvidia git repo update.""\n""$git_remote_date $git_remote_version")
+			driver_notif+=("${line}"$"zenvidia git repo update.""\n""$git_remote_date $git_remote_version")
 			zen_up=1
 		else
 			echo -e "zen_new_version=''" | tee -a $local_nvdir/taskbar_message
