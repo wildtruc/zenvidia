@@ -18,14 +18,12 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor Boston, MA 02110-1301, USA
 
 # DEFAULT set options
-# set -xeEu
+# pipefail is not realistic because of yad that creates too much tubes.
 set -eEu
 
-# xhost +si:localuser:root
-
-# set -e -E -u -o pipefail -o functrace
-# set -e -E -u -o functrace
-# export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
+# set -xeEu # DEVEL
+# set -e -E -u -o functrace # DEVEL
+export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 ## Fixed Variables (could not be change)
 ### ZENVIDIA VARS ### readonly install_dir="/usr/local" (AI fix)
 install_dir=/usr/local							# default tools & system install directory
@@ -194,9 +192,9 @@ user_CF_DIR(){
 		echo "/home/$(def_user)/.zenvidia"
 # 	fi
 }
-remote_drv_list(){
+remote_drv_list(){ # TODO DEPRACATED
 	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		su_cmd 3 "$(command -v zen_notify) -n &>/dev/null"
+		su_cmd 2 "$(command -v zen_notify) -n &>/dev/null"
 	fi
 	echo "$(user_CF_DIR)/notify/drvlist" || true
 	return
@@ -247,7 +245,7 @@ distro_name(){
 	fi
 	return
 }
-set_su(){ # FIELD
+set_su(){ # FIELD # TODO DEPRACATED
 	local warn_text su_opts set_args su_cmd_prompt tip_1 tip_2 distro
 	warn_text=$"$( cat <<-MSG
 		<b>Su command is not congigured</b>
@@ -419,21 +417,22 @@ yad_css(){
 ### SU, EXIT AND ERROR TOOLS
 su_cmd(){
 	# syntax : su_cmd 0/1/2/3 "cmd"
-	local type=${1} cmd="${2}" sudo_default=''
+	local type=${1} cmd="${2}" su_prompt='' # sudo_default=''
 	local -a sudo_cmd_line=()
-	su_prompt(){ # check if there is a custom command line before acting
-		local sudo_default=( ${@} )
-		# [[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf ${sudo_default[*]}
-		[[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf %s "${sudo_default[*]}"
-	}
-	[ ${type} = 0 ] && sudo_cmd_line="$(command -v sudo)" # sudo test presence.
-	[ ${type} = 1 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-l" "-u")" "$(def_user)" ) # exec for defaut user X/W Application.
-	[ ${type} = 2 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-u")" "$(def_user)" "env XDG_RUNTIME_DIR=/run/user/$(def_user_id)" )
-	[ ${type} = 3 ] && sudo_cmd_line=( "$(su_prompt "sudo" "-u")" "$(def_user)" ) # general
+	# su_prompt(){ # check if there is a custom command line before acting
+	# 	local sudo_default=( ${@} )
+	# 	# [[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf ${sudo_default[*]}
+	# 	[[ -n ${su_cmd_prompt} ]] && printf %s "${su_cmd_prompt[*]}" || printf %s "${sudo_default[*]}"
+	# }
+	su_prompt=$(command -v sudo)
+	# [ ${type} = 0 ] && sudo_cmd_line="$(command -v sudo)" # sudo test presence.
+	[ ${type} = 0 ] && sudo_cmd_line=( "${su_prompt}" "-l" "-u" "$(def_user)" ) # exec for defaut user X/W Application.
+	[ ${type} = 1 ] && sudo_cmd_line=( "${su_prompt}" "-u" "$(def_user)" "env XDG_RUNTIME_DIR=/run/user/$(def_user_id)" )
+	[ ${type} = 2 ] && sudo_cmd_line=( "${su_prompt}" "-u" "$(def_user)" ) # general
 	if [[ -n "${cmd}" && ${type} -gt 0 ]]; then
 		eval ${sudo_cmd_line[*]} ${cmd}
-	else
-		echo "$sudo_cmd_line"
+	# else
+	# 	echo "$sudo_cmd_line"
 	fi
 }
 error()(
@@ -574,19 +573,22 @@ unset_value(){
 dep_exec_check(){
 	deplist=()
 	## initial
-	p_xterm=$(command -v xterm) # || deplist+=("xterm")
-	d_yad=$(command -v yad) # || deplist+=("yad")
+	# [[ $(type -p caca) ]] || deplist+=("caca")
+	d_yad=$(command -v yad)
+	p_xterm=$(command -v xterm)
 	## standard
-	p_gcc=$(command -v gcc) || deplist+=("gcc")
-	d_yad=$(command -v yad) || deplist+=("yad")
-	d_xdpy=$(command -v xdpyinfo) || deplist+=("xdpyinfo")
-	d_ssl=$(command -v openssl) || deplist+=("openssl")
-	d_randr=$(command -v xrandr) || deplist+=("xrandr")
-	pk_exec=$(command -v pkexec) || deplist+=("polkit")
-	p_jq=$(command -v jq) || deplist+=("jq")
-	p_xq=$(command -v xq) || deplist+=("xq")
+	p_sudo=$(command -v sudo) || deplist+=("sudo")
+	[[ $(type -p pkexec) ]] || deplist+=("polkit")
+	[[ $(type -p xrandr) ]] || deplist+=("xrandr")
+	# compilation
+	[[ $(type -p gcc) ]] || deplist+=("gcc")
+	# config
+	[[ $(type -p xdpyinfo) ]] || deplist+=("xdpyinfo")
+	[[ $(type -p openssl) ]] || deplist+=("openssl")
+	[[ $(type -p jq) ]] || deplist+=("jq")
+	[[ $(type -p xq) ]] || deplist+=("xq")
+	# system
 	d_sys=$(command -v systemctl)
-	## sbin
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
 	p_dkms=/sbin/dkms || deplist+=("dkms")
 	d_ldconfig=/sbin/ldconfig
@@ -596,6 +598,7 @@ dep_exec_check(){
 	# modinfo      compat modinfo command
 	# modprobe     compat modprobe command
 	# depmod       compat depmod command
+
 	## nvidia binaries if any.
 	d_nv_installer=${install_dir}/bin/nvidia-installer
 	d_nv_settings=${install_dir}/bin/nvidia-settings
@@ -623,15 +626,18 @@ dep_lib_check(){
 dep_control(){ # yad and xterm autoinstall here. # PULSE
 	if [ -x $(pkg_installer) ]; then
 		local yad_warn warn_log
-		[[ $p_xterm != '' || $d_yad != '' ]] || (
+		# [[ $p_xterm != '' || $d_yad != '' ]] || (
+		[[ $d_yad != '' ]] || (
 			local -a pm_opt_list=()
-			echo -e "${red}"$"XTERM and YAD are missing, installing"" ...${nc}"
+			echo -e "${red}"$"YAD is missing, installing""...${nc}"
 			pm_opt_list=( "xterm" "yad" )
 			$(pkg_install_cmd) "${pm_opt_list[*]}";
-			export p_xterm=$(command -v xterm)
+			# export p_xterm=$(command -v xterm)
 			export d_yad=$(command -v yad)
 		)
+		# if [ "${#deplist[*]}" = 0 ] ; then # TEST
 		if [ "${#deplist[*]}" -gt 0 ] ; then
+			local WIN_TITLE="Zenvidia Packager"
 			local IFS=$'\n'
 			for d in ${deplist[@]}; do
 				dep_text+=("$d")
@@ -643,7 +649,7 @@ dep_control(){ # yad and xterm autoinstall here. # PULSE
 
 					Required dependencies are not met.
 					${dep_text[@]}
-					is/are missing.
+
 				DEP
 				)"
 				if [ $UID = 0 ]; then
@@ -685,45 +691,6 @@ dep_control(){ # yad and xterm autoinstall here. # PULSE
 					)"
 					die 2 ${LINENO} "${warn_log}" 1 0 && exit 0
 				fi
-			# else
-			# 	if [ $UID = 0 ]; then
-			# 		EXEC=$"$(
-			# 			cat <<-DEP
-			# 				read -p "Will you install them now ? (Y/N) :" confirm
-			# 				if [[ "\$confirm" =~ [yY] ]]; then
-			# 					echo -e "\n${grn}Depencies installation, please wait . . .${nc}\n"
-			# 					$(pkg_install_cmd) ${deplist[*]}
-			# 					sed -i "s/resolve_dep=.*/resolve_dep=1/" $script_conf
-			# 				else
-			# 					echo -e "\n${red}Those dependencies are mandatory for Zenvidia.${nc}\n"
-			# 					echo -e "If you don't want Zenvidia to install them automatically,"
-			# 					echo -e "you need to use your packages manager instead"
-			# 					echo -e "BYE !"
-			# 				fi
-			# 			DEP
-			# 		)"
-			# 	else
-			# 		EXEC=$"$(
-			# 			cat <<-DEP
-			# 				echo -e "Zenvidia is start without admin privileges."
-			# 				echo -e "You need to restart with ${red}Zenvidia (admin)${nc} to install them."
-			# 			DEP
-			# 		)"
-			# 	fi
-			# 	w_text=$"$(
-			# 		cat <<-DEP
-			# 			echo -e "${red}Script Dependencies Check${nc}\n"
-   #
-			# 			echo -e "Required dependencies are not met.\n"
-			# 			echo -e "${dep_text[*]}\n"
-			# 			$EXEC
-			# 			echo -e "\n${cya}*****  Close window to escape *****${nc}"
-			# 		DEP
-			# 		)"
-			# 	primary_dsp=$(xrandr --current| grep -w "connected"| grep primary)
-			# 	term_x_dsp=$(printf "$primary_dsp"| grep -o "[0-9]\{3,4\}[x]"|sed -n "s/x//p")
-			# 	xt_options=' -hold -fn 8x13 -geometry 80x24+'$[ ( ($term_x_dsp-660)/2) ]'+0'
-			# 	$p_xterm $xt_options -e "$w_text"
 			fi
 			## check if datas comes from special distro config.
 			[ -f $(user_CF_DIR)/distro.conf ] && {
@@ -951,7 +918,7 @@ gcc_compil_vars(){
 	if [ $UID = 0 ]; then grub_cfg=$(find /boot -wholename "*/grub.cfg"|grep -iv "efi"); grub_def=/etc/default/grub; fi
 
 }
-xterm_display_vars(){ # ATTENTION à REVOIR
+xterm_display_vars(){ # TODO DEPRACATED
 	xt_options='' x_pixel='' x_milli='' term_x_dsp=''
 	x_sleep='' x_esc_message=''
 	local xt_colors='' xx_hold='' pixel=''
@@ -1909,13 +1876,20 @@ prime_setup_window(){ # FIELD
 			;;
 	esac
 }
+x_display_vars(){ # UNUSED
+	local x_pixel='' x_milli=''
+	x_pixel=$(xdpyinfo | grep -A1 "screen #0"| sed -En "s/^.* ([0-9]{3,5})x([0-9]{3,5}) .*$/\1;\2/1p")
+	x_milli=$(xdpyinfo | grep -A1 "screen #0"| sed -En "s/^.*\(([0-9]{3,4})x([0-9]{3,4}).*\).*$/\1;\2/1p")
+}
 xorg_conf(){
 ## prime setup start here.
 # Is opti_preset set ?
 # If opti_preset is set, ask if user wants to config prime and warn about modesetting TearFree option is not available
 # until version 21.2 of Xorg. 20.14+ here.
-	local x_tmp conf_date
-	x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX) # global var, not local
+	local conf_date #x_tmp
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+	# x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX) # global var, not local
 ## creation order :
 ## 	sec_files		x 1
 ## 	sec_layout		x X
@@ -2067,7 +2041,11 @@ xorg_conf(){
 	local w_pix h_pix w_mil h_mil dpi_w dpi_h x_dpi
 	local x_plore def freq freq_prim freq_scnd
 	## compute X screen DPI ex : (1080x25.4)/286. From Nvidia Doc formula.
-		if [ $d_xdpy ]; then
+		# if [ -x $d_xdpy ]; then
+		if [[ $(type -p xdpyinfo) ]]; then
+			local x_pixel='' x_milli=''
+			x_pixel=$(xdpyinfo | grep -A1 "screen #0"| sed -En "s/^.* ([0-9]{3,5})x([0-9]{3,5}) .*$/\1;\2/1p")
+			x_milli=$(xdpyinfo | grep -A1 "screen #0"| sed -En "s/^.*\(([0-9]{3,4})x([0-9]{3,4}).*\).*$/\1;\2/1p")
 			w_pix=$(printf "$x_pixel"| cut -d';' -f1)
 			h_pix=$(printf "$x_pixel"| cut -d';' -f2)
 			w_mil=$(printf "$x_milli"| cut -d';' -f1)
@@ -2733,7 +2711,7 @@ nv_dkms_mok_key(){
 	## this part is more or less taken from dkms script. Thankfully.
 	if [ ! "$mok_signing_key" ] || [ ! "${mok_certificate}" ]; then
 		echo_message 1 "${j}−${end}" $"DKMS MOK key/certificate are missing, generating new one for modules signin process"
-		$d_ssl req -new -x509 -nodes -days 36500 -subj "/CN=DKMS module signing key" \
+		openssl req -new -x509 -nodes -days 36500 -subj "/CN=DKMS module signing key" \
 		-newkey rsa:2048 -keyout "$mok_signing_key" \
 		-outform DER -out "$mok_certificate" &>/dev/null
 		if [ ! -f "$mok_signing_key" ]; then
@@ -5504,8 +5482,11 @@ xq_tips(){
 	local help_tips=${zen_docs}/${file}
 	# local help_tips=./help-tips.xml # TEST
  	[[ ${cmd} =~ $(version) ]] && cmd=$(sed -En "s/(^.*) [\(]?$(version)[\)]?/\1/g;p" <<< "${cmd}")
+ 	if [[ ${cmd} =~ Cuda ]]; then
+		[[ ${cmd} =~ Release ]] && cmd=$(sed -En "s/(^.*) ${LAST_CUDA}.*$/\1\"/g;p" <<< "${cmd}") || true
+		[[ ${cmd} =~ Documentation ]] && cmd=$(sed -En 's/(^.*) \('$"remote"'\)/\1/g;p' <<< "${cmd}") || true
+	fi
 	[[ $(xq -q "tips>locale[code="${locale}"]>${menu}>tip[key="${cmd}"]" $help_tips) ]] && true || locale='en_EN'
-	# [ "$(sed -n "/<locale code=\"${locale}\"/,/\/locale>/{;/<${menu}/,/\/${menu}>/{;/key=${cmd}/p}}" $help_tips)" ] && true || locale='en_EN'
 	echo -e "$(xq -q "tips>locale[code="${locale}"]>${menu}>tip[key="${cmd}"]>p" $help_tips)\c" | tr '\n' '\r'
 }
 xq_x_query(){
@@ -5665,7 +5646,7 @@ yad_make_list(){
 	return
 }
 yad_spinner(){
-	local img_spin="gtk-refresh"
+	local img_spin="zen-refresh"
 	proc_pid=$$
 	{ timeout=20; local lpid=$proc_pid; y_pulse ;} | \
 	yad --progress --pulsate --splash --no-buttons --hide-text --witdth=150 --height=100 \
@@ -7570,7 +7551,7 @@ nv_config(){
 	# 	$(su_cmd) "$(def_user)" $d_nv_settings -p "$gpu_set"
 		if [ $UID = 0 ]; then
 			# su_cmd 1 "env XDG_RUNTIME_DIR=/run/user/$(def_user_id) $d_nv_settings --page=$gpu_set"
-			su_cmd 2 "$d_nv_settings --page=$gpu_set"
+			su_cmd 1 "$d_nv_settings --page=$gpu_set"
 		else
 			$d_nv_settings --page=$gpu_set
 		fi
@@ -7644,11 +7625,11 @@ zen_notif_setup(){ # WARN # LIST
 	setup_validation
 }
 cuda_notes(){
-	su_cmd 2 "xdg-open https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cuda-libraries" &
+	su_cmd 1 "xdg-open https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cuda-libraries" &
 	menu_infos
 }
 cuda_docs(){
-	su_cmd 2 "xdg-open https://docs.nvidia.com/cuda/index.html" &
+	su_cmd 1 "xdg-open https://docs.nvidia.com/cuda/index.html" &
 	menu_infos
 }
 git_auto_update(){
@@ -7674,7 +7655,7 @@ git_auto_update(){
 	chown -R $(def_user):$(def_user) $(user_CF_DIR)
 }
 git_relaunch(){
-	su_cmd 2 "${install_dir}/bin/zen_notify -${notif_desk_opt}" &&	return 0
+	su_cmd 1 "${install_dir}/bin/zen_notify -${notif_desk_opt}" &&	return 0
 	# su_cmd 2 "bash -x ${install_dir}/bin/zen_notify -${notif_desk_opt}" && exit 1 # TEST
 }
 git_update(){ # WARN # PULSE >> CLEANUP
@@ -7863,13 +7844,13 @@ menu_infos(){ # LIST
 
 	local IFS=$'\n'
 	# cmd_list=( $"Documentation manual ($(version))""|1" $"Change Logs ($(version))""|2" $"Zenvidia Logs""|3" $"Zenvidia Help and documentation""|4" $"About Zenvidia""|5" )
-	cmd_list+=($"Documentation manual ($(version))""|1")
-	cmd_list+=($"Change Logs ($(version))""|2")
+	cmd_list+=($"Documentation manual"" ($(version))""|1")
+	cmd_list+=($"Change Logs"" ($(version))""|2")
 	cmd_list+=($"Zenvidia Logs""|3")
 	cmd_list+=($"Zenvidia Help and documentation""|4")
 	cmd_list+=($"About Zenvidia""|5")
-	cmd_list+=($"Cuda"" ${LAST_CUDA} ""Release Notes (remote)""|6")
-	cmd_list+=($"Cuda Documentation manual Zenvidia (remote)""|7")
+	cmd_list+=($"Cuda Release Notes"" ${LAST_CUDA} ("$"remote"")""|6")
+	cmd_list+=($"Cuda Documentation Manual"" ("$"remote"")""|7")
 	# cmd_list+=()
 	yad_make_list ${FUNCNAME} "${cmd_list[*]}" "help-tips.xml" 0
 	local l_text="${j}${bf}"$"Help and Documentation""${end}${end}"
@@ -8118,7 +8099,7 @@ base_menu(){ # LIST
 	fi
 	local w_width='580' w_height='300'
 	menu_cmd=$( win_yad_list "${m_list[*]}" "")
-	[[ ${menu_cmd} != '' && ${menu_cmd} -lt 100 ]] && tmp_dir
+	# [[ ${menu_cmd} != '' && ${menu_cmd} -lt 100 ]] && tmp_dir
 	case $menu_cmd in
 		1) if [ $UID = 0 ]; then menu_install; else is_SU; base_menu; fi;;
 		2) if [ $UID = 0 ]; then menu_update; else is_SU; base_menu; fi;;
@@ -8137,7 +8118,7 @@ install_controls(){
 }
 set_graphical_env(){
 	# local proc_pid=$$
-	test -x "$d_yad" || exit 0 # security
+	[[ $(type -p yad) ]] || dep_control
 	# zen_task_menu pid for git_update function.
 	yad_current_pid=$(ps -C yad -o pid | grep -cv "[A-Z]") || true
 	if [[ ${yad_current_pid} -gt 0 && ${yad_current_pid} -lt 2 ]]; then
@@ -8148,14 +8129,13 @@ set_graphical_env(){
 	## define window title for all Yad windows.
 	WIN_TITLE="Zenvidia - $(zen_version)"
 	## check su command to allow root to get default user env.
-	[[ -n "$(su_cmd 0 "")" ]] || set_su
+	# [[ -n "$(su_cmd 0 "")" ]] || set_su
 	# cmdline tool doesn't need to read config, so skip the step if in console only.
 	if [[ $(def_user) != "root" ]]; then
 	# check if default user has conf file to load, or create it from shipped.
 		for conf in {basic,color,distro}; do
 			# reset list
-			diff_list=()
-			new_line=()
+			local diff_list=() new_line=()
 			if [ ! -e $(user_CF_DIR)/$conf.conf ]; then
 				install -Cm644 -o $(def_user) -g $(def_user) -t $(user_CF_DIR) $nvdir/$conf.conf
 			elif [ "$nvdir/$conf.conf" -nt "$(user_CF_DIR)/$conf.conf" ]; then
@@ -8163,8 +8143,8 @@ set_graphical_env(){
 				diff_list=( $(sed -En "s/^([a-z].*)=.*$/\1/p" $nvdir/$conf.conf) )
 				if [ ${#diff_list[*]} -gt 0 ]; then
 					# user_CF_DIR wont pass the IFS move, put it in a temp var.
-					user_DIR=$(user_CF_DIR)
-					IFS=$(echo -en "\n\b")
+					local user_DIR=$(user_CF_DIR) prev_line=''
+					local IFS=$(echo -en "\n\b")
 					for var in ${diff_list[@]}; do
 						if [ $(grep -c "$var" $user_DIR/$conf.conf) -eq 0 ]; then
 							case $conf in
@@ -8221,9 +8201,7 @@ set_graphical_env(){
 	zen_colors
 	yad_spinner # wait please :)
 	## xterm dispaly details
-	xterm_display_vars
-	## check/install dependies.
-	dep_control
+	# xterm_display_vars # TODO DEPRACATED
 	## define backups directory.
 	if [ $backup_to_user_dir = 1 ]; then
 		[ $(ls -Ub1 $nv_backup_dir | wc -l) -gt 0 ] && mv -f -t $(user_CF_DIR)/backups/ $nv_backup_dir/*
@@ -8255,10 +8233,7 @@ set_graphical_env(){
 	drivers_scrap 0
 	# if set, capture Cuda data.
 	[ ${use_cuda} = 1 ] && drivers_scrap 2 || true
-	# use_dkms=0 # TEST
-# 	# test initramfs distro's tool.
-# 	initramfs_warn
-# 	base_menu
+	tmp_dir
 }
 cmdline_help_text(){
 # 	echo -e ${grn}
@@ -8364,6 +8339,8 @@ tmp_dir(){
 		tmp_vars=$(mktemp $zen_tmp_dir/zn_vars.XXXX)
 		# set temp file for old-version backup when new modules installed
 		tmp_old=$(mktemp $zen_tmp_dir/zn_old.XXXX)
+		# creatte temp for xorg_conf
+		x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX)
 		# set temp dir for extract & build processes
 		nvtmp=$(mktemp -d $zen_tmp_dir/nv_extract.XXXX)
 		mkdir -p $nvtmp/build
@@ -8402,7 +8379,7 @@ if [ ! -s $script_conf ]; then #
 	exit 0
 else
 	## set the primary su_cmd var that doesn't exist in script conf at this state
-	declare su_cmd_prompt=''
+	# declare su_cmd_prompt=''
 	## read script mandatory vars config first.
 	. $script_conf
 fi
@@ -8442,6 +8419,7 @@ trap_on_exit 'IFS=$ifs' # security, not necessary needed.
 trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
 
 ## check if X server is off before lauching cmd line tools.
+# x_check(){ echo 1;} # TEST
 if [ $(x_check) -gt 0 ]; then
 	DEV "Command line tools" "0" # unavailable message
 	# gcc, env, kernel, etc
