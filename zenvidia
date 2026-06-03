@@ -19,10 +19,10 @@
 
 # DEFAULT set options
 # pipefail is not realistic because of yad that creates too much tubes.
-set -eEu
+set -eu
 
 # set -xeEu # DEVEL
-# set -e -E -u -o functrace # DEVEL
+# set -eEuo functrace # DEVEL
 export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 ## Fixed Variables (could not be change)
 ### ZENVIDIA VARS ### readonly install_dir="/usr/local" (AI fix)
@@ -83,16 +83,6 @@ pkg_installer(){
 	esac
 }
 pkg_options(){
-# 	case $(distro_version) in
-#  		arch|manjaro) echo "--noconfirm ";;
-#  		mageia|mandriva) echo "-y install ";;
-# 		rhel|fedora|centos) echo "-y install ";;
-# 		opensuse|sles) echo "--non-interactive install ";;
-# 		ubuntu|mint|debian) echo "-y install ";;
-# # 		sles) echo "";;
-# 		*) echo "none" ; pkg_inst=0 && return ;;
-# 	esac
-# 	return
 	pm_opt_list=()
 	case $(distro_version) in
  		arch|manjaro) pm_opt_list+=("-S" "--noconfirm");;
@@ -1178,7 +1168,7 @@ exec_initramfs(){
 	# 	m=1 ;
 	local message=${1} count=${2}
 	local IFS=$' '
-	progress "$(initramfs_tools) $KERNEL" "${message}" "${count}" || true
+	progress "$(initramfs_tools) $KERNEL" "${message}" "${count}" 1 || true
 	return
 }
 dkms_ramfs_exec(){
@@ -1268,8 +1258,7 @@ restore_driver(){
 			mkdir -p /var/lib/dkms/${driver_type}
 			cp -rf $nvtmp/${install_type}/dkms/${driver_type}/* /var/lib/dkms/$driver_type/
 		fi
-		m=1; do_slp=1
-		progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Depmod $KERNEL modules - \$m sec.\${end}\${end}" "$m"
+		progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Depmod $KERNEL modules - \$m sec.\${end}\${end}" 1 1
 	else
 		die 0 ${LINENO} $"No backup available in tempfs.\nRestore by your self with :""\ndkms install -m ${driver_type}/${compiled_mods} --verbose --force" 0 1
 	fi
@@ -1296,8 +1285,7 @@ restore_pcks_cmd(){
 			msg="(\$m sec.) - "$"Restoring from nvidia.""$res_version.tar.$zip_type"
 		fi
 	fi
-	m=1; do_slp=1
-	progress "tar --$zip_opt $verbose -xf $nv_backup_dir/nvidia.$res_version.tar.$zip_type -C /" "$msg" "$m"
+	progress "tar --$zip_opt $verbose -xf $nv_backup_dir/nvidia.$res_version.tar.$zip_type -C /" "$msg" 1 1
 	ldconfig
 }
 restore_broken_install(){ # for old driver install method only.
@@ -1452,8 +1440,7 @@ nv_open_switch(){ # WARN
 					cp -f /var/lib/dkms/$drv_on/$(version)/$KERNEL/$ARCH/module/* $kernel_path/
 					# echo -e $"# ${v}Depmod ${j}$KERNEL${end} modules ...${end}"
 					echo_message 1 $"Depmod" "${j}$KERNEL${end}" $"modules ..."
-					m=1; do_slp=1
-					progress "( exec_depmod "$KERNEL" )" "\${ge}\${sf} * "$"Depmod"" $KERNEL "$"modules"" (\$m sec.)\${end}\${end}" "$m"
+					progress "( exec_depmod "$KERNEL" )" "\${ge}\${sf} * "$"Depmod"" $KERNEL "$"modules"" (\$m sec.)\${end}\${end}" 1 1
 				else
 					## NOTE : in case of a recent kernel update, only the predifined type with AUTOINSTALL="yes"
 					## is compile and install by dkms and thus, the other var/lib/dkms module dir doesn't exist.
@@ -1541,8 +1528,7 @@ nv_open_switch(){ # WARN
 				echo_message 1 $"Restoring" "${y}"$"default""${end}" $"Nvidia drivers"
 				cp -f /var/lib/dkms/nvidia/$(version)/$KERNEL/$ARCH/module/* $kernel_path/
 				echo_message 1 $"Depmod" "${j}$KERNEL${end}" $"modules"
-				m=1; do_slp=1
-				progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * "$"Depmod"" $KERNEL "$" modules"" (\$m sec.)\${end}\${end}" "$m"
+				progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * "$"Depmod"" $KERNEL "$" modules"" (\$m sec.)\${end}\${end}" 1 1
 				if [[ "$(/sbin/modinfo -F license $kernel_path/nvidia.ko*)" == "NVIDIA" ]]; then
 					echo_message 1 $"License is back to NVIDIA"
 				else
@@ -2781,6 +2767,9 @@ nv_dkms_cmd_line(){
 	# since 3.2.2, dkms introduced post_transaction options in /etc/framework.conf and execute it at the end of each action.
 	# by this way, devs broke all possibilité to activate internal dracut/inittrd.
 	# ex opts=( -k $kernel --no-depmod --verbose $force --directive=post_transaction="" ) --force-version-override
+	# NOTES : --modprobe-on-install, --directive=post_transaction='' are overrided by dkms function execute_post_transaction.
+	# --directive='' only success on remove action.
+
 	local cmd=${1} module=${2} kernel=${3} opts=()
 	[ ${4} = 0 ] && opts=( -k $kernel )
 	# remove, all case
@@ -2789,14 +2778,14 @@ nv_dkms_cmd_line(){
 	# add no force, case install
 	[ ${4} = 2 ] && opts=( -k $kernel --verbose )
 	# else with force, case update
- 	# [ ${4} = 3 ] && opts=( -k $kernel --verbose $force )
- 	[ ${4} = 3 ] && opts=( -k $kernel --verbose --directive=post_transaction='' $force )
+ 	[ ${4} = 3 ] && opts=( -k $kernel --verbose $force )
+ 	# [ ${4} = 3 ] && opts=( -k $kernel --verbose --directive=post_transaction='' $force )
  	# [ ${4} = 4 ] && opts=( -k $kernel --verbose --modprobe-on-install $force --force-version-override )
  	[ ${4} = 4 ] && opts=( -k $kernel --verbose --force --force-version-override )
  	[ ${4} = 5 ] && opts=( -k $kernel --verbose --modprobe-on-install --force --force-version-override )
 	local IFS=' '
 	$p_dkms ${cmd} -m ${module} ${opts[@]} || echo -e "\n${r}""DKMS "$"didn't succeed to execute command""${end}${y}"$". Maybe not fatal, hopefuly.""${end}"
-	return
+	# return
 }
 build_dkms(){
 	## back_previous driver in case of FAILURE
@@ -2805,18 +2794,18 @@ build_dkms(){
  	nv_dkms_mok_key
 	local drv_src show_dkms make_log_file mod_suffix vermagic line o=0
 	# vars reset
-	compiled_driver='' pass='' compilation_error=()
+	compiled_driver='' compilation_error=() pass=${pass:-''}
 		remove_add(){
 			remove_seq(){
 				echo_message 1 $"Removing previous" "${j}$(old_version)${end} ${y}$_dkms${end}" $"DKMS modules from DKMS tree."
 				if [ $(ls -1 /var/lib/dkms/$_dkms/$(old_version)/$KERNEL/$ARCH/module/ | grep -c "nvidia.ko") -gt 0 ]; then
 					if [ $(nv_old) -gt $(nv_new) ]; then
 						# ( nv_dkms_cmd_line "remove" "$_dkms/$(old_version)" "" 1 ) | \
-						nv_dkms_cmd_line "remove" "$_dkms/$(old_version)" "" 1 | read_sequence 0
+						nv_dkms_cmd_line "remove" "$_dkms/$(old_version)" "" 1 | read_sequence 0 && return
 						# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 						echo -e "# "
 					else
-						nv_dkms_cmd_line "remove" "$_dkms/$(old_version)" "$KERNEL" 1 | read_sequence 0
+						nv_dkms_cmd_line "remove" "$_dkms/$(old_version)" "$KERNEL" 1 | read_sequence 0 && return
 						# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 						echo -e "# "
 					fi
@@ -2828,7 +2817,7 @@ build_dkms(){
 			add_seq(){
 				echo_message 1 $"Add" "${j}$(new_version)${end} ${y}$_dkms${end}" $"modules to DKMS tree."
 				# ( nv_dkms_cmd_line "add" "$_dkms/$(new_version)" "$KERNEL" 3 ) | \
-				nv_dkms_cmd_line "add" "$_dkms/$(new_version)" "$KERNEL" 3 | read_sequence 0
+				nv_dkms_cmd_line "add" "$_dkms/$(new_version)" "$KERNEL" 3 | read_sequence 0 && return
 				# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 				echo -e "# "
 				sleep ${read_timeout}
@@ -2852,7 +2841,7 @@ build_dkms(){
 						fi
 						if [ $(dkms_version) -lt 32 ]; then
 							echo_message 2 "*" $"Executing clean depmod before next step."
-							progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" "$m"
+							progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" 0 1
 						fi
 						echo -e $"# ${ge}* Done.${end}"
 						sleep ${read_timeout}
@@ -2878,9 +2867,10 @@ build_dkms(){
 				else
 					# $p_dkms build -m $_dkms/$(new_version) -k $KERNEL $force 2>&1 | \ # legacy
 					# ( nv_dkms_cmd_line "build" "$_dkms/$(new_version)" "$KERNEL" 3 ) | \
-					nv_dkms_cmd_line "build" "$_dkms/$(new_version)" "$KERNEL" 3 | read_sequence 0
+					nv_dkms_cmd_line "build" "$_dkms/$(new_version)" "$KERNEL" 3 | read_sequence 0 && return
 					# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 					echo -e "# "
+					sleep ${read_timeout}
 					if [ -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/module/nvidia.ko.* ]; then
 						# echo -e $"#${y} * All Clear for $(new_version) $_dkms is build.${end}"
 						echo_message 3 "*" $"All Clear for" "$(new_version) $_dkms" $"is build."
@@ -2900,7 +2890,8 @@ build_dkms(){
 				# $p_dkms install -m $_dkms/$(new_version) -k $KERNEL --verbose $force # legacy
 				# ( nv_dkms_cmd_line "install" "$_dkms/$(new_version)" "$KERNEL" 4 ) | \
 				# ( nv_dkms_cmd_line "install" "$_dkms/$(new_version)" "$KERNEL" 3 ) | \
-				nv_dkms_cmd_line "install" "$_dkms/$(new_version)" "$KERNEL" 4 | read_sequence 0 ## TEST FIX compilation forced because initramfs issue
+				## TEST FIX compilation forced because initramfs multi rebuild issue
+				nv_dkms_cmd_line "install" "$_dkms/$(new_version)" "$KERNEL" 4 | read_sequence 0 && return
 				# while read -r line; do echo "#${ge}${sf} ${line}${end}${end}"; done
 				echo -e "# "
 				sleep ${read_timeout}
@@ -3014,7 +3005,7 @@ nv_build_dkms(){ # PULSE
 }
 build_source(){
 	local m drv_src show_dkms make_log_file pass mod_suffix vermagic safe_msg
-	local make_env='' opts_355='' dep_check=0 pass='' safe_path=''
+	local make_env='' opts_355='' dep_check=0 safe_path='' pass=${pass:-''}
 	local compilation_error=()
 	# NOTE : Since 545 serie nvidia-installer can install over a loaded driver, but ... it doesn't really works.
 	# UPDATE : Since 580 serie, nvidia-installer install works. Caveat : it install only the designed module in dkms/nvidia.
@@ -3044,8 +3035,7 @@ build_source(){
 			sleep 1
 			popd
 		fi
-		m=1; do_slp=1
-		progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" $m
+		progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" 0 1
 		[ $(nv_modules_presence) -gt 0 ] && /sbin/modinfo -F version ${kernel_path}/nvidia.ko* | grep "$(new_version)" &>/dev/null || false # 1
 		dep_check=$?
 	}
@@ -3112,7 +3102,7 @@ build_source(){
 		## compress modules.
 		if [ $dep_check = 1 ]; then
 			echo_message 2 "*" $"Executing" "$module $KERNEL" $"depmod"
-			m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" "$m"
+			progress "( exec_depmod "$KERNEL" )" $"\${ge}\${sf} * Exec $KERNEL modules depmod - \$m sec.\${end}\${end}" 1 1
 		fi
 	}
 	mod_check(){
@@ -3223,7 +3213,7 @@ nv_cmd_make_src(){ # PULSE
 }
 nv_cmd_install_driver(){
 		## we need to give it a chance.
-		local probe_open=/etc/modprobe.d/open-NVIDIA.conf
+		local probe_open=/etc/modprobe.d/open-NVIDIA.conf pass=0
 		## prevent installer to doing think for 'upgrade an other kernel'.
 		upgrade_other=0
 		## check driver source presence and copy it to src dir if necessary.
@@ -3279,7 +3269,7 @@ nv_cmd_install_driver(){
 nv_cmd_update(){
 	driver_logfile=$nvlog/$(new_version)-$KERNEL.log
 	## reset parent list if any
-	local compiled_driver='' failure_log='' process_type=1 init_ramfs
+	local compiled_driver='' failure_log='' process_type=1 pass=0 init_ramfs
 	## get parent pid for kill process if needed.
 	list_kill_parent_pids
 	## check for for patch in new version.
@@ -3453,7 +3443,7 @@ nv_ctrl_install_cuda(){ # PROBABLY DEPRACATED
 		if [[ ${#cuda_dir_size} == ${#CUDA_DIR_SIZE} && $(cut -c1 <<< "${cuda_dir_size}") == $(cut -c1 <<< "${CUDA_DIR_SIZE}") ]]; then
 			proc_msg=$"Cuda $CUDA_VERSION install done."
 			# log new ratio.
-			bc -l <<< "scale=2;  ${cuda_dir_size}/${CUDA_SIZE_M}" > $(user_CF_DIR)/cuda_xz_ratio.log
+			bc -l <<< "scale=2; ${cuda_dir_size}/${CUDA_SIZE_M}" > $(user_CF_DIR)/cuda_xz_ratio.log
 			echo "$CUDA_VERSION" > $(user_CF_DIR)/cuda_version
 			# remove failed package log.
 			[[ -n $failed_install_log_path && -f $failed_install_log_path ]] && rm -f $failed_install_log_path
@@ -3614,8 +3604,8 @@ xorg_check(){ # WARN
 		fi
 	fi
 }
-## INITIAL OR UPGRADE INSTALL PROCESS
-INSTALL_DRIVER(){ # PULSE ###
+## INITIAL OR UPGRADE INSTALL PROCESS ###
+INSTALL_DRIVER(){ # PULSE
 	local yad_warn report_log n init_ramfs
 	local warn_log=''
 	local compiled_driver='' final_installed_mod_version='' dkms_stat='' update_status=1
@@ -3928,8 +3918,7 @@ extract_build(){
 		[ ! -d NVIDIA-Linux-$ARCH-* ]|| rm -Rf NVIDIA-Linux-$ARCH-*
 		## save dir name for install and post install process.
 		echo_message 1 "${j}−${end}" $"Primary package extraction"
-		m=1; do_slp=1
-		progress "$run_pkg -x" $"\${ge}\${sf}(\${m}s) * "$"Extracting"" $extracted_release\${end}\${end}" "$m"
+		progress "$run_pkg -x" $"\${ge}\${sf}(\${m}s) * "$"Extracting"" $extracted_release\${end}\${end}" 1 1
 		sleep 1
 		if [ -d $extracted_release ]; then
 			cp -f $nvtmp/$extracted_release/nvidia-installer .
@@ -4005,10 +3994,12 @@ tar_count(){
 }
 progress(){
 	tmp_count=$(mktemp $zen_tmp_dir/zn_count.XXX)
-	local m p_msg pid exitval
-	p_msg="${2}"
-	m=$((${3}+1))
-	if [[ ${1} ]]; then
+	local cmd="${1}" p_msg="${2}" m=$((${3}+1)) do_slp=${4}
+	local exitval
+	# local m p_msg pid exitval
+	# p_msg="${2}"
+	# m=$((${3}+1))
+	if [[ ${cmd} ]]; then
 		progress_msg(){
 			local msg=${1} cnt=${2}
 			if [ $(x_check) -gt 0 ]; then
@@ -4020,14 +4011,15 @@ progress(){
 		eval_pid(){
 			while [ -d /proc/$pid ]; do
 				( eval "progress_msg \"${p_msg}\" ${m}" ) || die 1 "${LINENO}" "Progress tool failed to parse message patterns" "" 1
-				sleep $do_slp &
+				# sleep $do_slp &
+				sleep ${do_slp} &
 				wait $!
 				m=$((m+1))
 			done
-			echo -e "n=$m" > $tmp_count
+			echo -e "n=${m}" > $tmp_count
 			echo -e "p_pid=$pid"  > $tmp_count
 		}
- 		( eval "${1}" &>/dev/null ) & pid=$! eval_pid
+ 		( eval "${cmd}" &>/dev/null ) & pid=$! eval_pid
 		. ${tmp_count}
 		wait $p_pid 2>/dev/null
 		exitval=$?
@@ -4121,8 +4113,7 @@ backup_old_version(){
 			zip_cmd='gzip -fc'
 		fi
 		local m=$(echo $m | fix_odd_number)
-		local do_slp=1
-		progress "${zip_cmd} nvidia.$bak_version.tar > nvidia.$bak_version.tar$zip_ex" $"(\$m s) - Backup : $bak_version $ZIP archive creation" "$m"
+		progress "${zip_cmd} nvidia.$bak_version.tar > nvidia.$bak_version.tar$zip_ex" $"(\$m s) - Backup : $bak_version $ZIP archive creation" ${m} 1
 
 		[ -f nvidia.$bak_version.tar$zip_ex ] && \
 		{ rm -f $nv_backup_dir/nvidia.$bak_version.tar ; echo $"# Backup: $bak_version $ZIP archive created";} || \
@@ -5813,6 +5804,7 @@ win_yad_progress(){
 	if [ $_exit -eq 1 ]; then echo 1;
 	elif [ $_exit -eq 252 ]; then echo 2 ;
 	elif (( $_exit == 143 )); then exit 1 ;
+	else echo 0
 	fi
 	if [ $_exit -ge 1 ]; then
 		if [ $(pgrep curl) ]; then
@@ -6301,8 +6293,7 @@ remove_nvidia(){ # WARN # PULSE
 		$d_grub-mkconfig -o $grub_cfg
 		echo -e $"# Perform modules dependencies and initramfs update."; sleep ${read_timeout}
 		## restore kernel sys link to default.
-		m=0; do_slp=1
-		progress "( exec_depmod "$KERNEL" )" $"Depmod $KERNEL modules (\$m sec.)" "$m"
+		progress "( exec_depmod "$KERNEL" )" $"Depmod $KERNEL modules (\$m sec.)" 0 1
 		echo_message 0 $"Exec" "$KERNEL" $"modules reload"
 		exec_mod_load
 		}& eval lpid=$!; y_pulse; } | win_yad_progress
@@ -6436,8 +6427,7 @@ restore_pcks(){ # WARN # LIST # PULSE
 						rm -f $install_dir/$master$ELF_64/libnvidia-*.so.$(version)
 					fi
 					restore_pcks_cmd
-					m=1; do_slp=1
-					progress "( exec_depmod "$KERNEL" )" $"(\$m sec.) - Rebuild modules dependencies (depmod)" "$m"
+					progress "( exec_depmod "$KERNEL" )" $"(\$m sec.) - Rebuild modules dependencies (depmod)" 1 1
 					## restore or rebuild drivers.
 					[ $(nv_modules_presence) -gt 0 ] && /sbin/modinfo -F version nvidia -k $KERNEL | grep "$res_version" &>/dev/null || false # return 1
 					if [ $? -eq 1 ]; then
@@ -7924,7 +7914,7 @@ dm_serv_restore(){ # CMDL # TODO
 	fi
 }
 restore_cmdline(){ # CMDL # TODO
-	echec=0
+	# echec=0
 	echo -e "# ${yel}Restoring $cmd_ver driver for $KERNEL${nc} :\n"
 	sleep ${read_timeout}
 	## clean old libraries
@@ -7947,7 +7937,7 @@ restore_cmdline(){ # CMDL # TODO
 # 	ldconfig
 	echo -e "# ${cya}- Depmod $cmd_ver modules ..."
 # 	progress_msg(){ echo -en "\r${nc}#${cya} - Depmod $cmd_ver modules ($m sec.)"; }
-	m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" "\\r\${nc}#\${cya} - Depmod $cmd_ver modules (\$m sec.)" "$m"
+	progress "( exec_depmod "$KERNEL" )" "\\r\${nc}#\${cya} - Depmod $cmd_ver modules (\$m sec.)" 0 1
 	## check modules
 	echo -e "\n${nc}# ${cya}- Testing $cmd_ver modules availbility${nc} ..."
 	local vermagic=$(/sbin/modinfo -F vermagic nvidia -k $KERNEL| awk '{print $1}')
@@ -8009,7 +7999,7 @@ rescue_cmdline(){ # CMDL # TODO
 			[ $(is_RT) = 0 ]|| xz -T12 $libmod/*.ko
 			echo -e "# ${cya}- Depmod $cmd_ver modules ..."
 # 			progress_msg(){ echo -en "\r${nc}#${cya} - Depmod $cmd_ver modules ($m sec.)"; }
-			m=1; do_slp=1; progress "( exec_depmod "$KERNEL" )" "\\r\${nc}#\${cya} - Depmod $cmd_ver modules (\$m sec.)" "$m"
+			progress "( exec_depmod "$KERNEL" )" "\\r\${nc}#\${cya} - Depmod $cmd_ver modules (\$m sec.)" 1 1
 			## rebuilt initramfs in case of trouble booting.
 			clear
 			dm_serv_restore
@@ -8424,14 +8414,14 @@ trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
 # x_check(){ echo 1;} # TEST
 if [ $(x_check) -gt 0 ]; then
 	DEV "Command line tools" "0" # unavailable message
+	local module license ignore_RT dkms_ins dkms_ver echec
 	# gcc, env, kernel, etc
 	gcc_compil_vars
 	proc_options
-	libmod='/lib/modules/'$KERNEL'/'$(module_dest_location)
-	no_mod=0
+	local libmod='/lib/modules/'$KERNEL'/'$(module_dest_location) no_mod=0
 	echo -e "** ${red}X server is not runing, perfect! (◠‿◠)${nc} **"
 	test -f $libmod/nvidia.ko* &>/dev/null || \
-	{ echo -e "${red}** Nvidia driver is not installed yet, rescue tools are useless at this point (⌣_⌣) **${nc}"; exit 0 ;}
+	{ echo -e "${red}** Nvidia driver is not installed yet, rescue tools are useless at this point (⌣_⌣) **${nc}"; exit 1 ;}
 	if [ $(/sbin/modinfo -F license $libmod/nvidia.ko* | grep -ic "Dual") -gt 0 ]; then
 		module='open-nvidia'
 		license='Dual MIT/GPL'
