@@ -546,3 +546,18 @@
  - Dependencies check rework. Added sudo to the list for non default sudo distros.
  - Moved tmp_dir command in execution order that wasn't corresponding to he new process order.
  - Minor change in zen_start, zen_nofify and zen_task_menu.
+* 2026-06-03 - v2.6.20
+ - Exit issues en dkms: It looks like Dkms-3.4.1 doesn't have the same exit status than 3.3.0 and
+   abort compilation command line after process even after success and send term signal.
+ - Reminder and observation: dkms is made for headless actions or pure console commande line.
+   Using it in massive script, as Zenvidia does, is not its purpose and could failed without a
+   strong return or exit status. This maybe why dkms internal dracut exit have issue, even after
+   success, is not taking effect after reboot when use for the runing kernel.
+ - A new way of exit status for dkms has been made, it works for an other kernel, but not sure for
+   the runing kernel because of the dracut issue.
+   At the moment it's strongly recommaded to use compilation from source instead of dkms and
+   use_dkms option in Zenvidia config has been set to 0 by default.
+ - Issue detected in Cuda installer when removing old install instruction is called. It was working
+   until distribution upgrade, but it failed now. This not fatal, just anoying. Working on it.
+ - In some case not clearly indentify, progress bar function was retuning a term signal. Hotfixed.
+
