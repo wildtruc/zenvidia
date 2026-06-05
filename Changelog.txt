@@ -560,4 +560,17 @@
  - Issue detected in Cuda installer when removing old install instruction is called. It was working
    until distribution upgrade, but it failed now. This not fatal, just anoying. Working on it.
  - In some case not clearly indentify, progress bar function was retuning a term signal. Hotfixed.
+* 2026-06-05 - v2.6.25
+ - Since kernel 7 and Fedora 44 (maybe other rescent distros), Cuda self extraction .run package
+   open an xterm window no matter what during extraction process then failed on its own "--tmpdir"
+   option and send term signal. The problem is that cuda self extracting doesn't have an extraction
+   option (it is very minimalist). Work-arround was finally found using self extraction package
+   default options to extract and keep package in temp dir then start installation with more strict
+   definition of the execution PATH. If the xterm window shows up, don't close it.
+   The issue seem to not affect Nvidia drivers self extraction package at the moment. It will be
+   under watch because the "-x" option has disapeared from help option (-A) even if it still working.
+ - Cuda remove functtion has been fixed. Old install is now correcly removed.
+ - I was very proud to find where Cuda developpers hide tje check sum file, but didn't pay attention
+ - it was not a sha256sum but a md5sum (generaly outdated). Done change in check sum validation.
+ - Dkms issue fixed. Fedora 44 default IFS need a more strong return status to exit correctly.
 
