@@ -21,7 +21,7 @@
 # pipefail is not realistic because of yad that creates too much tubes.
 set -eu
 
-# set -xeEu # DEVEL
+# set -xeEu -o pipefail # DEVEL
 # set -eEuo functrace # DEVEL
 export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 ## Fixed Variables (could not be change)
@@ -46,7 +46,8 @@ img_zen_desktop=$install_dir/share/pixmaps/zen-emblem.png
 # zen_version=$(cat $nvdir/zen_version)
 ### PROLOGUE
 ifs=$IFS
-export PATH=$PATH:$install_dir/bin
+export PATH=$install_dir/bin:$PATH
+
 ## set translation path.
 TEXTDOMAIN=zenvidia
 TEXTDOMAINDIR=$nvdir/locale
@@ -3386,25 +3387,59 @@ nv_cmd_install_libs(){ # ATTENTION CHECK REGULARY AT DRIVER UPGRADE
 	fi
 }
 # Cuda installer part.
-nv_remove_old_install(){
+nv_remove_old_install(){ # TODO CLEAN
 	if [[ $(cuda_version) != FALSE ]]; then
 		# cuda_old_dir_main=$(awk -F"." '{print $1}' <<< $(cuda_version)) # form"-" cuda-xx
 		# cuda_new_dir_main=$(awk -F"." '{print $1}' <<< ${CUDA_VERSION}) # form"-" cuda-xx
-		cuda_old_dir_main=$(sed -n 's/\.//g;p' <<< $(cuda_version)) # form"-" cuda-xx
-		cuda_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< ${cuda_dir_version}) # form"-" cuda-xx
-		if (( ${cuda_new_dir_main} > ${cuda_old_dir_main} )); then rm -Rf ${cuda_install_dir}/cuda-$(cuda_version); fi
+		local cuda_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
+		local c_old_dir_main=$(sed -n 's/\.//g;p' <<< "$(cuda_version)") # form"-" cuda-xx
+		# local c_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< "${cuda_dir_version}") # form"-" cuda-xx
+		local c_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< "${CUDA_VERSION}") # form"-" cuda-xx
+		if (( ${c_new_dir_main} > ${c_old_dir_main} )); then rm -Rf ${cuda_install_dir}/cuda-${cuda_old_version}; fi
 	fi
 }
 nv_cmd_install_cuda(){ # PULSE
 	# model : cuda_12.9.1_575.57.08_linux.run
 	local cuda_install_dir=${cuda_install_dir:-/usr/local}
+	nv_cuda_extract_cmd(){
+		if [[ -n $local_package_path/$local_pack && -x $local_package_path/$local_pack ]]; then
+			local PATH=${local_package_path}:$GLOBAL_PATH
+			# local cmdline=( "${local_pack}" "--extract_dir=/tmp/\(\)"  "--tmpdir=$buildtmp")
+			# eval ${cmdline[*]}
+			${local_pack} --extract_dir=/tmp/\(\) --tmpdir=$buildtmp #| read_sequence 0
+		fi
+	}
+	nv_cuda_install_cmd(){
+		pushd $buildtmp/selfgz*
+		local local_path=$(file $buildtmp/selfgz*| awk -F':' '{print $1}')
+		local PATH=${local_path}:$GLOBAL_PATH
+		# exit 1
+		cuda-installer --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} | \
+		while read -r line; do
+			echo -e "# ${y}${sf}${line}${end}${end}"
+			if [ -f /tmp/cuda-installer.log ]; then
+				cuda_log=("$(cat /tmp/cuda-installer.log)")
+				echo -e "# "
+				echo_message 3 $"Failed log message found: read it first"
+				for t in ${cuda_log[@]} ; do
+					echo -e "# ${y}${sf}"${t}"${end}${end}"
+				done
+			fi
+		done || die ${LINENO} "Self extraction execution failed.\nAbort" "" 1
+		popd
+ 	}
+	# local CUDA_VERSION="13.3" local_package_path=/mnt/data\(2\) cuda_install_dir=/usr/local # TEST
+	# local local_pack=cuda_13.3.0_610.43.02_linux.run # TEST
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
 
 	echo_message 0 $"Install Nvidia Cuda Toolkit"
 	## get the previous yad pid if any for die process
 	list_kill_parent_pids
 	# cuda installer do not install in sub rev version path and has to be set at general version.
-	local cuda_dir_version='cuda-'$(awk -F"." '{print $1"."$2}' <<< ${CUDA_VERSION}) # from xx.x.x to xx.x
-	# cuda isntaller do not remove older version if incremented by +1 (ex: 12.0 vs 13.0)
+	# from xx.x.x to xx.x
+	local cuda_dir_version='cuda-'$(awk -F"." '{print $1"."$2}' <<< "${CUDA_VERSION}")
+	local cuda_dir_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
+	# cuda installer do not remove older version if incremented by +1 (ex: 12.0 vs 13.0)
 	nv_remove_old_install
 
 	local pulse=1 log=1 hold=1 hide_txt=1 y_text
@@ -3412,22 +3447,15 @@ nv_cmd_install_cuda(){ # PULSE
 	win_log_options
 	pushd $local_package_path
 	{ local timeout=30 ;{
+	chmod 755 ${local_pack}
+	echo -e "# ${y}"$"Extracting Cuda package to temporary directory""${end}"
+	nv_cuda_extract_cmd
 	echo -e "# ${j}"$"Cuda datas installation in background""${end}"
 	echo -e "# ${v}"$"Cuda installer isn't verbose""${end}"
 	echo -e "# ${v}"$"Only installation errors will be displayed""${end}"
 	echo -e "# ${y}"$"Please wait...""${end}"
-	sh ${local_pack} --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} --tmpdir=$buildtmp 2>&1 | fmt -w 100 | \
-	while read -r line; do
-		echo -e "# ${y}${sf}${line}${end}${end}"
-		if [ -f /tmp/cuda-installer.log ]; then
-			cuda_log=("$(cat /tmp/cuda-installer.log)")
-			echo -e "# "
-			echo_message 3 $"Failed log message found: read it first"
-			for t in ${cuda_log[@]} ; do
-				echo -e "# ${y}${sf}"${t}"${end}${end}"
-			done
-		fi
-	done
+	# ${local_pack} --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} --tmpdir=$buildtmp 2>&1 | fmt -w 100 | \
+	nv_cuda_install_cmd
 	echo -e "# "
 	echo -e "$esc_message"
 	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
@@ -3437,7 +3465,7 @@ nv_cmd_install_cuda(){ # PULSE
 }
 nv_ctrl_install_cuda(){ # PROBABLY DEPRACATED
 	cuda_dir_check=$cuda_dir_version
-	[ -d $cuda_install_dir/$cuda_dir_check ] || base_menu
+	[ -d $cuda_install_dir/$cuda_dir_check ] || die 0 ${LINENO} "Cuda install error"".\n""Abort" "" 1
 	cuda_dir_size=$(du -sbB $((${divider}*${divider})) $cuda_install_dir/$cuda_dir_check | awk '{print $1}') # Size in Mo/Mb
 	if [[ -n $cuda_dir_check && -d $cuda_install_dir/$cuda_dir_check && ${cuda_dir_size} -gt 0 ]]; then
 		if [[ ${#cuda_dir_size} == ${#CUDA_DIR_SIZE} && $(cut -c1 <<< "${cuda_dir_size}") == $(cut -c1 <<< "${CUDA_DIR_SIZE}") ]]; then
@@ -3915,7 +3943,7 @@ extract_build(){
 	if [ -d $nvtmp/NVIDIA-Linux-$ARCH-$(new_version) ]; then
 		echo_message 3 "${j}−${end}" "$(new_version)" $"package already extracted"
 	else
-		[ ! -d NVIDIA-Linux-$ARCH-* ]|| rm -Rf NVIDIA-Linux-$ARCH-*
+		[ ! -d NVIDIA-Linux-$ARCH-* ] || rm -Rf NVIDIA-Linux-$ARCH-*
 		## save dir name for install and post install process.
 		echo_message 1 "${j}−${end}" $"Primary package extraction"
 		progress "$run_pkg -x" $"\${ge}\${sf}(\${m}s) * "$"Extracting"" $extracted_release\${end}\${end}" 1 1
@@ -4751,23 +4779,37 @@ last_driver_pack(){ # LIST
 	current_pack_sha=$(xq_x_query 4 "${run_pack}.sha256sum|file")
 	current_pack=$run_pack
 	pack_sha_uri="https://${nvidia_ftp}-$ARCH/${LAST_PACK}/${current_pack_sha}"
-	package_checksum_ctrl
+	local_package_path=$buildtmp
+	package_checksum_ctrl 0
 }
 package_checksum_ctrl(){
 	local -a warn_log=()
-	if [ -f $buildtmp/$current_pack ]; then
-		pushd $buildtmp &>/dev/null
+	local sum=${1}
+	chk_sum_error(){
+		warn_log+="${j}<b>"$"Download check sum error""</b>${end}.\n"
+		warn_log+=$"Transaction aborted""\n"
+		warn_log+=$"Try to restart driver download from"" <b>"$"Update menu""</b>"
+		die 2 ${LINENO} "${warn_log[@]}" "base_menu" 0
+	}
+	if [ -f $local_package_path/$current_pack ]; then
+		pushd $local_package_path &>/dev/null
 		curl -s ${pack_sha_uri} -o ${current_pack_sha}
-		if [ -f $current_pack.sha256sum ]; then
-			sha256sum ${current_pack}
-			sha256sum --status -c ${current_pack_sha}
+		if [ $(cat ${current_pack_sha}|wc -L) -gt 1 ]; then
+			> temp_sha.txt
+			cat ${current_pack_sha} | grep -E "${current_pack}$" > temp_sha.txt
+			cat temp_sha.txt > ${current_pack_sha}
+		fi
+		[ ${sum} = 0 ] && cmd=sha256sum
+		[ ${sum} = 1 ] && cmd=md5sum
+		if [ -f $current_pack.${cmd} ]; then
+			${cmd} ${current_pack}
+			${cmd} --status -c ${current_pack_sha} && return $? || exit 1
 			if [ $? = 1 ]; then
-					warn_log+="${j}<b>"$"Download check sum error""</b>${end}.\n"
-					warn_log+=$"Transaction aborted""\n"
-					warn_log+=$"Try to restart driver download from"" <b>"$"Update menu""</b>"
-					die 2 ${LINENO} "${warn_log[@]}" "base_menu" 0
+				chk_sum_error
 			fi
 			popd &>/dev/null
+		else
+			chk_sum_error
 		fi
 	else
 		warn_log+="${j}""<b>"$"Download failure""</b>${end}\n"
@@ -4912,7 +4954,7 @@ check_cuda_versions(){
 	done
 	return
 }
-check_remote_cuda(){
+check_remote_cuda(){ # TODO cuda_log DEPRACATED ?
 	# local cuda_last_serie cuda_remote_versions
 	# local cuda_remote_versions
 	## download remote version page list
@@ -5291,14 +5333,16 @@ cuda_download(){
 		echo "${dl_destination_storage};${local_pack}" > $(user_CF_DIR)/cuda-temp-path.log
 	fi
 }
-package_checksum_sim(){
+package_checksum_sim(){ # TODO # CLEAN old datas
 	# page checksum trouvée :
 	# https://developer.download.nvidia.com/compute/cuda/13.2.1/docs/sidebar/md5sum.txt
 	# forme : e5b4bdf19cc27d63a8254cb486764626 cuda_13.2.1_595.58.03_linux.run
-	current_pack_sha=$local_pack.sha256sum
+	# package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
+	# distant_size=$CUDA_SIZE_O
+	current_pack_sha=$local_pack.md5sum
 	current_pack=$local_pack
 	pack_sha_uri="https://$cuda_base_url/compute/cuda/$CUDA_VERSION/docs/sidebar/md5sum.txt"
-	package_checksum_ctrl
+	package_checksum_ctrl 1
 
 	# local remote_size package_size proc_msg more_msg bck_to warn_log
 	# remote_size=$CUDA_SIZE_O
@@ -5804,7 +5848,7 @@ win_yad_progress(){
 	if [ $_exit -eq 1 ]; then echo 1;
 	elif [ $_exit -eq 252 ]; then echo 2 ;
 	elif (( $_exit == 143 )); then exit 1 ;
-	else echo 0
+	# else echo 0
 	fi
 	if [ $_exit -ge 1 ]; then
 		if [ $(pgrep curl) ]; then
@@ -8346,6 +8390,7 @@ tmp_dir(){
 ### SCRIPT INTRO ###
 ## all created file readable by everyone.
 umask 022
+declare GLOBAL_PATH=$PATH
 # reset script root vars
 declare dev_n dev slot slot_id vnd vnd_id dev_name
 declare -a deplist=() dep_text=() parent=() command_to_trap=()
@@ -8498,7 +8543,7 @@ else
 					task_opt=0
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
-				# -t) task_opt=0 ; check_for_older ;;
+				# -t) task_opt=0 ; nv_cmd_install_cuda ;;
 				# -t) task_opt=1 ; zen_notif_setup ;;
 				# -t) task_opt=1 ; menu_update ;;
 				# -t) task_opt=1 ; win_open_switch ;;
