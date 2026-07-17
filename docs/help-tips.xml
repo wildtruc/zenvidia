@@ -87,8 +87,8 @@
 			<tip key="Manage drivers packages">
 				<p>This tool is to backup, restore and remove old or current driver install.</p>
 				<p>It also manage dowloaded nvidia's .run pack.</p>
-				<p>Note: if "backup_prev" option is set and a old installation is found,</p>
-				<p>it'd be automatically backed up prior to new version installation.</p>
+				<p>Note: if "Allow driver backup during install" option is set and a old installation
+				<p>is found, it'd be automatically backed up prior to new version installation.</p>
 			</tip>
 			<tip key="Zenvidia notification config">
 				<p>Configuration tool for Zen_notify daily update checker.</p>
@@ -230,7 +230,7 @@
 				<p>Les noyaux actuels ou alternatifs sont gérés à partir de ce menu.</p>
 			</tip>
 			<tip key="Outils et Configurations">
-				<p>Cete partie est consacrée aux éditions et configurations.</p>
+				<p>Cette partie est consacrée aux éditions et configurations.</p>
 				<p>Il tente de couvrir tous les besoins de l'utilisateur</p>
 				<p>que ce soit pour le système, Nvidia ou Zenvidia.</p>
 			</tip>
@@ -305,9 +305,9 @@
 			<tip key="Gérer les paquets de pilotes">
 				<p>Cet outil permet de sauvegarder, restaurer ou supprimer des pilotes</p>
 				<p>anciens ou courants, ainsi que de gérer les paquets Nvidia téléchargés.</p>
-				<p>Note: si l'option "back_prev" est activée et qu'une installation précédente</p>
-				<p>est trouvée durant la mise à jour du pilote, elle sera automatiquement</p>
-				<p>sauvegardée avant l'installation d'une nouvelle version.</p>
+				<p>Note: si l'option "Allow driver backup during install" est activée et qu'une
+				<p>installation précédente est trouvée durant la mise à jour du pilote, elle sera
+				<p>automatiquement sauvegardée avant l'installation d'une nouvelle version.</p>
 			</tip>
 			<tip key="Configuration des notifications Zenvidia">
 				<p>Outil de configuration pour le contrôle journalier de Zen_notify.</p>

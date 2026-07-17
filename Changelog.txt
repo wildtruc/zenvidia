@@ -569,8 +569,17 @@
    definition of the execution PATH. If the xterm window shows up, don't close it.
    The issue seem to not affect Nvidia drivers self extraction package at the moment. It will be
    under watch because the "-x" option has disapeared from help option (-A) even if it still working.
- - Cuda remove functtion has been fixed. Old install is now correcly removed.
- - I was very proud to find where Cuda developpers hide tje check sum file, but didn't pay attention
- - it was not a sha256sum but a md5sum (generaly outdated). Done change in check sum validation.
+ - Cuda remove function has been fixed. Old install is now correcly removed.
+ - I was very proud to find where Cuda developpers hide the check sum file, but didn't pay attention
+   it was not a sha256sum but a md5sum (generaly outdated). Done change in check sum validation.
  - Dkms issue fixed. Fedora 44 default IFS need a more strong return status to exit correctly.
-
+* 2026-07-17 - v2.6.29
+ - It appears that the latest.txt file on Nvidia site is not up to date according with last official
+   patched version. Added a function to control if latest version is really the good one.
+ - zen_notify ahs been change occordingly to above.
+ - FIX: drivers auto list reset missing in case multi version in dowloanding selector (discoverd
+   during latest.txt exploration issue).
+ - Translation fr_FR done.
+ - Info: Tested DKMS dracut issue with 610 serie in case it'd come from driver serie version.
+   It wasn't. DKMS option use_dkms still need to be set to 0 (source only), 610 serie has been add
+   to internal script issue list to still allow to install through DKMS.

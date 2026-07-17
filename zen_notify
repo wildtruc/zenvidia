@@ -99,13 +99,24 @@ driver_ctrl(){
 	local prefix='' suffix='' msg_suffix=''
 	local LAST_OFFI=0 LAST_BETA=0 LAST_DRV=''
 
+	offi_patch_scrap(){ # evaluate last official version: case out dated latest.txt
+		local patch_family patch_drv
+		LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
+		patch_family=$(cut -d'.' -f1 <<< "$LAST_OFFI")
+		patch_drv=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| awk -F"/" '/'${patch_family}'\..*/ {e=$1}END{print e}')
+		if [[ ${patch_drv} != ${LAST_OFFI} ]]; then
+			LAST_OFFI=${patch_drv}
+		fi
+	}
 	if [ $(connected) -eq 0 ]; then
 		remote_page=https://${nvidia_ftp}-${ARCH}
 		scrap_cmd=("curl" "-s" "$remote_page")
 		page='latest.txt'
 		index='index.html'
-		LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
-		LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/\1/;$p' || echo "none" )
+		# LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
+		# LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/\1/;$p' || echo "none" )
+		offi_patch_scrap
+		LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| awk -F"/" '{e=$1}END{print e}'|| echo "none" )
 		# LAST_BETA="565.77" # TEST
 		[ -f $local_nvdir/taskbar_message ] && echo '' > $local_nvdir/taskbar_message
 
