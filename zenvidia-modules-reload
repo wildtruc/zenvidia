@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -euo pipefail
+# set -euo pipefail
+set -uo pipefail
 #export PS4='->$(tput setaf 6)${LINENO}$(tput sgr 0)$(printf "\\t")-> '
 
 if [ -e /var/run/nv-modules-reload.pid ]; then
@@ -14,29 +15,29 @@ if [ -e /var/run/nv-modules-reload.pid ]; then
 
 	export PATH=$PATH:$install_dir/bin
 
+	echo "[zenvidia] session modules reload active > exec system daemon service." >&2
+	[ -e $nv_persist_ctl ] && $d_sys stop nvidia-persistenced.service && echo "[zenvidia] shuting down nvidia-persistenced" >&2
 	if [ $(lsmod | grep -c "nouveau") -gt 0 ]; then
-		$d_probe -r nouveau
+		$d_probe -r nouveau && echo "[zenvidia] unloaded nouveau drivers" >&2 || true
 	else
-		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID modules unload done" || true
+		$d_probe -r -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID nvidia modules unload done" >&2 || true
+		# echo "[zenvidia] unloaded nvidia drivers rc=$?" >&2
 	fi
 	if [ -e "/sys/bus/pci/rescan" ]; then
-	 	echo 1 > /sys/bus/pci/rescan && echo "global pci rescan done" || true
+	 	echo 1 > /sys/bus/pci/rescan && echo "[zenvidia] global pci rescan done" >&2 || true
 	fi
-	# if [ -e "$DEVICE_DIR/rescan" ]; then # TEST
-	# 	echo 1 > $DEVICE_DIR/rescan && echo "[zenvidia] device $PCI_ID rescan done" || true
+	$d_probe -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID nvidia modules reload done" >&2 || true
+	udevadm settle && echo "[zenvidia] $PCI_ID nvidia modules udev settle done" >&2 || true
+	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$(uname -r).*" && echo "[zenvidia] $PCI_ID nvidia modules symvers reconnected" >&2 || true
+	# if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
+	# 	$d_sys restart systemd-modules-load.service
 	# fi
-	$d_probe -a nvidia_uvm nvidia_drm nvidia_modeset nvidia && echo "[zenvidia] $PCI_ID modules reload done" || true
-
-	find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
-	command -v restorecon &>/dev/null && restorecon "/boot/symvers-$(uname -r).*"
-	if [ -f /lib/systemd/system/systemd-modules-load.service ]; then
-		$d_sys restart systemd-modules-load.service
+	if [ -e $nv_persist_ctl ]; then
+		# case: prime offload activated
+		systemctl start nvidia-persistenced.service && echo "[zenvidia] Starting nvidia-persistenced" >&2
+		$d_sys daemon-reload && echo "[zenvidia] session modules reload active > exec system daemon service." >&2
 	fi
-	[ -e $nv_persist_ctl ] && systemctl start nvidia-persistenced.service
 	rm -f /var/run/nv-modules-reload.pid
-	echo "[zenvidia] session modules reload active > exec system daemon service."
-	$d_sys daemon-reload
-	#$d_sys daemon-reexec
 else
-	echo "[zenvidia] session modules reload inactive > Nothing to do."
+	echo "[zenvidia] session modules reload inactive > Nothing to do." >&2
 fi

@@ -583,3 +583,10 @@
  - Info: Tested DKMS dracut issue with 610 serie in case it'd come from driver serie version.
    It wasn't. DKMS option use_dkms still need to be set to 0 (source only), 610 serie has been add
    to internal script issue list to still allow to install through DKMS.
+* 2026-07-26 - v2.6.31
+ - FIX : zenvidia-modules-reload broke when switching open/propriatary. It was a kernl 7 DRM
+   management issue where /dev/cardX wasn't ready before lightdm start and a too old modprobe command
+   line were depracted for this version.
+ - FIX : nv_open_switch was still using DKMS only for driver compilation. Source will also used if
+   "use_dkms" option is set to 0.
+
