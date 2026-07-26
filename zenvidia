@@ -1460,7 +1460,7 @@ nv_open_switch(){ # WARN
 					## NOTE : in case of a recent kernel update, only the predifined type with AUTOINSTALL="yes"
 					## is compile and install by dkms and thus, the other var/lib/dkms module dir doesn't exist.
 					## It is there needing to recompile the all nvidia and open-nvidia.
-					nv_build_dkms
+					[ ${use_dkms} -eq 0 ] && nv_cmd_make_src || nv_build_dkms
 				fi
 				if [[ $drv_on == "nvidia" ]]; then
 					license="NVIDIA"
@@ -1512,7 +1512,7 @@ nv_open_switch(){ # WARN
 				## remove blank lines ?
 				sed -ni "s/AUTOINSTALL.*$//g;p" /usr/src/$drv_off-$(version)/dkms.conf
 				## set diplayed license by driver type.
-				echo -e "# "
+				# echo -e "# "
 				echo_message 1 "${y}$drv_on${end} -" $"Driver switch done."
 				echo -e "$esc_message"
 				[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
