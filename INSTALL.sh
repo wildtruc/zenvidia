@@ -11,6 +11,7 @@ USER_DIR=/home/${C_USER}
 CONF_DIR=${USER_DIR}/.zenvidia
 INSTALL_DIR=${PREFIX}/share/zenvidia
 BIN_DIR=${PREFIX}/bin
+locale=$(awk -F"." '{print $1}' <<< $LANG)
 
 ## terminal fonts colors.
 red='\e[1;31m'
@@ -42,7 +43,7 @@ make_install(){
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
+	install -Dm644 -t /usr/share/polkit-1/rules.d/ com.github.zenvidia.rules
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -Dm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -rf -t ${INSTALL_DIR}/ locale/locale
@@ -74,7 +75,7 @@ make_uninstall(){
 	rm -f ${PREFIX}/share/pixmaps/zen-*.png
 	rm -Rf ${PREFIX}/share/doc/zenvidia
 	rm -f /usr/share/polkit-1/actions/com.github.pkexec.zenvidia.policy
-	rm -f /usr/share/polkit-1/rules/com.github.pkexec.zenvidia.rules
+	rm -f /usr/share/polkit-1/rules.d/com.github.pkexec.zenvidia.rules
 	echo -e "UNINSTALL DONE."
 }
 make_safeuninstall(){
@@ -99,7 +100,7 @@ make_update(){
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${PREFIX}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
+	install -Dm644 -t /usr/share/polkit-1/rules.d/ com.github.zenvidia.rules
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -CDm644 -t ${INSTALL_DIR}/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t ${INSTALL_DIR}/ locale/locale
