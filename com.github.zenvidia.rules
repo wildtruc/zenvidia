@@ -1,6 +1,5 @@
 /*
- * Allow users in privileged gamemode group to run cpugovctl &
- * gpuclockctl without authentication
+ * Allow users in privileged group to run without authentication
  */
 polkit.addRule(function (action, subject) {
     if ((action.id == "com.github.pkexec.zenvidia.zenvidia" ||

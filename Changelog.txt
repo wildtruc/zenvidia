@@ -587,6 +587,11 @@
  - FIX : zenvidia-modules-reload broke when switching open/propriatary. It was a kernl 7 DRM
    management issue where /dev/cardX wasn't ready before lightdm start and a too old modprobe command
    line were depracted for this version.
- - FIX : nv_open_switch was still using DKMS only for driver compilation. Source will also used if
+ - FIX : nv_open_switch was still using DKMS only for driver compilation. Source will be also used if
    "use_dkms" option is set to 0.
-
+* 2026-08-12 - v2.6.32
+ - FIX: nutshell error in INSTALL.sh for polkit rules file destination. Polkit rules were setted to
+   "/rules" instead of "/rules.d" that make script autorization using admin password instead of act
+   transparently.
+ - Running "INSTALL.sh update" is required if task bar menu's autoupdate entry don't ask for admin
+   password when clicked.
