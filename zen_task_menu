@@ -30,6 +30,7 @@ img_nv_settings=$icon_stock/zen-settings.png
 img_zen_desktop=$img_zen
 version=$(cat $local_conf_dir/version.txt)
 zen_version=$(cat $local_conf_dir/zen_version)
+user_id=$(stat -c %u -- /run/user/* | grep -v "root")
 
 test -f $local_conf_dir/basic.conf && . $local_conf_dir/basic.conf || exit 0
 
@@ -39,7 +40,7 @@ export TEXTDOMAINDIR=/usr/local/share/zenvidia/locale
 
 declare open_menu='' driver_changelog='' nvidia_help='' changelog_menu=''
 declare next_major_change='' zen_new_update=''
-declare opti_menu='' adds=''
+declare opti_menu='' adds='' taskpid=''
 
 [ $open_drv = 1 ] && open_menu=$"Open Driver Switch"'!zen_start -o!zen-swap,'
 [ $use_open = 1 ] && adds='open-source' || adds='close-source'
@@ -86,4 +87,7 @@ menu_list=(
 	$"Close Zenvidia task menu"!quit!zen-stop
 )
 $d_yad --notification --image=$img_zen_desktop --no-middle --command='' --text="$embed_text" \
---icon-size=24 --menu="${menu_list[*]}" --separator=',' &
+--icon-size=24 --menu="${menu_list[*]}" --separator=',' & eval taskpid=$!
+# send pid file to /run/user temp directory
+printf "%s" "$taskpid" > /run/user/${user_id}/zen_task_menu.pid
+exit 0

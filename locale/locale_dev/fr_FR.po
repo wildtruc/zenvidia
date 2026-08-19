@@ -3700,8 +3700,8 @@ msgstr "ou démarrer dans un termnial utilisateur avec:"
 msgid "Relaunch user session for changes to take effect"
 msgstr "Relancez la session uilisateur pour que les changements prennent effet"
 #: ./zenvidia-test23:7746
-msgid "There is more than one process using Yad"
-msgstr "Il y a plus d'un processus Yad en cours"
+msgid "There is an issue with process using Yad"
+msgstr "Il y a soucis avec les processus Yad en cours"
 #: ./zenvidia-test23:7747
 msgid "Close the other process first, then relauch update from systray"
 msgstr "Fermez les autres processus en premier, puis relancez la mise à jour depuis le menu flotant"

@@ -6,7 +6,8 @@ polkit.addRule(function (action, subject) {
          action.id == "com.github.pkexec.zenvidia.xorgconf" ||
          action.id == "com.github.pkexec.zenvidia.primecon" ||
          action.id == "com.github.pkexec.zenvidia.switcher" ||
-         action.id == "com.github.pkexec.zenvidia.update") &&
+         action.id == "com.github.pkexec.zenvidia.update"   ||
+         action.id == "com.github.pkexec.zenvidia.git" ) &&
         subject.isInGroup("wheel"))
     {
         return polkit.Result.YES;

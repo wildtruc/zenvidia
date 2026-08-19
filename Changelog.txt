@@ -584,7 +584,7 @@
    It wasn't. DKMS option use_dkms still need to be set to 0 (source only), 610 serie has been add
    to internal script issue list to still allow to install through DKMS.
 * 2026-07-26 - v2.6.31
- - FIX : zenvidia-modules-reload broke when switching open/propriatary. It was a kernl 7 DRM
+ - FIX : zenvidia-modules-reload broke when switching open/propriatary. It was a kernel 7 DRM
    management issue where /dev/cardX wasn't ready before lightdm start and a too old modprobe command
    line were depracted for this version.
  - FIX : nv_open_switch was still using DKMS only for driver compilation. Source will be also used if
@@ -595,3 +595,7 @@
    transparently.
  - Running "INSTALL.sh update" is required if task bar menu's autoupdate entry don't ask for admin
    password when clicked.
+* 2026-08-12 - v2.6.34
+ - Added a pid file for zen_task_menu to avoid confusion between other Yad processes.
+ - Polkit for zenvidia update changed to "no password".
+
