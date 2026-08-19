@@ -7787,7 +7787,7 @@ git_update(){ # WARN # PULSE >> CLEANUP ######
 				die 2 ${LINENO} "${warn_log[*]}" 1 0
 			fi
 	else
-		warn_log+=$"There is more than one process using Yad"".\n"
+		warn_log+=$"There is an issue with process using Yad"".\n"
 		warn_log+=$"Close the other process first, then relauch update from systray""."
 		die 2 ${LINENO} "${warn_log[*]}" 1 0
 	fi
@@ -8205,9 +8205,12 @@ set_graphical_env(){
 	# local proc_pid=$$
 	[[ $(type -p yad) ]] || dep_control
 	# zen_task_menu pid for git_update function.
-	yad_current_pid=$(ps -C yad -o pid | grep -cv "[A-Z]") || true
-	if [[ ${yad_current_pid} -gt 0 && ${yad_current_pid} -lt 2 ]]; then
-		grant_update=1 ; systray_pid=$(pidof yad)
+	# yad_current_pid=$(ps -C yad -o pid | grep -cv "[A-Z]") || true
+	yad_current_pid=$(cat /run/user/$(def_user_id)/zen_task_menu.pid || true)
+	# if [[ ${yad_current_pid} -gt 0 && ${yad_current_pid} -lt 2 ]]; then
+		# grant_update=1 ; systray_pid=$(pidof yad)
+	if [[ ${yad_current_pid} -gt 0 ]]; then
+		grant_update=1 ; systray_pid=${yad_current_pid}
 	else
 		grant_update=0 ; systray_pid=''
 	fi
@@ -8604,7 +8607,7 @@ else
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
 				# -t) task_opt=0 ; nv_cmd_install_cuda ;;
-				# -t) task_opt=1 ; zen_notif_setup ;;
+				M-t) task_opt=1 ; read_changelog ;;
 				# -t) task_opt=1 ; menu_update ;;
 				# -t) task_opt=1 ; win_open_switch ;;
 				-*) die 1 ${LINENO} "Option pipe failed.\nOption "${1}" is not a valid option." "" 0 ;;
