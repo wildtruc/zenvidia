@@ -595,7 +595,10 @@
    transparently.
  - Running "INSTALL.sh update" is required if task bar menu's autoupdate entry don't ask for admin
    password when clicked.
-* 2026-08-12 - v2.6.34
+* 2026-08-19 - v2.6.34
  - Added a pid file for zen_task_menu to avoid confusion between other Yad processes.
  - Polkit for zenvidia update changed to "no password".
+* 2026-08-22 - v2.6.35
+ - zenvidia version file fix. Error in log date that double the version text in version file. Minor,
+   but could be anoying for next uploads.
 
