@@ -7720,7 +7720,7 @@ git_auto_update(){
 	install -Dm644 -t ${main_path}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${main_path}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
+	install -Dm644 -t /usr/share/polkit-1/rules.d/ com.github.zenvidia.rules
 	install -CDm644 -t ${data_path}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -CDm644 -t ${data_path}/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t ${data_path}/ locale/locale
