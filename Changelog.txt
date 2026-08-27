@@ -604,3 +604,8 @@
 * 2026-08-24 - v2.6.36
  - FIX: last 19.08 push include a polkit amendment, INSTALL.sh was updated, but not git update part
    in zenvidia. v_v
+* 2026-08-27 - v2.6.37
+ - FIX: Since Fedora's Bash IFS change, number of yad function using list were affectted and fixed when
+   there was an issue, but I didn't realise that Nvidia Docmentation display was too. This is fix.
+   At this point it looks that any other function is affected.
+
