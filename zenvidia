@@ -7365,9 +7365,12 @@ read_about(){ # TEXT
 	read_view=$(win_yad_text "$log_brief" 0 "--image=zen-emblem")
 	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_infos; fi
 }
-read_nv_help(){ # LIST # TEXT # TODO PASSER A XQ ?
+read_nv_help(){ # LIST # TEXT
 	local index read_view chapter_index chapters_list help_tip=''
+	local -a chapters_list=() chapter_index=()
+	local chap_title chap_start chap_end chap_text chap_brief
 	local IFS=$(echo -en "\n\b")
+	# local IFS=$'\n'
 	chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
 	for chapter in ${chapters_list[@]}; do
 		chapter_index+=("FALSE")
@@ -7386,9 +7389,13 @@ read_nv_help(){ # LIST # TEXT # TODO PASSER A XQ ?
 		*[a-z]*)
 			chap_title=$(echo "$index"| sed -n "s/(.*)//g;p")
 			chap_start=$(printf "$index"| sed -n "s/\(.*\)\..*$/\1/p")
-			chap_end=$(sed -n "/$chap_start/{n;s/\(.*\)\..*$/\1/p}" <<< "$chapters_list")
+			chap_end=$(grep -E -A1 "${chap_start}" <<< ${chapters_list}| sed -n '2p'| awk -F"." '{printf $1}')
 			if [ "$chap_end" != '' ]; then
-				chap_brief="$chap_title : "$(sed -En "/^$chap_start.*$/,/^$chap_end/{/^____.*$/,/^____/p}" $nvi_docs/README.txt )
+				chap_brief=$(cat <<-BRIEF
+					$chap_title :
+					$(echo -en "$(sed -En "/^$chap_start\..*$/,/^$chap_end\..*$/{;/^____.*$/,/^____/p}" $nvi_docs/README.txt)")
+					BRIEF
+					)
 			else
 				chap_end=$(grep -nF "${chap_start}"  $nvi_docs/README.txt | tail -n1 | cut -d: -f1)
 				chap_brief="$chap_title : "$(awk "NR>=${chap_end}{print}" $nvi_docs/README.txt)
