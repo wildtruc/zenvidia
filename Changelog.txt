@@ -608,4 +608,5 @@
  - FIX: Since Fedora's Bash IFS change, number of yad function using list were affectted and fixed when
    there was an issue, but I didn't realise that Nvidia Docmentation display was too. This is fix.
    At this point it looks that any other function is affected.
-
+* 2026-08-31 - v2.6.38
+ - FIX: rewrite Nvidia changelog reader that wasn't display very first entry log.
