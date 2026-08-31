@@ -7365,12 +7365,9 @@ read_about(){ # TEXT
 	read_view=$(win_yad_text "$log_brief" 0 "--image=zen-emblem")
 	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_infos; fi
 }
-read_nv_help(){ # LIST # TEXT
+read_nv_help(){ # LIST # TEXT # TODO PASSER A XQ ?
 	local index read_view chapter_index chapters_list help_tip=''
-	local -a chapters_list=() chapter_index=()
-	local chap_title chap_start chap_end chap_text chap_brief
 	local IFS=$(echo -en "\n\b")
-	# local IFS=$'\n'
 	chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
 	for chapter in ${chapters_list[@]}; do
 		chapter_index+=("FALSE")
@@ -7389,13 +7386,9 @@ read_nv_help(){ # LIST # TEXT
 		*[a-z]*)
 			chap_title=$(echo "$index"| sed -n "s/(.*)//g;p")
 			chap_start=$(printf "$index"| sed -n "s/\(.*\)\..*$/\1/p")
-			chap_end=$(grep -E -A1 "${chap_start}" <<< ${chapters_list}| sed -n '2p'| awk -F"." '{printf $1}')
+			chap_end=$(sed -n "/$chap_start/{n;s/\(.*\)\..*$/\1/p}" <<< "$chapters_list")
 			if [ "$chap_end" != '' ]; then
-				chap_brief=$(cat <<-BRIEF
-					$chap_title :
-					$(echo -en "$(sed -En "/^$chap_start\..*$/,/^$chap_end\..*$/{;/^____.*$/,/^____/p}" $nvi_docs/README.txt)")
-					BRIEF
-					)
+				chap_brief="$chap_title : "$(sed -En "/^$chap_start.*$/,/^$chap_end/{/^____.*$/,/^____/p}" $nvi_docs/README.txt )
 			else
 				chap_end=$(grep -nF "${chap_start}"  $nvi_docs/README.txt | tail -n1 | cut -d: -f1)
 				chap_brief="$chap_title : "$(awk "NR>=${chap_end}{print}" $nvi_docs/README.txt)
@@ -7416,128 +7409,123 @@ read_nv_help(){ # LIST # TEXT
 	esac
 }
 read_changelog(){ # LIST # TEXT
-	local -a entrylog_list=() entrylog=() entry_list=()
-	local entry_catch
-	local relist_title='' catch_title='' log_list='' txt_val=0 log_brief=''
-	local IFS=$'\n'
 	brief(){
 		local read_view log_txt
-		if [ $(echo -e "$log_brief"| grep -c . 2>/dev/null"") -gt 0 ]; then
-			log_brief=$( cat <<-BRIEF
-			$log_brief
-			BRIEF
+		## define brief regex by title type
+		if [[ ${section_log_start} =~ Last* ]] ; then
+			brief_regex=$(cat <<-SED
+				/====.*${first_line_entry}/,/${section_log_end}/{
+				;/^=====/,/${regex_date}/{
+				;/^[\ ].*$/,/^$/p
+				}}
+				SED
 			)
 		else
-			log_brief=$(echo -e "\n\n"$"Nothing to display here"".\n\n"$"Log file empty"".")
+			brief_regex=$(cat <<-SED
+				/${section_log_start}/,/${section_log_end}/{;/^[ ].*$/,/^$/p}
+			SED
+			)
 		fi
-		log_txt="${bf}${j}"$"Changelog"" : ${y}$entrylog${end}${end}${end}"
-		[ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Previous"'!zen-back'
-		local ok_lbl=$"Back to index"'!zen-undo'
-		local w_formatted=0 w_wrap=1 w_width='750' w_height='400' all_btn=1 colors=1
-		read_view=$(win_yad_text "$log_brief" 0 "")
-		if [ $read_view -ge 1 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else
-			if [[ $relist_title != '' ]]; then
-				list_relist
-			else
-				read_changelog
-				# re_list # TEST
-			fi
-		fi
-	}
-	list_relist(){
-		local l_text
-		if [[ $relist_title != '' ]]; then
-			cancel_lbl=$"Back to list"'!zen-undo'
-			ok_lbl=$"Read"'!zen-ok'
-		else
-			[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Previous"'!zen-back'
-			ok_lbl=$"Select"'!zen-ok'
-		fi
-		if [ ${#entrylog_list[@]} -le 1 ]; then
-			ln=0
-			for log_line in ${entry_list[@]}; do
-				[ ${ln} = 0 ] && entrylog_list+=("TRUE") || entrylog_list+=("FALSE")
-				entrylog_list+=("$log_line")
-				ln=$(($ln+1))
-			done
-		fi
-		# interrupt spinner when from systray cmd
-		[[ -d /proc/${spid} ]] && kill ${spid} || true
+		log_brief=$( cat <<-BRIEF
+			$(echo -e "$(sed -En -e "${brief_regex}" $zen_docs/NVIDIA_Changelog)")
+			BRIEF
+		)
+		# no brief
+		(( ${#log_brief} > 0 )) || log_brief=$(echo -e ""$"Nothing to display here"".\n\n"$"Log file empty"".")
 
+		log_txt="${bf}${j}"$"Changelog"" : ${y}$yad_entry_log${end}${end}${end}"
+		# [ $task_opt -gt 0 ] && local cancel_lbl=$"Exit"'!zen-close' || local cancel_lbl=$"Previous"'!zen-back'
+		local cancel_lbl=$"Back to list"'!zen-back'
+		local ok_lbl=$"Back to index"'!zen-undo'
+		local w_formatted=0 w_wrap=1 w_width='800' w_height='400' all_btn=1 colors=1
+		read_view=$(win_yad_text "$log_brief" 0 "")
+		case ${read_view} in
+			0) section_log_start="${first_line_entry}"
+				section_log_end="${end_line_entry}"
+				list_logs 1
+				;;
+			1) list_logs 0 ;;
+			2) [ $task_opt -gt 0 ] && exit 1; menu_infos ;;
+		esac
+	}
+	yad_display(){
+		[ ${relist_type} = 0 ] && list_title=$"Change Logs list" || list_title="$(sed -n 's/====//g;p' <<< "${section_log_start}")"
+		local l_text
 		local list_type='radiolist' columns=2 sel_col=2 sep='' hid_col=0 edit_col=0 col_tip=0 l_tail=0 w_head=0 col_name=''
 		local w_width='550' w_height='420'
-		l_text="${j}${bf}"$"Change Logs list"" $relist_title${end}${end}"
-		entrylog=( $( win_yad_list "${entrylog_list[*]}" 1) )
-
-		if [[ "$entrylog" =~ [a-z] ]]; then
-			if [ $txt_val = 1 ]&&[ $(grep -E -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
-				log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
-				log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
-				sed -n "s/^===.*$//g;p")
-			else
-				log_end=$(grep -E -A1 "$entrylog" <<< ${entry_list[*]}| sed -n 2p)
-				[ "$log_end" != '' ] || log_end="====.*$"
-				log_list=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
-				sed -n "s/^===.*$//g;p")
-			fi
-
-			if [[ -n $relist_title && $relist_title != '' ]]; then
-				if [ $txt_val = 1 ]&&[ $(grep -E -c ".*[0-9]{4}-[0-9]{2}-[0-9]{2}" <<< $entrylog) -eq 0 ]; then
-					log_brief=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$catch_title/,/$log_end/p"| \
-					sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
-				else
-					log_brief=$(cat $zen_docs/NVIDIA_Changelog | sed -En "/$entrylog/,/$log_end/p"| \
-					sed -En "s/^[0-9]{,4}-.*$//p;s/====.*$//p;s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}")
-				fi
-				brief
-			else
-				log_brief=$(cat <<< $log_list | sed -En "s/^[ ]{3}//g;{/^\ *$/d;s/^\ //i;p}" )
-			fi
-		else
-			if [ "$catch_title" != '' ]; then
-				if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else read_changelog; fi
-				# if [ ${entrylog} = 200 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; else re_list; fi # IN TEST
-			else
-				if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; fi
-			fi
+		l_text="${j}${bf}""${list_title}""${end}${end}"
+		# yad_entry_log=( $( win_yad_list "${entrylog_list[*]}" 1) )
+		win_yad_list "${entrylog_list[*]}" 1
+	}
+	list_type(){
+		local log_start="${1}" log_end="${2}" type=${3}
+		if [ ${type} = 0 ]; then
+			grep -E -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p"
+		elif [ ${type} = 1 ]; then
+			list_line_entry_reg=$(cat <<-SED
+				/====.*${section_log_start}/,/====.*${section_log_end}/{
+				;/^${regex_date}.*$/p}
+				SED
+			)
+			sed -En -e "${list_line_entry_reg}" $zen_docs/NVIDIA_Changelog
 		fi
 	}
-	re_list(){
-		entry_list=$(grep -E -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
-		list_relist
-		if [[ $log_list =~ .*[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-			local entry_list entry_catch entrylog_list=()
-			if [ $(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$") -gt 0 ]; then
-				txt_key="$(cat <<< $log_brief | sed -n '1p' | grep "\* [A-Z].*$"|sed -n "s/\* //g;p")"
-				txt_val=$(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$")
-				entry_list+=("First $entrylog Log")
-			fi
-			entry_list=( $(printf "$log_list" 2>/dev/null | grep -E ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"| sed -En "s/ ([0-9]{4})/\1/g;p" | sort -Vr) )
-
-			relist_title=": ${y}$entrylog${end}"; catch_title=$entrylog
-			list_relist
-		else
-			brief
+	list_logs(){
+		local relist_type=${1}
+		local first_line_entry
+		# local section_log_start section_log_end
+		local -a entry_list=() entrylog_list=()
+		# local serie_list=( $(list_type "" "" 0) )
+		if [ $relist_type -gt 0 ]; then # 1 list logs
+			cancel_lbl=$"Back to list"'!zen-undo'
+			ok_lbl=$"Read"'!zen-ok'
+			# define the real firs line of the log.
+			first_line_entry="$(sed -En 's/[ ]?[=]{8}[ ]?//g;1p' $zen_docs/NVIDIA_Changelog)"
+			end_line_entry=${section_log_end}
+			# if [ $relist_type = 1 ]; then
+				# entry_list+=( "Last release log" )
+				[[ ${section_log_start} =~ ${first_line_entry} ]] && entry_list+=( "Last release log" ) || first_line_entry="${section_log_start}"
+ 				entry_list+=( "$(list_type "$section_log_start" "$section_log_end" "1")" )
+			# fi
+		else # 0 list serie
+			[ $task_opt -gt 0 ] && cancel_lbl=$"Exit"'!zen-close' || cancel_lbl=$"Previous"'!zen-back'
+			ok_lbl=$"Select"'!zen-ok'
+			entry_list=( $(list_type "" "" 0) )
 		fi
+		ln=0 # define true for first line entry
+		for log_line in ${entry_list[@]}; do
+			[ ${ln} = 0 ] && entrylog_list+=("TRUE") || entrylog_list+=("FALSE")
+			entrylog_list+=("$log_line")
+			ln=$(($ln+1))
+		done
+		yad_entry_log=$(yad_display)
+		case ${yad_entry_log} in
+			[A-Z]*|[0-9]*-*)
+				section_log_start="${yad_entry_log}"
+				section_log_end=$(grep -E -A1 "${section_log_start}" <<< "$(echo -e "${entry_list[*]}")"| sed -n '2p')
+				section_log_end=${section_log_end:-'.*====='}
+				case ${section_log_start} in
+					Rele*) list_logs 1 ;;
+					Old*) section_log_end="Initial Release"; list_logs 1 ;;
+					Last*|[0-9]*-*) brief ;;
+				esac
+			;;
+			100)	[[ $relist_type = 0 ]] && ( [ $task_opt -gt 0 ] && exit 1; menu_infos )
+					[[ $relist_type = 1 ]] && ( list_logs 0 )
+			;;
+			200)	[ $task_opt -gt 0 ] && exit 1; base_menu ;;
+		esac
 	}
-	# entry_list=$(grep -E -e "=====" $zen_docs/NVIDIA_Changelog | sed -En "s/[ ]?={8}[ ]?//g;p")
-	# list_relist
-# 	if [[ $log_list =~ .*[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-# 		local entry_list entry_catch entrylog_list=()
-# 		if [ $(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$") -gt 0 ]; then
-# 			txt_key="$(cat <<< $log_brief | sed -n '1p' | grep "\* [A-Z].*$"|sed -n "s/\* //g;p")"
-# 			txt_val=$(cat <<< $log_brief | sed -n '1p' | grep -c "\* [A-Z].*$")
-# 			entry_list+=("First $entrylog Log")
-# 		fi
-# 		entry_list=( $(printf "$log_list" 2>/dev/null | grep -E ".*[0-9]{4}-[0-9]{2}-[0-9]{2}"| sed -En "s/ ([0-9]{4})/\1/g;p" | sort -Vr) )
-#
-# 		relist_title=": ${y}$entrylog${end}"
-# 		catch_title=$entrylog
-# 		list_relist
-# 	else
-# 		brief
-	# fi
-	re_list
+	local -a entrylog_list=() entry_list=()
+	local relist_type=0 log_brief='' list_title=''
+	local section_log_start section_log_end yad_entry_log first_line_entry
+	local IFS=$'\n'
+	# local IFS=$(echo -en "\n\b")
+	# interrupt spinner when from systray cmd
+	[[ -d /proc/${spid} ]] && kill ${spid} || true
+	regex_date='.*[0-9]{4}-[0-9]{2}-[0-9]{2}'
+	end_line_regex='^.*initial release.*$' # à voir
+	list_logs 0
 }
 read_zen_changelog(){ # LIST # TEXT # TODO CLEAN
 	local -a entry_list=() entrylog_list=() col_name=()
@@ -7727,7 +7715,7 @@ git_auto_update(){
 	install -Dm644 -t ${main_path}/share/doc/zenvidia/ docs/*.xml
 	install -Dm644 -t ${main_path}/share/doc/zenvidia/ Changelog.txt
 	install -Dm644 -t /usr/share/polkit-1/actions/ com.github.pkexec.zenvidia.policy
-	install -Dm644 -t /usr/share/polkit-1/rules.d/ com.github.zenvidia.rules
+	install -Dm644 -t /usr/share/polkit-1/rules/ com.github.zenvidia.rules
 	install -CDm644 -t ${data_path}/locale_dev locale/{Readme_translation.txt,translation_report_helper.sh,translation.pot}
 	install -CDm644 -t ${data_path}/locale_dev/locale_po locale/locale_dev/*
 	cp -ruf -t ${data_path}/ locale/locale
@@ -8614,7 +8602,7 @@ else
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
 				# -t) task_opt=0 ; nv_cmd_install_cuda ;;
-				M-t) task_opt=1 ; read_changelog ;;
+				-t) task_opt=1 ; read_changelog ;;
 				# -t) task_opt=1 ; menu_update ;;
 				# -t) task_opt=1 ; win_open_switch ;;
 				-*) die 1 ${LINENO} "Option pipe failed.\nOption "${1}" is not a valid option." "" 0 ;;
