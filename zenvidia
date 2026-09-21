@@ -183,13 +183,6 @@ user_CF_DIR(){
 		echo "/home/$(def_user)/.zenvidia"
 # 	fi
 }
-remote_drv_list(){ # TODO DEPRACATED
-	if ! [ -f $(user_CF_DIR)/notify/drvlist ]; then
-		su_cmd 2 "$(command -v zen_notify) -n &>/dev/null"
-	fi
-	echo "$(user_CF_DIR)/notify/drvlist" || true
-	return
-}
 distro_version(){
 	if [[ -r /etc/os-release ]]; then
 		if [ "$(grep -c "ID=ubuntu" /etc/os-release )" -gt 0 ]; then
@@ -235,45 +228,6 @@ distro_name(){
 		fi
 	fi
 	return
-}
-set_su(){ # FIELD # TODO DEPRACATED
-	local warn_text su_opts set_args su_cmd_prompt tip_1 tip_2 distro
-	warn_text="$( cat <<-MSG
-		<b>Su command is not congigured</b>
-
-		Without a proper <b>su</b> command for user calls, Zenvidia main functions
-		are unusable and script will abort.
-
-		Please, enter <b>sudo</b> or <b>su</b> command line with options for default
-		user admin privilege.
-
-		<i>If you don't know what is talking about here, just abort.
-		But be aware that from that point, you won't be able to use Zenvidia
-		in proper condition.
-		</i>
-	MSG
-	)"
-	su_opts="sudo -u!sudo -l -U!sudo -i!su -l"
-	tip_1="$(xq_tips "$FUNCNAME" "distribution_name" "help-tips.xml")"
-	tip_2="$(xq_tips "$FUNCNAME" "su_commnd_line" "help-tips.xml")"
-	[[ -n $(distro_name) ]] && distro="$(distro_name)" || distro="Unknown"
-
-	local ok_lbl=$"Set"'!zen-ok' cancel_lbl=$"Abort"'!zen-close'
-	yad_field "<b>"$"Distribution name""</b>" LABEL "${distro}" "${tip_1}"
-	yad_field "<b>"$"su command line""</b>" CBE "$su_opts" "${tip_2}"
-	set_args=$( win_yad_field "${warn_text}" 1 1 )
-	case ${set_args} in
-		100|200) exit 1;;
-		*) su_cmd_prompt=$(echo "$set_args"|cut -d'|' -f2)
-			distro=$(echo "$set_args"|cut -d'|' -f1)
-			## do not write if var already exist.
-			[ -s $script_conf ] && [ $(grep -c "su_cmd_prompt=" $script_conf ) -eq 0 ] && {
-			echo -e '## force distro name :\ndistro_prompt="'$distro'"' >> $script_conf
-			echo -e '## force admin su cmd :\nsu_cmd_prompt="'$su_cmd_prompt'"' >> $script_conf
-			}
-			. $script_conf
-		;;
-	esac
 }
 module_dest_location(){
 	case "$(distro_version)" in
@@ -579,6 +533,7 @@ dep_exec_check(){
 	[[ $(type -p openssl) ]] || deplist+=("openssl")
 	[[ $(type -p jq) ]] || deplist+=("jq")
 	[[ $(type -p xq) ]] || deplist+=("xq")
+	[[ $(type -p pahole) ]] || deplist+=("pahole")
 	# system
 	d_sys=$(command -v systemctl)
 	d_grub=$(find /usr/{sbin,local/sbin} -regextype sed -regex ".*grub[0-9]\?-.*"| sed -n "s/-.*$//;1p")
@@ -768,9 +723,8 @@ nv_modules_presence(){
 }
 ## Versioning and remote drivers scraping
 drivers_scrap(){ # SCRAPING
-	local type=${1} remote_page='' scrap_cmd page index
+	local type=${1} curl_opts=${2} index=${3} remote_page='' scrap_cmd page index
 	local -a drivers_list=()
-
 	offi_patch_scrap(){ # evaluate last official version: case out dated latest.txt
 		local patch_family patch_drv
 		LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
@@ -783,37 +737,34 @@ drivers_scrap(){ # SCRAPING
 	if [ ${type} -gt 1 ]; then
 		# for Cuda
 		remote_page=https://${cuda_base_url}/compute/cuda/redist
-		scrap_cmd=("curl" "-s" "$remote_page")
-		# page='last_update'
+		[ ${type} -gt 5 ] && remote_page=https://${cuda_base_url}/compute/cuda/${cuda_release}/local_installers
 		index='index.html'
 	else
 		# for nvidia
 		remote_page=https://${nvidia_ftp}-${ARCH}
-		scrap_cmd=("curl" "-s" "$remote_page")
+		# scrap_cmd=("curl" "-s" "$remote_page")
 		page='latest.txt'
 		index='index.html'
 	fi
-	# scrap_cmd=("curl" "-s" "$remote_page")
-	# page='latest.txt'
-	# index='index.html'
+	scrap_cmd=("curl" "${curl_opts}" "$remote_page")
+
 	if [ ${type} = 0 ]; then
-		# LAST_OFFI=$(eval ${scrap_cmd[*]}/$page| awk '{print $1}' || echo "none" )
-		# LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/\1/;$p' || echo "none" )
 		offi_patch_scrap
 		LAST_BETA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| awk -F"/" '{e=$1}END{print e}'|| echo "none" )
 		LAST_IN=$(version) # could be 0
 		LAST_AVAILABLE=$( [[ $LAST_OFFI != $LAST_BETA ]] && printf "$LAST_BETA|1" || printf "$LAST_OFFI|0" )
 	elif [ ${type} = 1 ]; then
-	# drivers_list=( $(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/false \1/p' | sort -Vr || echo 0 ) )
 		eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="dir"]'| sed -En 's/^(.*)\/$/false \1/p' | sort -Vr
 	elif [ ${type} = 2 ]; then
 		LAST_CUDA=$(eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/\1/;$p')
 	elif [ ${type} = 3 ]; then
-		# eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/false \1/p' | sort -Vr
 		eval ${scrap_cmd[*]}/$index | xq -q 'li>span[class="file"]>a'| sed -En 's/redistrib_(.*).json.*$/\1/p' | sort -Vr
 	elif [ ${type} = 4 ]; then
 		# per release creation date
 		eval ${scrap_cmd[*]}/$index | xq -x '//li/span[@class="file"]/a[@href="redistrib_'${cuda_release}'.json"]/following::span[@class="date"][1]'|awk '{print $1}'
+	elif [ ${type} = 5 ]; then
+		local cuda_url="https://${cuda_base_url}/compute/cuda/${cuda_release}/local_installers/cuda_${cuda_release}${BUILD_TAG}_linux.run"
+		curl -sI $cuda_url | awk '/^[Cc]ontent-[Ll]ength/ {print $2}'
 	fi
 
 }
@@ -922,29 +873,6 @@ gcc_compil_vars(){
 	kernel_path="/lib/modules/$KERNEL/$(module_dest_location)/"
 	if [ $UID = 0 ]; then grub_cfg=$(find /boot -wholename "*/grub.cfg"|grep -iv "efi"); grub_def=/etc/default/grub; fi
 
-}
-xterm_display_vars(){ # TODO DEPRACATED
-	xt_options='' x_pixel='' x_milli='' term_x_dsp=''
-	x_sleep='' x_esc_message=''
-	local xt_colors='' xx_hold='' pixel=''
-	[ $xt_hold = 0 ]|| xx_hold='-hold'
-	# sets for xterm
-	x_pixel=$($d_xdpy | grep -A1 "screen #0"| sed -En "s/^.* ([0-9]{3,5})x([0-9]{3,5}) .*$/\1;\2/1p")
-	x_milli=$($d_xdpy | grep -A1 "screen #0"| sed -En "s/^.*\(([0-9]{3,4})x([0-9]{3,4}).*\).*$/\1;\2/1p")
-	term_x_dsp=$(printf "$x_pixel"| cut -d';' -f1)
-	if [ $xt_hold = 1 ]; then
-		x_esc_message="\n${nc}*****  "$"Close window to escape"" *****"
-		x_sleep=''
-	else
-		if [ ${xt_delay} -gt 0 ]; then
-			x_esc_message="\n${nc}*****  "$"Window will auto-close in ${xt_delay} seconds"" *****"
-			x_sleep="sleep ${xt_delay}"
-		fi
-	fi
-	# xt_options="$xt_colors$xx_hold -fn 8x13 -geometry 80x24+"$[ ( ($(printf "$x_pixel"| cut -d';' -f1)-660)/2) ]"+0"
-	# pixel=$[ ($(printf "$x_pixel"| cut -d';' -f1)-660)/2 ]
-	pixel=$(( ($(printf "$x_pixel"| cut -d';' -f1)-660)/2 ))
-	xt_options=( $xt_colors $xx_hold -fn 8x13 -geometry 80x24+$pixel+0 )
 }
 nv_installer_check(){
 	if [ -s ${d_nv_installer} ]; then
@@ -3400,13 +3328,10 @@ nv_cmd_install_libs(){ # ATTENTION CHECK REGULARY AT DRIVER UPGRADE
 	fi
 }
 # Cuda installer part.
-nv_remove_old_install(){ # TODO CLEAN
+nv_remove_old_install(){
 	if [[ $(cuda_version) != FALSE ]]; then
-		# cuda_old_dir_main=$(awk -F"." '{print $1}' <<< $(cuda_version)) # form"-" cuda-xx
-		# cuda_new_dir_main=$(awk -F"." '{print $1}' <<< ${CUDA_VERSION}) # form"-" cuda-xx
 		local cuda_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
 		local c_old_dir_main=$(sed -n 's/\.//g;p' <<< "$(cuda_version)") # form"-" cuda-xx
-		# local c_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< "${cuda_dir_version}") # form"-" cuda-xx
 		local c_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< "${CUDA_VERSION}") # form"-" cuda-xx
 		if (( ${c_new_dir_main} > ${c_old_dir_main} )); then rm -Rf ${cuda_install_dir}/cuda-${cuda_old_version}; fi
 	fi
@@ -3417,8 +3342,7 @@ nv_cmd_install_cuda(){ # PULSE
 	nv_cuda_extract_cmd(){
 		if [[ -n $local_package_path/$local_pack && -x $local_package_path/$local_pack ]]; then
 			local PATH=${local_package_path}:$GLOBAL_PATH
-			# local cmdline=( "${local_pack}" "--extract_dir=/tmp/\(\)"  "--tmpdir=$buildtmp")
-			# eval ${cmdline[*]}
+			# /tmp/\(\) allow to extract even if there's no internal extractor feature.
 			${local_pack} --extract_dir=/tmp/\(\) --tmpdir=$buildtmp #| read_sequence 0
 		fi
 	}
@@ -3431,15 +3355,29 @@ nv_cmd_install_cuda(){ # PULSE
 		while read -r line; do
 			echo -e "# ${y}${sf}${line}${end}${end}"
 			if [ -f /tmp/cuda-installer.log ]; then
-				cuda_log=("$(cat /tmp/cuda-installer.log)")
+				cuda_installer_log=("$(cat /tmp/cuda-installer.log)")
 				echo -e "# "
 				echo_message 3 $"Failed log message found: read it first"
-				for t in ${cuda_log[@]} ; do
+				for t in ${cuda_installer_log[@]} ; do
 					echo -e "# ${y}${sf}"${t}"${end}${end}"
 				done
 			fi
 		done || die ${LINENO} "Self extraction execution failed.\nAbort" "" 1
 		popd
+ 	}
+ 	xterm_bug_message(){
+		while [ -d /proc/$termpid ]; do
+			xt_pid=$(ps -A | awk '/xterm/ {print $1}')
+			if [[ $xt_pid && -d /proc/$xt_pid ]]; then
+				sleep 1 &
+				wait $!
+				echo -e "# ${y}"$"(Don't close xterm terminal popup. It's a known installer bug.)""${end}"
+				[ -d /proc/$termpid ] && wait $termpid
+				return
+			else
+				sleep 2
+			fi
+		done
  	}
 	# local CUDA_VERSION="13.3" local_package_path=/mnt/data\(2\) cuda_install_dir=/usr/local # TEST
 	# local local_pack=cuda_13.3.0_610.43.02_linux.run # TEST
@@ -3453,7 +3391,7 @@ nv_cmd_install_cuda(){ # PULSE
 	local cuda_dir_version='cuda-'$(awk -F"." '{print $1"."$2}' <<< "${CUDA_VERSION}")
 	local cuda_dir_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
 	# cuda installer do not remove older version if incremented by +1 (ex: 12.0 vs 13.0)
-	nv_remove_old_install
+	# nv_remove_old_install
 
 	local pulse=1 log=1 hold=1 hide_txt=1 y_text
 	y_text="${mf}"$"Installing CUDA"" ${j}$CUDA_VERSION${end} "$"datas to"" ${y}${cuda_install_dir}/${cuda_dir_version}${end}${end}"
@@ -3462,7 +3400,11 @@ nv_cmd_install_cuda(){ # PULSE
 	{ local timeout=30 ;{
 	chmod 755 ${local_pack}
 	echo -e "# ${y}"$"Extracting Cuda package to temporary directory""${end}"
-	nv_cuda_extract_cmd
+	# nv_cuda_extract_cmd | xterm_bug_message
+	{
+		{ nv_cuda_extract_cmd ;}& eval termpid=$!; xterm_bug_message
+	}
+
 	echo -e "# ${j}"$"Cuda datas installation in background""${end}"
 	echo -e "# ${v}"$"Cuda installer isn't verbose""${end}"
 	echo -e "# ${v}"$"Only installation errors will be displayed""${end}"
@@ -3476,12 +3418,12 @@ nv_cmd_install_cuda(){ # PULSE
 	popd
 	nv_ctrl_install_cuda
 }
-nv_ctrl_install_cuda(){ # PROBABLY DEPRACATED
+nv_ctrl_install_cuda(){ # WARNING MAYBE DEPRACATED, WATCH
 	cuda_dir_check=$cuda_dir_version
 	[ -d $cuda_install_dir/$cuda_dir_check ] || die 0 ${LINENO} "Cuda install error"".\n""Abort" "" 1
 	cuda_dir_size=$(du -sbB $((${divider}*${divider})) $cuda_install_dir/$cuda_dir_check | awk '{print $1}') # Size in Mo/Mb
 	if [[ -n $cuda_dir_check && -d $cuda_install_dir/$cuda_dir_check && ${cuda_dir_size} -gt 0 ]]; then
-		if [[ ${#cuda_dir_size} == ${#CUDA_DIR_SIZE} && $(cut -c1 <<< "${cuda_dir_size}") == $(cut -c1 <<< "${CUDA_DIR_SIZE}") ]]; then
+		if (( ${#cuda_dir_size} == ${#CUDA_DIR_SIZE} && $(cut -c1 <<< "${cuda_dir_size}") >= $(cut -c1 <<< "${CUDA_DIR_SIZE}") )); then
 			proc_msg=$"Cuda Toolkit"" $CUDA_VERSION"$" install done""."
 			# log new ratio.
 			bc -l <<< "scale=2; ${cuda_dir_size}/${CUDA_SIZE_M}" > $(user_CF_DIR)/cuda_xz_ratio.log
@@ -3496,18 +3438,18 @@ nv_ctrl_install_cuda(){ # PROBABLY DEPRACATED
 		die 2 ${LINENO} "Cuda's evaluation size failed.\nAbort." 1 0
 	fi
 }
-cuda_checksum_alarm(){ # PROBABLY DEPRACATED
+cuda_checksum_alarm(){ # WARNING MAYBE DEPRACATED, WATCH
 	expected_size='9000'
 	local warn_log=$"$(cat <<-WARN
 		$cuda_dir_check directory doesn't have the expected size.
-		- expected size : above ${expected_size} M${bit}
+		- expected size : arround ${expected_size} M${bit}
 		- checked size  : $((${cuda_dir_size}/${divider})) M${bit}
 		Please check your install directory, internet connection (packets loss)
 		and try to install the package again.
 	WARN
 	)"
+	local proc_msg=$"Cuda Toolkit installation error."
 	if [ $from_install = 1 ]; then
-		proc_msg=$"Cuda Toolkit installation error."
 		report_log+=($"\t\t\t\t${gB} cuda-$CUDA_VERSION\t${end}> ${r}library sum check error${end}.\n")
 	else
 		echo_message 0 "$proc_msg"
@@ -3678,7 +3620,6 @@ INSTALL_DRIVER(){ # PULSE
 		# echo_message 1 "${mf}""<u>"$"Compat check and package extraction""</u>""${end}"
 		echo_message 1 "${mf}""<u>"$"Compat check and package extraction""</u>""${end}"
 		echo_message 1 "${j}−${end}" $"Checking compatibility data files"
-		#exit 0
 		# DRV is used by hardware_compat function.
 		DRV=$(new_version)
 		for e in ${dev_n[@]}; do
@@ -3698,32 +3639,7 @@ INSTALL_DRIVER(){ # PULSE
 		done
 		# CUDA REMOTE CHEKC HERE
 		if [ $use_cuda = 1 ]; then
-			cuda_last_version=${LAST_CUDA}
-			cuda_last_serie=$(cut -d'.' -f1 <<< "${cuda_last_version}")
-			local cuda_remote_versions=()
-
-			echo_message 1 "${j}−${end}" $"Checking Cuda update"
-			BUILDS=("$(new_version)")
-			# 	BUILDS+=("590.48.01") # TEST
-			y_text="${v}"$"Controling NVIDIA CUDA updates, if any""${end}"
-			local pulse=1 log=0 hold=0 hide_txt=0
-			win_log_options
-			{ local timeout=30 ;{
-				local update_status
-				echo -e "# "$"Initialize remote server exchange."
-				sleep ${read_timeout}
-				update_cuda_list
-				# ( $(update_cuda) && return )
-				echo -e "# "$"Extraction of remote data list."
-				sleep ${read_timeout}
-				cuda_sel_pack
-			}& eval lpid=$!; y_pulse; } | win_yad_progress
-			. $tmp_vars
-			if [ ${update_status} = 1 ]; then
-				echo_message 3 "${j}−${end}" $"Cuda Toolkit will install after driver install end"
-			else
-				echo_message 3 "${j}−${end}" $"Cuda Toolkit update skipped"
-			fi
+			update_cuda "$(new_version)" 1
 		fi
 		## ctrl if kernel is in the issue list of nv_build_options
 		uncompatible_kernel_alert
@@ -4248,7 +4164,7 @@ net_version_selector(){ # LIST
 check_for_older(){ # LIST
 	local older_pack rem_packages_list hlp_tip=''
 	local IFS=$ifs
-	drivers_list=( $(drivers_scrap 1) )
+	drivers_list=( $(drivers_scrap 1 "-s" "index.html") )
 
 	local IFS=$'\n'
 	local l_text="${j}${bf}"$"Driver version to install""${end}\n${end}${v}$hlp_tip${end}"
@@ -4819,7 +4735,8 @@ package_checksum_ctrl(){
 		[ ${sum} = 1 ] && cmd=md5sum
 		if [ -f $current_pack.${cmd} ]; then
 			${cmd} ${current_pack}
-			${cmd} --status -c ${current_pack_sha} && return $? || exit 1
+			# ${cmd} --status -c ${current_pack_sha} && return $? || exit 1
+			${cmd} --status -c ${current_pack_sha}
 			if [ $? = 1 ]; then
 				chk_sum_error
 			fi
@@ -4852,7 +4769,7 @@ check_cuda_storage(){
 	# add first default cuda path from installer
 	path_info+=$"/usr/local (default)!"
 	# form : used[%];free;mount_point
-	devfs_list=( $(df -lB ${divider} | grep "^/dev/*" | awk '{print $5";"$4";"$6}') )
+	devfs_list=( $(df -lB ${divider} | awk '/^\/dev\/*/ {print $5";"$4";"$6}') )
 	> $nvtmp/other_storages
 	if [ ${#devfs_list[@]} -le 1 ]; then
 		storage_warn=$"Only root partition is available (it's never a good idea)"
@@ -4872,7 +4789,8 @@ check_cuda_storage(){
 				for PTH in ${path_list[@]}; do
 					devfs_path=${PTH}
 					[[ "${PTH}" != "${devfs_info}" ]] && { [[ "${devfs_info}" =~ ^/home$ && "${PTH}" =~ ^/home.*$ ]] || devfs_path=''; }
-					[[ -n ${devfs_path} ]] && path_info+="${devfs_path} - ${devfs_space_per} G${bit} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
+					# [[ -n ${devfs_path} ]] && path_info+="${devfs_path} - ${devfs_space_per} G${bit} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
+					[[ -n ${devfs_path} ]] && path_info+="${devfs_path} - ${devfs_space_per} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
 				done
 			else
 				[[ $(grep -c "${reg_usual_mnt}" <<< "$DEV" ) ]] && \
@@ -4882,7 +4800,8 @@ check_cuda_storage(){
 			for PTH in ${path_list[@]}; do
 				reg_path=";${PTH}[ |$]"
 				if [[ ! "${devfs_list[@]}" =~ ${reg_path} ]]; then
-					[[ "${PTH}" =~ ^/home.*$ ]] || path_info+="${PTH} - ${devfs_space_per} G${bit} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
+					# [[ "${PTH}" =~ ^/home.*$ ]] || path_info+="${PTH} - ${devfs_space_per} G${bit} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
+					[[ "${PTH}" =~ ^/home.*$ ]] || path_info+="${PTH} - ${devfs_space_per} "$"used"", ($devfs_space_gig G${bit} "$"left"")!"
 				fi
 			done
 		fi
@@ -4938,79 +4857,97 @@ cuda_storage_warn(){ # FIELD
 	esac
 }
 # Controle remote data, scrap server page & create list.
-check_cuda_versions(){
-	local available_build cuda_url eval_size release_date
-	local CUDA='' BUILD='' cuda_release=''
-	for CUDA in ${cuda_remote_versions[@]}; do
-		# cuda_release="$(awk -F"|" '{print $1}' <<< "${CUDA}")"
-		# release_date="$(awk -F"|" '{print $2}' <<< "${CUDA}")"
-		cuda_release="${CUDA}"
-		release_date="$(drivers_scrap 4)"
-
-		for BUILD in "${BUILDS[@]}"; do
-			local available_build=()
-			echo_message 0 $"Testing Cuda version" "${cuda_release}" ":" "${BUILD}"
-			# echo_message 0 $"Testing Cuda" "${cuda_release}" $"version data :" "${BUILD}"
-			sleep 0.25
-			cuda_url="https://${cuda_base_url}/compute/cuda/${cuda_release}/local_installers/cuda_${cuda_release}_${BUILD}_linux.run"
-			eval_size=$(echo "$(curl -sI $cuda_url | sed -n "s/^[Cc]ontent-[Ll]ength: \(.*\)$/\1/p")" | sed -n "s/^\$'\|\\r//g;p" )
-			# cuda repos doesn't keep preivous update of the current version
-			# we need to remove them from the list.
-			(( "$(grep -c "${cuda_release} ${BUILD}" $cuda_log)" > 0 && ${eval_size} < 1000 )) && sed -ni "/^${cuda_release} ${BUILD} .*$/d;p" $cuda_log
-			# available remote data size are greater than 10, let's go from 1000
-			if [ ${eval_size} -gt 1000 ]; then
-				available_build+="${cuda_release} "
-				available_build+="${BUILD} "
-				available_build+="$(($eval_size/(${divider}*${divider}))) "
-				available_build+="${eval_size} "
-				available_build+="${release_date}"
-				[ "$(grep -c "${available_build[@]}" $cuda_log)" -gt 0 ] || echo -e "${available_build[@]}" | tee -a $cuda_log
-			fi
-		done
-	done
-	return
-}
-check_remote_cuda(){ # TODO cuda_log DEPRACATED ?
-	# local cuda_last_serie cuda_remote_versions
-	# local cuda_remote_versions
-	## download remote version page list
-	# wget -O $json_log "https://${cuda_base_url}/compute/cuda/redist/index.html" 2>/dev/null
-	# curl -s -o $json_log "https://${cuda_base_url}/compute/cuda/redist/index.html"
+check_available_cuda(){
 	## cuda list doesn't exit
-	test -f $cuda_log || touch $cuda_log
-	if [ -s $cuda_log ]; then
+	make_available_cuda_list(){
+		local -a available_build=()
+		## Create new line
+		available_build+="${cuda_release} "
+		available_build+="${BUILD} "
+		available_build+="$(($eval_size/(${divider}*${divider}))) "
+		available_build+="${eval_size} "
+		available_build+="$(drivers_scrap 4 "-s" "index.html")" # date
+		## add new line to log
+		echo -e "${available_build[@]}" | tee -a $cuda_list_log
+	}
+
+	local -a cuda_list=() available_build=() BUILDS=()
+	local cuda_release BUILD BUILDS_SERIE BUILD_TAG eval_size
+	test -f $cuda_list_log || touch $cuda_list_log
+
+	if [ -s $cuda_list_log ]; then
 		## cuda list exist and is not empty
-		## check for last data
 		echo_message 0 $"Updating data from remote server"
-		cuda_remote_versions=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
-		# cuda_last_serie=$(cat $cuda_log | cut -d'.' -f1 | sed -n '$p')
-		# # build list with release date
-		# cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log| grep -E "^$cuda_last_serie.")")
+		# cuda_list=( "$(cat $cuda_list_log| sort -rV)" )
+		local cuda_list_file=$(cat $cuda_list_log)
+		for line in ${cuda_list_file[@]}; do
+			cuda_list+=( "${line}" )
+		done
+		# if [ ${LAST_CUDA} ]; then
+		if [[ ${LAST_CUDA} && ${LAST_CUDA} != $(cuda_version) ]]; then
+			cuda_list+=( "${LAST_CUDA} $(version)" )
+		fi
+
+		# cuda_list=( "$(cat $cuda_list_log| sort -rV)" )
+
+		# echo -e "${cuda_list[@]}" # TEST
+		# exit 0
+		for build in ${cuda_list[@]}; do
+			cuda_release=$(cut -d' ' -f1 <<< ${build})
+			BUILD=$(cut -d' ' -f2 <<< ${build})
+			# CONTENT=$(cut -d' ' -f4 <<< ${build})
+			BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+
+			## since 615 serie package name has no more drivers version included.
+			if (( ${BUILDS_SERIE} < 615 )); then
+				BUILD_TAG="_${BUILD}"
+			else
+				BUILD_TAG=''
+			fi
+			# cuda_url="https://${cuda_base_url}/compute/cuda/${cuda_release}/local_installers/cuda_${cuda_release}${BUILD_TAG}_linux.run"
+			# eval_size="$(curl -sI $cuda_url | awk '/^[Cc]ontent-[Ll]ength/ {print $2}')"
+			eval_size=$(drivers_scrap 5 "-sI" "cuda_${cuda_release}${BUILD_TAG}_linux.run")
+			# eval_size=${eval_size//[^Aa-Zz0-9]/}
+			eval_size=${eval_size//[^(Aa-Zz)(0-9)]/}
+			if (( ${eval_size} < 1000 )); then
+				sed -ni "/${BUILD}/d;p" $cuda_list_log
+			else
+				if [ "$(grep -c "${cuda_release} ${BUILD}" $cuda_list_log)" -eq 0 ]; then
+					# release_date="$(drivers_scrap 4 "-s" "index.html")"
+					make_available_cuda_list
+				fi
+			fi
+
+		done
+		# cuda_remote_versions+=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
+		# cuda_remote_versions+=( "$(drivers_scrap 3 "-s" "index.html" | grep "${cuda_last_serie}")" )
 	else
-		## cuda list exist and is empty
-		## populate file first
-		# retrieve version data from version page
-		echo_message 0 $"Get initial data from remote server (could be long)"
-		cuda_remote_versions=( "$(drivers_scrap 3)" )
-		# cuda_version_list=("$(sed -n "s/^.*href='redistrib_\(.*\).json'.*$/\1/p" $json_log)")
+		cuda_list=( "$(echo "$(drivers_scrap 3 "-s" "index.html")"|sort -V)" )
+		# echo -e "${cuda_list[@]}"
+		BUILDS=( $(ls -1 $(user_CF_DIR)/release/ | sed -n "s/^.*-//g;p" | sort -V) )
+		for cuda in ${cuda_list[@]}; do
+			# echo -e ">>>>>> $cuda" # TEST
+			for build in ${BUILDS[@]}; do
+				cuda_release=${cuda}
+				BUILD=${build}
+				BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+
+				## since 615 serie package name has no more drivers version included.
+				if (( ${BUILDS_SERIE} < 615 )); then
+					BUILD_TAG="_${BUILD}"
+				else
+					BUILD_TAG=''
+				fi
+				eval_size=$(drivers_scrap 5 "-sI" "cuda_${cuda_release}${BUILD_TAG}_linux.run")
+				eval_size=${eval_size//[^(Aa-Zz)(0-9)]/}
+				if (( ${eval_size} > 1000 )); then
+					make_available_cuda_list
+				fi
+			done
+		done
+		# cuda_remote_versions=( "$(drivers_scrap 3)" )
+		# cuda_remote_versions=( "$(drivers_scrap 3 "-s" "index.html")" )
 	fi
-	# for release in ${cuda_version_list}; do
-	# 	cuda_remote_versions+=("${release}|$(grep -A2 "href='redistrib_${release}.json'" $json_log|sed -En "/date/{;s/^.*date'>(.*)\ .*$/\1/p}")")
-	# done
-	# ## check
-	# check_cuda_versions
-}
-update_cuda_list(){ # PULSE # Cuda start process
-	# json_log=$nvtmp/jsonpage.html # to temp
-	cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user)
-	y_text="${v}"$"Remote CUDA version page check""${end}"
-	local pulse=1 log=0 hold=0 hide_txt=0
-	win_log_options
-	{ local timeout=30 ;{
-		echo_message 0 $"Retrieving data from Nvidia server."
-		check_remote_cuda
-		check_cuda_versions
-	}& eval lpid=$!; y_pulse; } | win_yad_progress
 }
 # Check if sys have enough tmpfs space.
 cuda_tmpfs_warn(){ # FIELD
@@ -5029,7 +4966,7 @@ cuda_tmpfs_warn(){ # FIELD
 	total_cuda=$(bc -l <<< "$CUDA_size+$CUDA_dir_size")
 	msg_ask_list='' # wide
 
-	msg_ins_path=$"Installed data will be available from ${cuda_install_dir}"
+	msg_ins_path=$"Installed data will be available from ""${cuda_install_dir}"
 	action=$"Cuda-""${CUDA_VERSION}"": "$"update package available for install.""\n${y}${msg_ins_path}${end}" # wide
 	# trap pulse pid if needed
 	list_kill_parent_pids
@@ -5176,7 +5113,7 @@ cuda_tmpfs_warn(){ # FIELD
 }
 # Main function : read list, check mem, then download
 cuda_sel_pack(){ # LIST # WARN
-	local cuda_list LOCAL_BUILDS_LIST=() list_text=()
+	local -a cuda_list=() LOCAL_BUILDS_LIST=() list_text=()
 	local CUDA_VERSION CUDA_BUILD CUDA_SIZE_M CUDA_SIZE_O CUDA_FAIL_S=0
 	local file_down file_up file_ex local_pack
 	local more_text='' dl_destination_storage='' failed_install_log_path=''
@@ -5186,7 +5123,7 @@ cuda_sel_pack(){ # LIST # WARN
 	[ ${cuda_install_warn} = 0 ] && check_cuda_storage || cuda_storage_warn
 	if [ $from_install = 0 ]; then
 		# From update menu : BUILDS=( $(ls -1 ~/.zenvidia/release/ | sed -n "s/^.*-//g;p" | sort -V) )
-		local cuda_list=( "$(cat $cuda_log| sort -rV)" )
+		local cuda_list=( "$(cat $cuda_list_log| sort -rV)" )
 		local IFS=$'\n'
 		failed_install_log_path="$(user_CF_DIR)/cuda-temp-path.log"
 # 		failed_install_log_path="./cuda-temp-path.log" # TEST
@@ -5277,7 +5214,7 @@ cuda_sel_pack(){ # LIST # WARN
 		fi
 	else
 		# From install menu: BUILDS=( $(new_version) )
-		local cuda_list=$(cat $cuda_log| sort -rV| sed -n '1p')
+		local cuda_list=$(cat $cuda_list_log| sort -rV| sed -n '1p')
 		CUDA_VERSION=$(cut -d' ' -f 1 <<< ${cuda_list})
 		CUDA_BUILD=$(cut -d' ' -f 2 <<< ${cuda_list})
 		CUDA_SIZE_M=$(cut -d' ' -f 3 <<< ${cuda_list})
@@ -5315,14 +5252,17 @@ cuda_sel_pack(){ # LIST # WARN
 	} | tee -a $tmp_vars
 }
 cuda_pre_install_check(){
-	## etablish cuda pack name before tmpfs check in case ram issue and pack saving.
-	local_pack=cuda_${CUDA_VERSION}_${CUDA_BUILD}_linux.run
+	local BUILD_TAG=''
 	local info_skip=0
+	## etablish cuda pack name before tmpfs check in case ram issue and pack saving.
+	[[ ${CUDA_BUILD} =~ ^615 ]] && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}"
+	local_pack=cuda_${CUDA_VERSION}${BUILD_TAG}_linux.run
 	## check if system has enough space left to handle install processes.
 	cuda_tmpfs_warn
 	# https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda_12.9.1_575.57.08_linux.run
 	# download command options
-	remote_pack="https://${cuda_base_url}/compute/cuda/${CUDA_VERSION}/local_installers/cuda_${CUDA_VERSION}_${CUDA_BUILD}_linux.run"
+	# remote_pack="https://${cuda_base_url}/compute/cuda/${CUDA_VERSION}/local_installers/cuda_${CUDA_VERSION}_${CUDA_BUILD}_linux.run"
+	remote_pack="https://${cuda_base_url}/compute/cuda/${CUDA_VERSION}/local_installers/${local_pack}"
 	file_down=0
 	file_up="$CUDA_SIZE_M"
 	file_ex='M'${bit}
@@ -5347,40 +5287,14 @@ cuda_download(){
 		echo "${dl_destination_storage};${local_pack}" > $(user_CF_DIR)/cuda-temp-path.log
 	fi
 }
-package_checksum_sim(){ # TODO # CLEAN old datas
-	# page checksum trouvée :
+package_checksum_sim(){
+	# found page checksum :
 	# https://developer.download.nvidia.com/compute/cuda/13.2.1/docs/sidebar/md5sum.txt
-	# forme : e5b4bdf19cc27d63a8254cb486764626 cuda_13.2.1_595.58.03_linux.run
-	# package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
-	# distant_size=$CUDA_SIZE_O
+	# form : e5b4bdf19cc27d63a8254cb486764626 cuda_13.2.1_595.58.03_linux.run
 	current_pack_sha=$local_pack.md5sum
 	current_pack=$local_pack
 	pack_sha_uri="https://$cuda_base_url/compute/cuda/$CUDA_VERSION/docs/sidebar/md5sum.txt"
 	package_checksum_ctrl 1
-
-	# local remote_size package_size proc_msg more_msg bck_to warn_log
-	# remote_size=$CUDA_SIZE_O
-	# package_size=$(du -bB 1 $local_package_path/$local_pack|awk '{print $1}')
-	# if (( $remote_size != $package_size )); then
-	# 	proc_msg=$"Downloaded file not of the same size than remote."
-	# 	diff_size=$"Expected"": $(($CUDA_SIZE_O/($divider*$divider))) ,"$"received"": ""$(($package_size/($divider*$divider)))."
-	# 	more_msg=$"Data check sum process failure"
-	# 	if [ $from_install = 1 ]; then
-	# 		echo_message 2 "- ""$proc_msg" "<b>"$more_msg"</b>"
-	# 		report_log+=($"\t\t\t\t${gB} cuda-$CUDA_VERSION\t${end}> ${r}check sum error${end}.\n")
-	# 		bck_to=''
- # 		else
-	# 		echo_message 0 "$proc_msg"
-	# 		bck_to='base_menu'
-	# 	fi
-	# 	warn_log=$"$(cat <<-MSG
-	# 		${proc_msg}
-	# 		${diff_size}
-	# 		${more_msg}
-	# 	MSG
-	# 	)"
-	# 	die 2 ${LINENO} "$warn_log" "$bck_to" 0
-	# fi
 }
 # warn before doing anything.
 cuda_install_info(){ # WARN
@@ -5429,31 +5343,45 @@ cuda_install_info(){ # WARN
 }
 # everything start from here.
 update_cuda(){ # PULSE
+	# syntax : update_cuda "source" [function 0/1]
+	local source="${1}" funct=${2}
 	cuda_last_version=${LAST_CUDA}
 	cuda_last_serie=$(cut -d'.' -f1 <<< "${cuda_last_version}")
-	# cuda_remote_versions=( "$(drivers_scrap 3)" )
-	# cuda_remote_versions=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
 	local cuda_remote_versions=()
+	if [ -d /proc/${cpid} ]; then
+		yad_spinner "\n"$"Cuda list is updating"
+		while [ -d /proc/${cpid} ]; do
+			# echo ">>> waiting pid" # TEST
+			echo ; sleep 1 &
+			wait $!
+		done
+		[[ -d /proc/${spid} ]] && kill ${spid} || true
+	fi
+	BUILDS=( "${source}" )
 
-	# json_log=$nvtmp/jsonpage.html # to temp # TEST
-	# cuda_log=$(user_CF_DIR)/cuda-list.log # preserve (user) # TEST
-	BUILDS=( $(ls -1 $(user_CF_DIR)/release/ | sed -n "s/^.*-//g;p" | sort -V) )
+	[ ${funct} = 0 ] ||	echo_message 1 "${j}−${end}" $"Checking Cuda update"
 	# BUILDS+=("595.45.04") # TEST
 	y_text="${v}"$"NVIDIA CUDA updates check""${end}"
 	local pulse=1 log=0 hold=0 hide_txt=0
 	win_log_options
 	{ local timeout=30 ;{
 		local update_status
-		echo -e "# "$"Initialize remote server exchange."
-		sleep ${read_timeout}
-		update_cuda_list
 		echo -e "# "$"Building extracted remote data list."
 		sleep ${read_timeout}
 		cuda_sel_pack
-		. $tmp_vars
-		cuda_pre_install_check
+		if [ ${funct} = 0 ]; then
+			. $tmp_vars
+			cuda_pre_install_check
+		fi
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
-	menu_update
+	[ ${funct} = 0 ] && menu_update || . $tmp_vars
+	if [ ${funct} = 1 ]; then
+		if [ ${update_status} = 1 ]; then
+			echo_message 3 "${j}−${end}" $"Cuda Toolkit will install after driver install end"
+		else
+			echo_message 3 "${j}−${end}" $"Cuda Toolkit update skipped"
+		fi
+	fi
 }
 ### TOOLS ###
 ## common yad window data.
@@ -5505,10 +5433,10 @@ read_sequence(){ # Display in line log formated messages
 	# while read -r line; do
 	# 	echo -e "# ${y}${sf}${line}${end}${end}"
 	# 	if [ -f /tmp/cuda-installer.log ]; then
-	# 		cuda_log=("$(cat /tmp/cuda-installer.log)")
+	# 		cuda_list_log=("$(cat /tmp/cuda-installer.log)")
 	# 		echo -e "# "
 	# 		echo_message 3 $"Failed log message found: read it first"
-	# 		for t in ${cuda_log[@]} ; do
+	# 		for t in ${cuda_list_log[@]} ; do
 	# 			echo -e "# ${y}${sf}"${t}"${end}${end}"
 	# 		done
 	# 	fi
@@ -5722,11 +5650,12 @@ yad_make_list(){
 	return
 }
 yad_spinner(){
+	local msg="${1}"
 	local img_spin="zen-refresh"
 	proc_pid=$$
 	{ timeout=20; local lpid=$proc_pid; y_pulse ;} | \
 	yad --progress --pulsate --splash --no-buttons --hide-text --witdth=150 --height=100 \
-	--autoclose --image="${img_spin}" --text="${v}<b>"$"Please wait""</b>${end}" & eval spid=$!
+	--autoclose --image="${img_spin}" --text="${v}<b>"$"Please wait"""${msg}"</b>${end}" & eval spid=$!
 }
 win_log_options(){
 	# set default
@@ -6607,7 +6536,7 @@ edit_script_conf(){ # LIST # WARN # (PULSE)
 	local conf_base conf_chg yad_warn
 	local -a orig_conf=() cnf_list=() col_name=() conf_list=()
 	local old_conf=$(user_CF_DIR)/old_basic.conf # << COULD COME FROM AN OTHER SESSION.
-	[ ${task_opt} = 0 ] && yad_spinner || true
+	[ ${task_opt} = 0 ] && yad_spinner "" || true
 
 	local IFS=$'\n'
 	local conf_list=( $(cat $basic_conf | sed -En 's/^# (.*):.*/\1/p') )
@@ -7036,7 +6965,7 @@ x_yad_extract(){
 		done
 	done
 }
-x_yad_tab(){ # TAB TODO FIX variables declarations
+x_yad_tab(){ # TAB TODO FIX variables declarations (?)
 	local section section_names track section_block
 	local vendor_id section_line option_line option_type
 	local option_reg screen_reg option_bis_reg
@@ -7165,7 +7094,7 @@ x_yad_block(){ # YAD
 	nv_doc=$zen_docs/nv-tips
 	x_doc=$zen_docs/x-tips
 	# wait please :)
-	[ ${task_opt} = 0 ] && yad_spinner || true
+	[ ${task_opt} = 0 ] && yad_spinner "" || true
 
 	## create a temp dir to remove at the end of the porcess.
 	xorg_tmp_dir=$(mktemp -d $zen_tmp_dir/xorg.conf.XXXX)
@@ -7365,7 +7294,7 @@ read_about(){ # TEXT
 	read_view=$(win_yad_text "$log_brief" 0 "--image=zen-emblem")
 	if [ ${read_view} -ge 1 ]; then ( [ $task_opt -gt 0 ] && exit 1 || base_menu; ); else menu_infos; fi
 }
-read_nv_help(){ # LIST # TEXT # TODO PASSER A XQ ?
+read_nv_help(){ # LIST # TEXT
 	local index read_view chapter_index chapters_list help_tip=''
 	local IFS=$(echo -en "\n\b")
 	chapters_list=$(sed -En "/TABLE OF.*$/,/1A. ABOUT.*$/{/^___.*$/,/^___.*$/p}" $nvi_docs/README.txt | grep -E "^Chapter|^Appendix")
@@ -7602,7 +7531,7 @@ read_zen_changelog(){ # LIST # TEXT # TODO CLEAN
 			if [ ${entrylog} -ge 100 ]; then [ $task_opt -gt 0 ] && exit 1; menu_infos; fi
 		fi
 	}
-	[ ${task_opt} = 0 ] && yad_spinner || true
+	[ ${task_opt} = 0 ] && yad_spinner "" || true
 	# yad_spinner
 	local initial_list=() entry_list_core=() entry entry_end log_section
 	initial_list=$(grep -E -e "^\* [0-9]{4}-[0-9]{1,2}-[0-9]{2} -" $log_pages | sed -n "s/^* //g;p"| sort -V)
@@ -7857,7 +7786,11 @@ menu_update(){ # LIST
 		2)	local use_dkms=${use_dkms:-1} upgrade_other=0 force='--force' menu_msg="${v}"$"Build module for current kernel""${end}"; upgrade_kernel ;;
 		3)	local upgrade_other=0 use_dkms=0 force='' menu_msg="${v}"$"Build module for current kernel (force)""${end}"; upgrade_kernel ;;
 		4)	local use_dkms=${use_dkms:-1} upgrade_other=1 force='' menu_msg="${mf}"$"Build module for the selected kernel (dkms)""${end}"; upgrade_new_kernel ;;
-		5) if [ $use_cuda = 1 ]; then connection_check 2 "base_menu" && ( update_cuda ); else unset_value "menu_update"; fi ;;
+		5) if [ $use_cuda = 1 ]; then
+			connection_check 2 "base_menu" && update_cuda "$(ls -1 $(user_CF_DIR)/release/ | sed -n 's/^.*-//g;p' | sort -V)" 0
+			else
+			unset_value "menu_update"
+			fi ;;
 		200) exit 1 ;;
 		100|*) base_menu ;;
 	esac
@@ -8211,8 +8144,6 @@ set_graphical_env(){
 	fi
 	## define window title for all Yad windows.
 	WIN_TITLE="Zenvidia - $(zen_version)"
-	## check su command to allow root to get default user env.
-	# [[ -n "$(su_cmd 0 "")" ]] || set_su
 	# cmdline tool doesn't need to read config, so skip the step if in console only.
 	if [[ $(def_user) != "root" ]]; then
 	# check if default user has conf file to load, or create it from shipped.
@@ -8286,9 +8217,7 @@ set_graphical_env(){
 
 	# load markup span font colors.
 	zen_colors
-	yad_spinner # wait please :)
-	## xterm dispaly details
-	# xterm_display_vars # TODO DEPRACATED
+	yad_spinner "" # wait please :)
 	## define backups directory.
 	if [ $backup_to_user_dir = 1 ]; then
 		[ $(ls -Ub1 $nv_backup_dir | wc -l) -gt 0 ] && mv -f -t $(user_CF_DIR)/backups/ $nv_backup_dir/*
@@ -8317,9 +8246,17 @@ set_graphical_env(){
 		die 2 ${LINENO} "$warn_log" 0 0
 	fi
 	# capture remote Nvidia data
-	drivers_scrap 0
+	drivers_scrap 0 "-s" "index.html" || true
 	# if set, capture Cuda data.
-	[ ${use_cuda} = 1 ] && drivers_scrap 2 || true
+	# [ ${use_cuda} = 1 ] && drivers_scrap 2 "-s" "index.html" || true
+
+	if [ ${use_cuda} = 1 ]; then
+		cuda_list_log=$(user_CF_DIR)/cuda-list.log # preserve (user)
+		# cuda_list_log=$(user_CF_DIR)/cuda-list-test.log # TEST
+		# cuda_list_log=$(user_CF_DIR)/cuda-list-test-2.log # TEST
+		drivers_scrap 2 "-s" "index.html" || true
+		check_available_cuda & cpid=$!
+	fi
 	tmp_dir
 }
 cmdline_help_text(){
@@ -8510,7 +8447,7 @@ trap_on_exit 'rm -Rf' "$zen_tmp_dir" # mandatory
 # x_check(){ echo 1;} # TEST
 # switch between options case if X/W server is not runing.
 if [ $(x_check) -gt 0 ]; then
-	# DEV "Command line tools" "0" # unavailable message
+	DEV "Command line tools" "0" # unavailable message
 	declare module license ignore_RT dkms_ins dkms_ver echec
 	# gcc, env, kernel, etc
 	gcc_compil_vars
@@ -8558,6 +8495,7 @@ if [ $(x_check) -gt 0 ]; then
 else
 	set_graphical_env
 	connection_check 0 0
+	# [ ${use_cuda} = 1 ] && cuda_list_log=$(user_CF_DIR)/cuda-list-test-2.log || true
 	# yad_spinner
 	## from there, script need a runing X server
 	## option are for zen_task_menu, rescue, degug and test.
@@ -8602,7 +8540,7 @@ else
 					trap 'debug_failure ${LINENO} "$BASH_COMMAND"' ERR
 				;;
 				# -t) task_opt=0 ; nv_cmd_install_cuda ;;
-				-t) task_opt=1 ; read_changelog ;;
+				# -t) task_opt=1 ; read_changelog ;;
 				# -t) task_opt=1 ; menu_update ;;
 				# -t) task_opt=1 ; win_open_switch ;;
 				-*) die 1 ${LINENO} "Option pipe failed.\nOption "${1}" is not a valid option." "" 0 ;;
