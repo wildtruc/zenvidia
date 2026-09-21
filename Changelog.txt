@@ -610,3 +610,11 @@
    At this point it looks that any other function is affected.
 * 2026-08-31 - v2.6.38
  - FIX: rewrite Nvidia changelog reader that wasn't display very first entry log.
+* 2026-09-21 - v2.6.42
+ - Cuda file name version has changed. Good thing but unexpected. Cuda search, listing and install
+   has been changed consequently.
+ - Cuda new version check has been changed to silent, only a wait spinner will popup if there is a
+   complete scrap of Nvidia site. This is for update menu only and depend of the number of the
+   stocked drivers in your local repos.
+ - Added an "xterm" bug info message to cuda installator to prevent accidental xterm closing by user.
+ - Translatation updated.

@@ -1170,6 +1170,9 @@ msgstr "Seules les erreurs seront affichées"
 # #: ./zenvidia-test23:3457
 # msgid "Please wait..."
 # msgstr "Patientez s'il vous plait..."
+#: ./zenvidia-test24:3459
+msgid "(Don't close xterm terminal popup. It's a known installer bug.)"
+msgstr "(Ne pas fermer le popup xterm. C'est un bogue connu de l'installateur.)"
 #: ~~ nv_ctrl_install_cuda 3479 ###
 #: ./zenvidia-test23:3473
 msgid "Cuda Toolkit"
@@ -1182,7 +1185,7 @@ msgstr "achévée"
 msgid ""
 "$(cat <<-WARN\n"
 "$cuda_dir_check directory doesn't have the expected size.\n"
-"- expected size : above ${expected_size} M${bit}\n"
+"- expected size : around ${expected_size} M${bit}\n"
 "- checked size  : $((${cuda_dir_size}/${divider})) M${bit}\n"
 "Please check your install directory, internet connection (packets loss)\n"
 "and try to install the package again.\n"
@@ -1191,7 +1194,7 @@ msgid ""
 msgstr ""
 "$(cat <<-WARN\n"
 "Le répertoire $cuda_dir_check n'a pas la taille attendue.\n"
-"- taille attendue  : plus de ${expected_size} M${bit}\n"
+"- taille attendue  : autour de ${expected_size} M${bit}\n"
 "- taille controlée : $((${cuda_dir_size}/${divider})) M${bit}\n"
 "contrôlez s'il vous plaît votre dossier d'installation, connexion internet (perte de paquets)\n"
 "et essayez à nouveau d'installer le paquet.\n"
@@ -2408,7 +2411,7 @@ msgid "Installed version:"
 msgstr "Version installée:"
 #: ./zenvidia-test23:5220
 msgid "WARNING : Installer doesn't automaticaly remove older version.\\n"
-msgstr "ATTENTION : L'installateur ne retire pas automatiquement l'ancienne version."
+msgstr "ATTENTION : L'installateur ne retire pas automatiquement l'ancienne version.\\n"
 #: ./zenvidia-test23:5221
 msgid "To preserve system storage space"
 msgstr "Pour préserver l'espace de stockage, la version"
@@ -2522,6 +2525,9 @@ msgstr "Extracion de la liste distante."
 # #: ./zenvidia-test23:5520
 # msgid "remote"
 # msgstr "distant"
+#: ./zenvidia-test24:5494
+msgid "Cuda list is updating"
+msgstr "Mise à jour de la liste Cuda"
 #: ~~ yad_spinner 5697  ###
 #: ./zenvidia-test23:5686
 msgid "Please wait"
