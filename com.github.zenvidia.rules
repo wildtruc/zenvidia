@@ -4,7 +4,7 @@
 polkit.addRule(function (action, subject) {
     if ((action.id == "com.github.pkexec.zenvidia.zenvidia" ||
          action.id == "com.github.pkexec.zenvidia.xorgconf" ||
-         action.id == "com.github.pkexec.zenvidia.primecon" ||
+         action.id == "com.github.pkexec.zenvidia.primeconf" ||
          action.id == "com.github.pkexec.zenvidia.switcher" ||
          action.id == "com.github.pkexec.zenvidia.update"   ||
          action.id == "com.github.pkexec.zenvidia.git" ) &&

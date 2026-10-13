@@ -618,3 +618,9 @@
    stocked drivers in your local repos.
  - Added an "xterm" bug info message to cuda installator to prevent accidental xterm closing by user.
  - Translatation updated.
+* 2026-10-13 - v2.6.45
+ - FIX : When install directly from server package, a not removed modified var in FR translation for
+   download section was preventing driver install to acheive gracefully and result DM manger restart
+   to failed and force to reboot for change to take effect.
+ - FIX : Nutshell in polkit rules.
+ - Minor change in zen_start.
