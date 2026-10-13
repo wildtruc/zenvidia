@@ -2824,7 +2824,8 @@ build_dkms(){
 						pass=1
 					fi
 				fi
-				echo -e "pass=$pass" >> $tmp_vars
+				echo -e "pass=$pass" | tee -a $tmp_vars
+
 				echo_message 3 " --- " "$_dkms" $"script ended" " --- "
 			}
 			build_seq_2(){
@@ -2852,8 +2853,8 @@ build_dkms(){
 					sleep ${read_timeout}
 
 				fi
-				echo -e "pass=$pass" >> $tmp_vars
-				echo -e "compiled_driver=$_dkms" >> $tmp_vars
+				echo -e "pass=$pass" | tee -a $tmp_vars
+				echo -e "compiled_driver=$_dkms" | tee -a $tmp_vars
 				# echo -e $"# ${y} ---  $_dkms script ended  --- ${end}"
 				echo_message 3 " --- " "$_dkms" $"script ended" " --- "
 			}
@@ -2880,16 +2881,19 @@ build_dkms(){
 				test -d $nvlog/dkms/$_dkms/ || mkdir -p $nvlog/dkms/$_dkms/
 				cp -f /var/lib/dkms/$_dkms/$(new_version)/$KERNEL/$ARCH/log/make.log $nvlog/dkms/$_dkms/
 				make_log_file=$nvlog/dkms/$_dkms/make.log
-				echo -e "make_log_file=$make_log_file" >> $tmp_vars
+				echo -e "make_log_file=$make_log_file" | tee -a $tmp_vars
 				echo_message 2 "*" "$_dkms $(new_version)" $"log found and copied to" "$make_log_file."
 			else
 				echo_message 2 "*" $"There is no build log found."
 				if [ -f /var/lib/dkms/$_dkms/$(new_version)/build/make.log ]; then
 					echo_message 2 "*" "$(new_version)" "${r}"$"FAILURE log found""${end}""."
 					make_log_file=/var/lib/dkms/$_dkms/$(new_version)/build/make.log
-					echo -e "make_log_file=$make_log_file" >> $tmp_vars
-					echo -e "failure_log=$make_log_file" >> $tmp_vars
-					echo -e "compilation_error=( "${compilation_error[@]}" )" >> $tmp_vars
+					{ cat <<-TMPVARS
+						make_log_file=$make_log_file
+						failure_log=$make_log_file
+						compilation_error=( "${compilation_error[@]}" )
+					TMPVARS
+					} | tee -a $tmp_vars
 					if [ ${#compilation_error[@]} -gt 0 ]; then
 						die 2 ${LINENO} "${j}* ${r}"$"WARNING""${end}: ""No $_dkms modules found in DKMS build path""${end}" 0 1
 					else
@@ -2897,7 +2901,7 @@ build_dkms(){
 					fi
 				fi
 			fi
-			echo -e "n=$n" >> $tmp_vars
+			echo -e "n=$n" | tee -a $tmp_vars
 			sleep ${read_timeout}
 		}
 	## known bug : it appears on unknown reason that DKMS script do not install modules.
@@ -2908,7 +2912,7 @@ build_dkms(){
 		drv_src=( "nvidia" )
 	fi
 	show_dkms=' (dkms)'
-	[ -f $tmp_vars ] && echo -e "show_dkms=' (dkms)'" >> $tmp_vars
+	[ -f $tmp_vars ] && echo -e "show_dkms=' (dkms)'" | tee -a $tmp_vars || true
 	# n=15
 	# o=0
 	test ${#drv_src[*]} -gt 1 && n=$[ $n / ${#drv_src[*]} ] # window count divider.
@@ -3073,7 +3077,7 @@ build_source(){
 			[ -d $nvlog/source/$module ]|| mkdir -p $nvlog/source/$module
 			cp -f /usr/src/$module-$(new_version)/make.log $nvlog/source/$module
 			make_log_file=$nvlog/source/$module/make.log
-			echo -e "make_log_file=$make_log_file" >> $tmp_vars
+			echo -e "make_log_file=$make_log_file" | tee -a $tmp_vars
 			echo_message 2 "*" "$module" "$(new_version)" $"log found"
 			echo_message 2 "*" "$module" $"make log copied to" "$make_log_file"
 		else
@@ -3081,15 +3085,18 @@ build_source(){
 		fi
 		if [[ -n $pass && $pass = 0 ]]; then
 			echo_message 2 "*" "$module" $"control passed" "(pass=$pass)"
-			echo -e "pass=$pass" >> $tmp_vars
+			echo -e "pass=$pass" | tee -a $tmp_vars
 		else
 			echo_message 2 "*" "$module" $"control not passed" "(pass=$pass)"
 			echo_message 5 " --- " "${r}"$"ERROR""${end}" " --- " $"No modules found in destination path" " --- "
 			make_log_file=$nvlog/source/$module/make.log
-			echo -e "pass=$pass" >> $tmp_vars
-			echo -e "make_log_file=$make_log_file" >> $tmp_vars
-			echo -e "failure_log=$make_log_file" >> $tmp_vars
-			echo -e "compilation_error=( "${compilation_error[@]}" )" >> $tmp_vars
+			{ cat <<-TMPVARS
+				local pass=$pass
+				local make_log_file=$make_log_file
+				local failure_log=$make_log_file
+				local compilation_error=( "${compilation_error[@]}" )
+			TMPVARS
+			} | tee -a $tmp_vars
 			if [ ${#compilation_error[@]} -gt 0 ]; then
 				die 2 ${LINENO} "${j}* ${r}"$"WARNING$""${end}: ""No $_dkms modules found in build path""${end}" "" 1
 			else
@@ -3104,7 +3111,7 @@ build_source(){
 	else
 		drv_src=( nvidia )
 	fi
-	[ -f $tmp_vars ]&& echo -e "show_dkms=' (source)'" > $tmp_vars
+	[ -f $tmp_vars ] && echo -e "show_dkms=' (source)'" | tee -a $tmp_vars || true
 	## back_previous driver in case of FAILURE
 	back_old_driver
 	## prepare modules signing (with dmsk mok files)
@@ -3127,7 +3134,7 @@ build_source(){
 			echo_message 1 $"Source unaviable for" "${j}$(new_version)${end}" "${y}$module${end}"
 			echo_message 1 $"Check your kernel source three"
 			return 1 ; base_menu
-			echo -e "pass=1" >> $tmp_vars
+			echo -e "pass=1" | tee -a $tmp_vars
 		fi
 		make clean
 		echo -e "# "
@@ -3205,7 +3212,7 @@ nv_cmd_install_driver(){
 				dm_service_patch
 			fi
 		else
-			[ -f $tmp_vars ] && echo -e "pass=2" >> $tmp_vars
+			[ -f $tmp_vars ] && echo -e "pass=2" | tee -a $tmp_vars || true
 		fi
 }
 nv_cmd_update(){
@@ -4555,26 +4562,30 @@ from_net(){ # WARN
 # download functions
 		local yad_warn
 		pushd $buildtmp
+		reroute=${reroute:-0}
 		# if the instruction come from win_update_reroute, do only last_driver_pack.
 		[ ${reroute} -gt 0 ] && last_driver_pack || download_menu
 		run_pkg=$nvdl/nv-update-$LAST_PACK
 		if [ -f $buildtmp/$run_pack ]; then
 			local warn_log="${v}"$"Driver download"" ${j}$LAST_PACK${end} "$"ended"".${end}"
-			local ok_lbl='' cancel_lbl=$"Close"'!gtk-close'
-			yad_warn=$(win_yad_warns "${warn_log}" 0 "${ok_lbl}" "${cancel_lbl}" 0 "zen-emblem")
-			if [ $yad_warn -ge 1 ]; then base_menu; else
-				mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
-				chmod 755 $nvdl/nv-update-$LAST_PACK
-			fi
+			local ok_lbl=${ok_label}'!gtk-ok' cancel_lbl=$"Close"'!gtk-close'
+			yad_warn=$(win_yad_warns "${warn_log}" 1 "${ok_lbl}" "${cancel_lbl}" 0 "zen-emblem")
+			mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
+			chmod 755 $nvdl/nv-update-$LAST_PACK
+			[ $yad_warn -ge 1 ] && base_menu || true
+			# if [ $yad_warn -ge 1 ]; then base_menu; else
+			# 	mv -f $buildtmp/$run_pack $nvdl/nv-update-$LAST_PACK
+			# 	chmod 755 $nvdl/nv-update-$LAST_PACK
+			# fi
 		fi
 		popd
-		if [ ${from_cmd} -gt 0 ]; then
+		if [ ${from_install} -gt 0 ]; then
 			INSTALL_DRIVER
 		fi || die 1 ${LINENO} "Remote package check/install failed." "" 1
 }
 ## DOWNLOADERS
 download_menu(){ # LIST # WARN
-	local dl_cmd yad_warn
+	local yad_warn
 	local -a m_list=()
 	l_text="${y}"$"$( cat <<-INFO
 		${jB}${bf}Downloads${end}${end}
