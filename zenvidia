@@ -3335,57 +3335,65 @@ nv_cmd_install_libs(){ # ATTENTION CHECK REGULARY AT DRIVER UPGRADE
 	fi
 }
 # Cuda installer part.
-nv_remove_old_install(){
-	if [[ $(cuda_version) != FALSE ]]; then
-		local cuda_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
-		local c_old_dir_main=$(sed -n 's/\.//g;p' <<< "$(cuda_version)") # form"-" cuda-xx
-		local c_new_dir_main=$(sed -n 's/^.*-\|\.//g;p' <<< "${CUDA_VERSION}") # form"-" cuda-xx
-		if (( ${c_new_dir_main} > ${c_old_dir_main} )); then rm -Rf ${cuda_install_dir}/cuda-${cuda_old_version}; fi
+nv_remove_old_cuda_install(){
+	if [[ $(cuda_version) && $(cuda_version) != FALSE && ${cuda_dir_old_version} != ${cuda_dir_version} ]]; then
+		[ -d  ${cuda_install_dir}/cuda-${cuda_dir_old_version} ] && rm -Rf ${cuda_install_dir}/cuda-${cuda_dir_old_version} || true
 	fi
 }
 nv_cmd_install_cuda(){ # PULSE
 	# model : cuda_12.9.1_575.57.08_linux.run
+	# uninstallManifest-CUDA_Toolkit_13.5
 	local cuda_install_dir=${cuda_install_dir:-/usr/local}
+	local extract_path installer_path
 	nv_cuda_extract_cmd(){
-		if [[ -n $local_package_path/$local_pack && -x $local_package_path/$local_pack ]]; then
-			local PATH=${local_package_path}:$GLOBAL_PATH
-			# /tmp/\(\) allow to extract even if there's no internal extractor feature.
-			${local_pack} --extract_dir=/tmp/\(\) --tmpdir=$buildtmp #| read_sequence 0
-		fi
+		# local PATH=${local_package_path}:$GLOBAL_PATH
+		pushd extract/
+		# echo -e "# ""Extracting binary file to temp dir"
+		echo_message 1 "${mf}""<u>"$"Extracting Cuda package to temporary directory""</u>""${end}"
+		# echo_message 3 $"Please wait..."
+		../${local_pack} --tar mxvf
+		# echo -e "# ""Extraction complete"
+		echo_message 3 $"Extraction complete"
+		popd
 	}
 	nv_cuda_install_cmd(){
-		pushd $buildtmp/selfgz*
-		local local_path=$(file $buildtmp/selfgz*| awk -F':' '{print $1}')
-		local PATH=${local_path}:$GLOBAL_PATH
-		# exit 1
-		cuda-installer --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} | \
-		while read -r line; do
-			echo -e "# ${y}${sf}${line}${end}${end}"
-			if [ -f /tmp/cuda-installer.log ]; then
-				cuda_installer_log=("$(cat /tmp/cuda-installer.log)")
-				echo -e "# "
-				echo_message 3 $"Failed log message found: read it first"
-				for t in ${cuda_installer_log[@]} ; do
-					echo -e "# ${y}${sf}"${t}"${end}${end}"
-				done
-			fi
-		done || die ${LINENO} "Self extraction execution failed.\nAbort" "" 1
-		popd
- 	}
- 	xterm_bug_message(){
-		while [ -d /proc/$termpid ]; do
-			xt_pid=$(ps -A | awk '/xterm/ {print $1}')
-			if [[ $xt_pid && -d /proc/$xt_pid ]]; then
+		# local PATH=${local_package_path}:$GLOBAL_PATH
+		local cmd_pid line prev_line
+		pushd extract/
+		if [ -d /var/log/nvidia/.uninstallManifests ]; then
+			echo_message 1 "${mf}""<u>"$"Uninstalling previous Cuda""</u>""${end}"
+			echo_message 3 $"This mandatory to prevent cuda-installer 13.5 and above manifest mismatch"
+			# ./builds/bin/cuda-uninstaller --silent # || die 2 "Extraction error" "Can't tell why"
+			{ ./builds/bin/cuda-uninstaller --silent ; }& eval cmd_pid=$!
+			# sleep 2
+			while [ -d /proc/$cmd_pid ]; do
+				if [ -f /var/log/cuda-uninstaller.log ]; then
+					line="$(tail -n1 /var/log/cuda-uninstaller.log| grep "Silent\|Time to uninstall:" || true)"
+					[[ "$line" != '' && "$line" != "$prev_line" ]] && echo_message 4 "   * ""$line" || true
+					prev_line=$line
+				fi
 				sleep 1 &
 				wait $!
-				echo -e "# ${y}"$"(Don't close xterm terminal popup. It's a known installer bug.)""${end}"
-				[ -d /proc/$termpid ] && wait $termpid
-				return
-			else
-				sleep 2
+			done
+			echo_message 3 $"Uninstall complete"
+		fi
+		echo_message 1 "${mf}""<u>"$"Installing Cuda cuda-${cuda_dir_version}""</u>""${end}"
+		echo_message 3 $"Please wait..."
+		{ ./cuda-installer --silent --toolkit --toolkitpath=${cuda_install_dir}/cuda-${cuda_dir_version} ;}& eval cmd_pid=$!
+		while [ -d /proc/$cmd_pid ]; do
+			if [ -f /var/log/cuda-installer.log ]; then
+				line="$(tail -n1 /var/log/cuda-installer.log| grep "Installing" || true)"
+				[[ "$line" != '' && "$line" != "$prev_line" ]] && echo_message 4 "   * ""$line" || true
+				prev_line="$line"
 			fi
+			sleep 1 &
+			wait $!
 		done
+		popd
+		echo -e "# "
+		echo_message 1 $"Install complete"
  	}
+
 	# local CUDA_VERSION="13.3" local_package_path=/mnt/data\(2\) cuda_install_dir=/usr/local # TEST
 	# local local_pack=cuda_13.3.0_610.43.02_linux.run # TEST
 	[[ -d /proc/${spid} ]] && kill ${spid} || true
@@ -3395,27 +3403,26 @@ nv_cmd_install_cuda(){ # PULSE
 	list_kill_parent_pids
 	# cuda installer do not install in sub rev version path and has to be set at general version.
 	# from xx.x.x to xx.x
-	local cuda_dir_version='cuda-'$(awk -F"." '{print $1"."$2}' <<< "${CUDA_VERSION}")
+	# local cuda_dir_version='cuda-'$(awk -F"." '{print $1"."$2}' <<< "${CUDA_VERSION}")
+	local cuda_dir_version=$(awk -F"." '{print $1"."$2}' <<< "${CUDA_VERSION}")
 	local cuda_dir_old_version=$(awk -F"." '{print $1"."$2}' <<< "$(cuda_version)")
 	# cuda installer do not remove older version if incremented by +1 (ex: 12.0 vs 13.0)
-	# nv_remove_old_install
+	# nv_remove_old_install # DEPRACATED, place at the end of the function to remove "left behind".
 
 	local pulse=1 log=1 hold=1 hide_txt=1 y_text
-	y_text="${mf}"$"Installing CUDA"" ${j}$CUDA_VERSION${end} "$"datas to"" ${y}${cuda_install_dir}/${cuda_dir_version}${end}${end}"
+	y_text="${mf}"$"Installing CUDA"" ${j}$CUDA_VERSION${end} "$"datas to"" ${y}${cuda_install_dir}/cuda-${cuda_dir_version}${end}${end}"
 	win_log_options
 	pushd $local_package_path
 	{ local timeout=30 ;{
 	chmod 755 ${local_pack}
-	echo -e "# ${y}"$"Extracting Cuda package to temporary directory""${end}"
-	# nv_cuda_extract_cmd | xterm_bug_message
-	{
-		{ nv_cuda_extract_cmd ;}& eval termpid=$!; xterm_bug_message
-	}
-
-	echo -e "# ${j}"$"Cuda datas installation in background""${end}"
-	echo -e "# ${v}"$"Cuda installer isn't verbose""${end}"
-	echo -e "# ${v}"$"Only installation errors will be displayed""${end}"
-	echo -e "# ${y}"$"Please wait...""${end}"
+	# echo -e "# ${y}"$"Extracting Cuda package to temporary directory""${end}"
+	# echo_message 3 $"Extracting Cuda package to temporary directory"
+	# cd $buildtmp
+	local PATH=${buildtmp}:$GLOBAL_PATH
+	pushd $local_package_path
+	echo_message 5 $"Cuda datas installation in background"
+	nv_cuda_extract_cmd
+	# echo_message 3 $"Please wait..."
 	# ${local_pack} --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} --tmpdir=$buildtmp 2>&1 | fmt -w 100 | \
 	nv_cuda_install_cmd
 	echo -e "# "
@@ -3423,15 +3430,17 @@ nv_cmd_install_cuda(){ # PULSE
 	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	popd
+	nv_remove_old_cuda_install
 	nv_ctrl_install_cuda
 }
-nv_ctrl_install_cuda(){ # WARNING MAYBE DEPRACATED, WATCH
-	cuda_dir_check=$cuda_dir_version
+nv_ctrl_install_cuda(){ # version logging
+	cuda_dir_check='cuda-'$cuda_dir_version
 	[ -d $cuda_install_dir/$cuda_dir_check ] || die 0 ${LINENO} "Cuda install error"".\n""Abort" "" 1
 	cuda_dir_size=$(du -sbB $((${divider}*${divider})) $cuda_install_dir/$cuda_dir_check | awk '{print $1}') # Size in Mo/Mb
 	if [[ -n $cuda_dir_check && -d $cuda_install_dir/$cuda_dir_check && ${cuda_dir_size} -gt 0 ]]; then
 		if (( ${#cuda_dir_size} == ${#CUDA_DIR_SIZE} && $(cut -c1 <<< "${cuda_dir_size}") >= $(cut -c1 <<< "${CUDA_DIR_SIZE}") )); then
 			proc_msg=$"Cuda Toolkit"" $CUDA_VERSION"$" install done""."
+			echo_message 0 $"Updating user version log file"
 			# log new ratio.
 			bc -l <<< "scale=2; ${cuda_dir_size}/${CUDA_SIZE_M}" > $(user_CF_DIR)/cuda_xz_ratio.log
 			echo "$CUDA_VERSION" > $(user_CF_DIR)/cuda_version
@@ -3792,7 +3801,8 @@ INSTALL_DRIVER(){ # PULSE
 				report_log+=($"${vB}Cuda install:\t\t\t${end}${gB} cuda-$CUDA_VERSION\t${end}> ${y}install aborted${end}.\n")
 			fi
 		fi
-		echo "99"; sleep ${read_timeout}
+		echo "99"
+		sleep ${read_timeout}
 		echo "100"
 		## Install report display.
 		if [ "$pass" != '' ]; then
@@ -4398,8 +4408,8 @@ win_update(){ # YAD ######
 		200) exit 1 ;;
 		100) [ $task_opt -gt 0 ] && exit 0 || base_menu ;;
 		3) win_update_reroute ;;
-		2) ok_label=$"Download"; download_only ;;
-		1) ok_label=$"Install"; from_net ;;
+		2) ok_label=$"Download"; from_install=0 ; download_only ;;
+		1) ok_label=$"Install"; from_install=1 ; from_net ;;
 		0) ;;
 	esac
 }
@@ -4580,6 +4590,7 @@ from_net(){ # WARN
 		fi
 		popd
 		if [ ${from_install} -gt 0 ]; then
+			menu_msg="${vB}"$"NVIDIA package update from NVIDIA server"".${end}"
 			INSTALL_DRIVER
 		fi || die 1 ${LINENO} "Remote package check/install failed." "" 1
 }
@@ -5233,7 +5244,14 @@ cuda_sel_pack(){ # LIST # WARN
 	fi
 	# Try to eval the size of final install dir from default or compute xz ratio.
 	CUDA_DIR_SIZE=$(bc -l <<< "scale=0; (${CUDA_SIZE_M}*$(cuda_xz_ratio)*100/1)/100 ")
-	local regex="^.*$(new_version).*$"
+	if [ ${funct} = 0 ]; then
+		local regex="^.*$(new_version).*$"
+	else
+		local regex="^.*${CUDA_VERSION}.*$"
+		sed -ni "s/${CUDA_VERSION} ${CUDA_BUILD}/${CUDA_VERSION} $(new_version)/g;p" $cuda_list_log
+		CUDA_BUILD="$(new_version)"
+	fi
+	# local regex="^.*$(new_version).*$"
 	if [ $from_install = 1 ]; then
 		if [[ "$cuda_list" =~ $regex ]]; then
 			if [[ -d $cuda_install_dir/cuda-$(awk -F"." '{print $1"."$2}' <<< "$CUDA_VERSION") ]]; then
@@ -5263,10 +5281,12 @@ cuda_sel_pack(){ # LIST # WARN
 	} | tee -a $tmp_vars
 }
 cuda_pre_install_check(){
-	local BUILD_TAG=''
+	local BUILD_TAG='' BUILD_REG=$(awk -F"." '{print $1}' <<< "${CUDA_BUILD}")
 	local info_skip=0
 	## etablish cuda pack name before tmpfs check in case ram issue and pack saving.
-	[[ ${CUDA_BUILD} =~ ^615 ]] && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}"
+	# local BUILD_REG=$(awk -F"." '{print $1}' <<< ${CUDA_BUILD})
+	# [[ ${CUDA_BUILD} =~ ^615 ]] && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}" # TEST
+	(( ${BUILD_REG} >= 615 )) && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}"
 	local_pack=cuda_${CUDA_VERSION}${BUILD_TAG}_linux.run
 	## check if system has enough space left to handle install processes.
 	cuda_tmpfs_warn
@@ -8378,7 +8398,7 @@ tmp_dir(){
 		x_tmp=$(mktemp $zen_tmp_dir/zn_xorg.XXXX)
 		# set temp dir for extract & build processes
 		nvtmp=$(mktemp -d $zen_tmp_dir/nv_extract.XXXX)
-		mkdir -p $nvtmp/build
+		mkdir -p $nvtmp/build/extract
 		buildtmp=$nvtmp/build
 
 		# set tmp_old content for following use.
