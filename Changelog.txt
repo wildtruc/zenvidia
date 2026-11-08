@@ -624,3 +624,14 @@
    to failed and force to reboot for change to take effect.
  - FIX : Nutshell in polkit rules.
  - Minor change in zen_start.
+* 2026-11-08 - v2.6.48
+ - FIX : From last update change, a var was missing when using systray command "check update" causing
+   the script to abort when "install" option was asked.
+ - Script Cuda installer extraction work-arround has been spotted by Devs causing update check to
+   abort and to re-evaluate cuda installation behaviour and processes. Anoying, but not a real bad
+   thing, because it allowed to spot a commande line option in cuda doc where it wasn't expected.
+   Now extraction is silent and no more xterm pop up. It use cuda-uninstaller to remove previous
+   version if any and installation is more verbose.
+   Because cuda-uninstaller is a very (very) long process and probably useless, I'm digging for a more
+   soft solution.
+ - Transalation not update yet.
