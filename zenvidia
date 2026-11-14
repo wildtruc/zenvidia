@@ -3334,10 +3334,53 @@ nv_cmd_install_libs(){ # ATTENTION CHECK REGULARY AT DRIVER UPGRADE
 		fi
 	fi
 }
-# Cuda installer part.
+## CUDA INSTALL PART
 nv_remove_old_cuda_install(){
 	if [[ $(cuda_version) && $(cuda_version) != FALSE && ${cuda_dir_old_version} != ${cuda_dir_version} ]]; then
+		echo_message 1 "${mf}""<u>"$"Uninstalling previous Cuda""-${cuda_dir_old_version}""</u>""${end}"
+
 		[ -d  ${cuda_install_dir}/cuda-${cuda_dir_old_version} ] && rm -Rf ${cuda_install_dir}/cuda-${cuda_dir_old_version} || true
+
+		if [ -d /var/log/nvidia/.uninstallManifests ]; then
+			# manifest : CUDA_Toolkit_xx.x-components  uninstallManifest-CUDA_Toolkit_xx.x
+			[ -e /var/log/nvidia/.uninstallManifests/uninstallManifest-CUDA_Toolkit_* ] && rm -Rf /var/log/nvidia/.uninstallManifests/* || true
+		fi
+## DEV TEST log area : WATCH in case of ovewrite mismatch issue.
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cufft-12.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cufftw-12.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nvjpeg-13.3.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nvjitlink-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nvfatbin-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/npps-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppi-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppial-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppicc-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppicom-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppidei-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppif-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppig-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppim-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppist-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppisu-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppitc-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nppc-13.2.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cusparse-12.9.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cusolver-12.4.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/curand-10.4.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cuobjclient-1.4.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cufile-1.20.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cublas-13.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/opencl-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nvrtc-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/nvidia-ml-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cuda-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/lib64/pkgconfig/cudart-13.5.pc; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /etc/ld.so.conf.d/cuda-13-5.conf; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/share/applications/nsight-compute.desktop; this installation will not modify or own it
+# [WARNING]: Preserving existing unowned generated output: /usr/share/applications/nsight-systems.desktop; this installation will not modify or own it
+		echo_message 3 $"Uninstall complete"
+	else
+		[ -d  ${cuda_install_dir}/cuda-${cuda_dir_old_version} ] && echo_message 3 $"Cuda cuda-${cuda_dir_version} is already installed, nothing to remove." || true
 	fi
 }
 nv_cmd_install_cuda(){ # PULSE
@@ -3360,25 +3403,12 @@ nv_cmd_install_cuda(){ # PULSE
 		# local PATH=${local_package_path}:$GLOBAL_PATH
 		local cmd_pid line prev_line
 		pushd extract/
-		if [ -d /var/log/nvidia/.uninstallManifests ]; then
-			echo_message 1 "${mf}""<u>"$"Uninstalling previous Cuda""</u>""${end}"
-			echo_message 3 $"This mandatory to prevent cuda-installer 13.5 and above manifest mismatch"
-			# ./builds/bin/cuda-uninstaller --silent # || die 2 "Extraction error" "Can't tell why"
-			{ ./builds/bin/cuda-uninstaller --silent ; }& eval cmd_pid=$!
-			# sleep 2
-			while [ -d /proc/$cmd_pid ]; do
-				if [ -f /var/log/cuda-uninstaller.log ]; then
-					line="$(tail -n1 /var/log/cuda-uninstaller.log| grep "Silent\|Time to uninstall:" || true)"
-					[[ "$line" != '' && "$line" != "$prev_line" ]] && echo_message 4 "   * ""$line" || true
-					prev_line=$line
-				fi
-				sleep 1 &
-				wait $!
-			done
-			echo_message 3 $"Uninstall complete"
+		## EN TEST
+		if [ -d  ${cuda_install_dir}/cuda-${cuda_dir_old_version} ]; then
+			nv_remove_old_cuda_install
 		fi
 		echo_message 1 "${mf}""<u>"$"Installing Cuda cuda-${cuda_dir_version}""</u>""${end}"
-		echo_message 3 $"Please wait..."
+		echo_message 3 $"Primary Cuda librairies control. "$"Please wait..."
 		{ ./cuda-installer --silent --toolkit --toolkitpath=${cuda_install_dir}/cuda-${cuda_dir_version} ;}& eval cmd_pid=$!
 		while [ -d /proc/$cmd_pid ]; do
 			if [ -f /var/log/cuda-installer.log ]; then
@@ -3415,22 +3445,16 @@ nv_cmd_install_cuda(){ # PULSE
 	pushd $local_package_path
 	{ local timeout=30 ;{
 	chmod 755 ${local_pack}
-	# echo -e "# ${y}"$"Extracting Cuda package to temporary directory""${end}"
-	# echo_message 3 $"Extracting Cuda package to temporary directory"
-	# cd $buildtmp
 	local PATH=${buildtmp}:$GLOBAL_PATH
 	pushd $local_package_path
 	echo_message 5 $"Cuda datas installation in background"
 	nv_cuda_extract_cmd
-	# echo_message 3 $"Please wait..."
-	# ${local_pack} --silent --toolkit --override --toolkitpath=${cuda_install_dir}/${cuda_dir_version} --tmpdir=$buildtmp 2>&1 | fmt -w 100 | \
 	nv_cuda_install_cmd
 	echo -e "# "
 	echo -e "$esc_message"
 	[[ ${x_sleep} != '' ]] && eval "${x_sleep}" || true
 	}& eval lpid=$!; y_pulse; } | win_yad_progress
 	popd
-	nv_remove_old_cuda_install
 	nv_ctrl_install_cuda
 }
 nv_ctrl_install_cuda(){ # version logging
@@ -4894,7 +4918,7 @@ check_available_cuda(){
 	}
 
 	local -a cuda_list=() available_build=() BUILDS=()
-	local cuda_release BUILD BUILDS_SERIE BUILD_TAG eval_size
+	local cuda_release BUILD BUILDS_SERIE CUDA_SERIE BUILD_TAG eval_size
 	test -f $cuda_list_log || touch $cuda_list_log
 
 	if [ -s $cuda_list_log ]; then
@@ -4906,22 +4930,20 @@ check_available_cuda(){
 			cuda_list+=( "${line}" )
 		done
 		# if [ ${LAST_CUDA} ]; then
-		if [[ ${LAST_CUDA} && ${LAST_CUDA} != $(cuda_version) ]]; then
+		if [[ ${LAST_CUDA} && ${LAST_CUDA} != $(cuda_version) ]] || \
+		[[ $(grep -c "${LAST_CUDA}" <<< $cuda_list_file) = 0 ]] ; then
 			cuda_list+=( "${LAST_CUDA} $(version)" )
 		fi
-
-		# cuda_list=( "$(cat $cuda_list_log| sort -rV)" )
-
-		# echo -e "${cuda_list[@]}" # TEST
-		# exit 0
 		for build in ${cuda_list[@]}; do
 			cuda_release=$(cut -d' ' -f1 <<< ${build})
 			BUILD=$(cut -d' ' -f2 <<< ${build})
 			# CONTENT=$(cut -d' ' -f4 <<< ${build})
-			BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+			# BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+			CUDA_SERIE=$(awk -F"." '{print $1$2}' <<< ${cuda_release})
 
 			## since 615 serie package name has no more drivers version included.
-			if (( ${BUILDS_SERIE} < 615 )); then
+			# if (( ${BUILDS_SERIE} < 615 || ${CUDA_SERIE} < 134 )); then
+			if (( ${CUDA_SERIE} < 134 )); then
 				BUILD_TAG="_${BUILD}"
 			else
 				BUILD_TAG=''
@@ -4932,30 +4954,25 @@ check_available_cuda(){
 			# eval_size=${eval_size//[^Aa-Zz0-9]/}
 			eval_size=${eval_size//[^(Aa-Zz)(0-9)]/}
 			if (( ${eval_size} < 1000 )); then
-				sed -ni "/${BUILD}/d;p" $cuda_list_log
+				[ "$(grep -c "${cuda_release} ${BUILD}" $cuda_list_log)" -eq 1 ] && sed -ni "/${BUILD}/d;p" $cuda_list_log || true
 			else
-				if [ "$(grep -c "${cuda_release} ${BUILD}" $cuda_list_log)" -eq 0 ]; then
-					# release_date="$(drivers_scrap 4 "-s" "index.html")"
-					make_available_cuda_list
-				fi
+				[ "$(grep -c "${cuda_release} ${BUILD}" $cuda_list_log)" -eq 0 ]  && make_available_cuda_list || true
 			fi
 
 		done
-		# cuda_remote_versions+=( "$(drivers_scrap 3 | grep "${cuda_last_serie}")" )
-		# cuda_remote_versions+=( "$(drivers_scrap 3 "-s" "index.html" | grep "${cuda_last_serie}")" )
 	else
 		cuda_list=( "$(echo "$(drivers_scrap 3 "-s" "index.html")"|sort -V)" )
-		# echo -e "${cuda_list[@]}"
 		BUILDS=( $(ls -1 $(user_CF_DIR)/release/ | sed -n "s/^.*-//g;p" | sort -V) )
 		for cuda in ${cuda_list[@]}; do
-			# echo -e ">>>>>> $cuda" # TEST
 			for build in ${BUILDS[@]}; do
 				cuda_release=${cuda}
 				BUILD=${build}
-				BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+				# BUILDS_SERIE=$(cut -d'.' -f1 <<< ${BUILD})
+				CUDA_SERIE=$(awk -F"." '{print $1$2}' <<< ${cuda_release})
 
 				## since 615 serie package name has no more drivers version included.
-				if (( ${BUILDS_SERIE} < 615 )); then
+				# if (( ${BUILDS_SERIE} < 615 )); then
+				if (( ${CUDA_SERIE} < 134 )); then
 					BUILD_TAG="_${BUILD}"
 				else
 					BUILD_TAG=''
@@ -4967,8 +4984,6 @@ check_available_cuda(){
 				fi
 			done
 		done
-		# cuda_remote_versions=( "$(drivers_scrap 3)" )
-		# cuda_remote_versions=( "$(drivers_scrap 3 "-s" "index.html")" )
 	fi
 }
 # Check if sys have enough tmpfs space.
@@ -5281,13 +5296,13 @@ cuda_sel_pack(){ # LIST # WARN
 	} | tee -a $tmp_vars
 }
 cuda_pre_install_check(){
-	local BUILD_TAG='' BUILD_REG=$(awk -F"." '{print $1}' <<< "${CUDA_BUILD}")
+	local BUILD_TAG=''
+	local BUILD_REG=$(awk -F"." '{print $1}' <<< "${CUDA_BUILD}")
+	local CUDA_REG=$(awk -F"." '{print $1$2}' <<< "${CUDA_VERSION}")
 	local info_skip=0
 	## etablish cuda pack name before tmpfs check in case ram issue and pack saving.
-	# local BUILD_REG=$(awk -F"." '{print $1}' <<< ${CUDA_BUILD})
-	# [[ ${CUDA_BUILD} =~ ^615 ]] && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}" # TEST
-	(( ${BUILD_REG} >= 615 )) && BUILD_TAG='' || BUILD_TAG="_${CUDA_BUILD}"
-	local_pack=cuda_${CUDA_VERSION}${BUILD_TAG}_linux.run
+	(( ${CUDA_REG} < 134 )) && BUILD_TAG="_${CUDA_BUILD}" || BUILD_TAG=''
+	local_pack="cuda_${CUDA_VERSION}${BUILD_TAG}_linux.run"
 	## check if system has enough space left to handle install processes.
 	cuda_tmpfs_warn
 	# https://developer.download.nvidia.com/compute/cuda/12.9.1/local_installers/cuda_12.9.1_575.57.08_linux.run
