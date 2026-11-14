@@ -635,3 +635,13 @@
    Because cuda-uninstaller is a very (very) long process and probably useless, I'm digging for a more
    soft solution.
  - Transalation not update yet.
+* 2026-11-14 - v2.6.49
+ - FIX: During tests, I made a driver regression to official 595 by mistake. This has revealed that
+   new Cuda release naming base on driver serie detection was not correct and needed to be move to
+   Cuda release detection instead.
+ - UPDATE: Cuda-uninstaller is making to much heavy controls for each removed libs. This is useless
+   because Cuda installation isn't impacting the system in any ways. So, now "remove" is simply made
+   by rm on cuda installation in /usr/local and manifest in /var/log.
+ - INFO : There could be more incomming little fixes, some parts of the code have been significantly
+   changed since cuda implementation.
+
